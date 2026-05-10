@@ -221,7 +221,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DealCard({ deal }) {
+function DealCard({ deal }: { deal: any }) {
   return (
     <article className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.07]">
       <div className="mb-4 flex items-center justify-between">
@@ -257,7 +257,7 @@ function DealCard({ deal }) {
   );
 }
 
-function InfoCard({ title, text }) {
+function InfoCard({ title, text }: { title: string; text: string }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-zinc-950 p-6">
       <h3 className="text-xl font-black">{title}</h3>
