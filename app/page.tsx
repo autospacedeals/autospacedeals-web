@@ -212,7 +212,7 @@ export default function AutoSpaceDealsMVP() {
   );
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <p className="text-xs text-zinc-500">{label}</p>
