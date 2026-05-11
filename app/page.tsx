@@ -103,6 +103,9 @@ export default function AutoSpaceDealsMVP() {
             <a href="#deals" className="hover:text-white">Deals</a>
             <a href="#brokers" className="hover:text-white">Brokers</a>
             <a href="#how" className="hover:text-white">How it works</a>
+            <a href="/leasing-guide" className="text-sm text-zinc-300 hover:text-white">
+  Leasing Guide
+</a>
           </nav>
           <button className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200">
             Submit a Deal
