@@ -83,7 +83,7 @@ export default function AutoSpaceDealsMVP() {
     return deals.filter((deal) => {
       const matchesBrand = brand === "All" || deal.make === brand;
       const matchesPayment = deal.payment <= maxPayment;
-      const text = `${deal.make} ${deal.model} ${deal.trim} ${deal.region} ${deal.broker}`.toLowerCase();
+      const text = `${deal.make} ${deal.model} ${deal.exterior} ${deal.interior} ${deal.broker}`.toLowerCase();
       const matchesQuery = text.includes(query.toLowerCase());
       return matchesBrand && matchesPayment && matchesQuery;
     });
