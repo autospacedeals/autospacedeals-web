@@ -72,23 +72,38 @@ const deals = [
   },
 ];
 
-const brands = ["All", "BMW", "Mercedes-Benz", "Toyota", "Land Rover"]; 
+const brands = ["All", ...Array.from(new Set(deals.map((deal) => deal.make)))];
 
 export default function AutoSpaceDealsMVP() {
   const [brand, setBrand] = useState("All");
   const [maxPayment, setMaxPayment] = useState(1000);
   const [query, setQuery] = useState("");
-
+const [selectedDeal, setSelectedDeal] = useState<any | null>(null);
   const filteredDeals = useMemo(() => {
+    const search = query.trim().toLowerCase();
+
     return deals.filter((deal) => {
       const matchesBrand = brand === "All" || deal.make === brand;
       const matchesPayment = deal.payment <= maxPayment;
-      const text = `${deal.make} ${deal.model} ${deal.exterior} ${deal.interior} ${deal.broker}`.toLowerCase();
-      const matchesQuery = text.includes(query.toLowerCase());
+
+      const searchableText = [
+        deal.make,
+        deal.model,
+        deal.region,
+        deal.exterior,
+        deal.interior,
+        deal.broker,
+        deal.notes,
+        ...(deal.packages || []),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesQuery = search === "" || searchableText.includes(search);
+
       return matchesBrand && matchesPayment && matchesQuery;
     });
   }, [brand, maxPayment, query]);
-
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <header className="border-b border-white/10 bg-zinc-950/80 backdrop-blur">
@@ -196,8 +211,11 @@ export default function AutoSpaceDealsMVP() {
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {filteredDeals.map((deal) => (
-              <DealCard key={deal.id} deal={deal} />
-            ))}
+<DealCard
+  key={deal.id}
+  deal={deal}
+  onSelect={setSelectedDeal}
+/>            ))}
           </div>
         </section>
 
@@ -208,6 +226,105 @@ export default function AutoSpaceDealsMVP() {
             <InfoCard title="Easy customer handoff" text="Customers can contact the broker directly so the broker keeps the lead and closes the deal." />
           </div>
         </section>
+        {selectedDeal && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+    onClick={() => setSelectedDeal(null)}
+  >
+    <div
+      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-zinc-400">
+            {selectedDeal.make}
+          </p>
+
+          <h2 className="text-3xl font-black">
+            {selectedDeal.model}
+          </h2>
+
+          <p className="mt-1 text-zinc-400">
+            {selectedDeal.region}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setSelectedDeal(null)}
+          className="rounded-xl border border-white/10 px-3 py-2 text-sm hover:bg-white/10"
+        >
+          Close
+        </button>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl bg-white/5 p-4">
+          <p className="text-xs text-zinc-500">Monthly</p>
+          <p className="mt-1 text-2xl font-black">
+            ${selectedDeal.payment}/mo
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white/5 p-4">
+          <p className="text-xs text-zinc-500">Due at Signing</p>
+          <p className="mt-1 text-2xl font-black">
+            ${selectedDeal.dueAtSigning}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white/5 p-4">
+          <p className="text-xs text-zinc-500">Term</p>
+          <p className="mt-1 text-2xl font-black">
+            {selectedDeal.term} mo
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-white/10 p-5">
+        <h3 className="text-lg font-bold">
+          Deal Details
+        </h3>
+
+        <div className="mt-4 space-y-2 text-zinc-300">
+          <p>Region: {selectedDeal.region}</p>
+          <p>Exterior: {selectedDeal.exterior}</p>
+          <p>Interior: {selectedDeal.interior}</p>
+          <p>Broker: {selectedDeal.broker}</p>
+          <p>Broker Fee: ${selectedDeal.fee}</p>
+          <p>Mileage: {selectedDeal.miles}/yr</p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-white/10 p-5">
+        <h3 className="text-lg font-bold">
+          Incentives & Packages
+        </h3>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {selectedDeal.packages?.map((item: string) => (
+            <span
+              key={item}
+              className="rounded-full bg-white/10 px-3 py-1 text-sm"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-white/10 p-5">
+        <h3 className="text-lg font-bold">
+          Notes
+        </h3>
+
+        <p className="mt-3 leading-7 text-zinc-300">
+          {selectedDeal.notes}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
       </main>
 
       <footer className="mx-auto flex max-w-7xl flex-col justify-between gap-4 px-6 py-10 text-sm text-zinc-500 md:flex-row">
@@ -227,10 +344,18 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DealCard({ deal }: { deal: any }) {
+function DealCard({
+  deal,
+  onSelect,
+}: {
+  deal: any;
+  onSelect: (deal: any) => void;
+}) {
   return (
-    <article className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.07]">
-      <div className="mb-4 flex items-center justify-between">
+<article
+  onClick={() => onSelect(deal)}
+  className="cursor-pointer rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.08]"
+>      <div className="mb-4 flex items-center justify-between">
         <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-950">{deal.badge}</span>
         <span className="flex items-center gap-1 text-xs text-zinc-400"><Star size={14} /> {deal.fuel}</span>
       </div>
@@ -256,9 +381,38 @@ function DealCard({ deal }: { deal: any }) {
         <p className="flex items-center gap-2"><CalendarDays size={16} /> Broker: {deal.broker}</p>
       </div>
 
-      <button className="mt-6 w-full rounded-2xl bg-white px-4 py-3 font-bold text-zinc-950 transition hover:bg-zinc-200">
-        Contact Broker
-      </button>
+<div className="mt-6 rounded-2xl bg-white p-1">
+  <details className="group">
+    <summary className="cursor-pointer list-none rounded-xl px-4 py-3 text-center font-bold text-zinc-950 transition hover:bg-zinc-200">
+      Contact Broker
+    </summary>
+
+    <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-950">
+      <p className="text-sm font-bold">Contact Broker</p>
+      <p className="mt-1 text-sm text-zinc-600">Choose how you want to reach us.</p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <a
+          href="tel:7475558899"
+          className="rounded-xl bg-zinc-950 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-zinc-800"
+        >
+          Call
+        </a>
+
+        <a
+          href="sms:7475558899"
+          className="rounded-xl bg-zinc-200 px-4 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-300"
+        >
+          Text
+        </a>
+      </div>
+
+      <p className="mt-3 text-center text-xs text-zinc-500">
+        747-555-8899
+      </p>
+    </div>
+  </details>
+</div>
     </article>
   );
 }
