@@ -89,7 +89,6 @@ const [selectedDeal, setSelectedDeal] = useState<any | null>(null);
       const searchableText = [
         deal.make,
         deal.model,
-        deal.region,
         deal.exterior,
         deal.interior,
         deal.broker,
