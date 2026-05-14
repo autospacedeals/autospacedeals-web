@@ -73,7 +73,15 @@ const deals = [
 ];
 
 const brands = ["All", ...Array.from(new Set(deals.map((deal) => deal.make)))];
+const brandImages: Record<string, string> = {
+  BMW: "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80",
+  "Mercedes-Benz": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80",
+  Toyota: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
+  "Land Rover": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80",
+};
 
+const fallbackImage =
+  "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=80";
 export default function AutoSpaceDealsMVP() {
   const [brand, setBrand] = useState("All");
   const [maxPayment, setMaxPayment] = useState(1000);
@@ -350,11 +358,20 @@ function DealCard({
   deal: any;
   onSelect: (deal: any) => void;
 }) {
-  return (
-<article
-  onClick={() => onSelect(deal)}
-  className="cursor-pointer rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.08]"
->      <div className="mb-4 flex items-center justify-between">
+  const image = brandImages[deal.make] || fallbackImage;
+return (
+  <article
+    onClick={() => onSelect(deal)}
+    className="cursor-pointer rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.08]"
+  >
+    <div className="mb-5 overflow-hidden rounded-2xl bg-zinc-900">
+      <img
+        src={image}
+        alt={`${deal.make} ${deal.model}`}
+        className="h-52 w-full object-cover transition duration-300 hover:scale-105"
+      />
+    </div>
+      <div className="mb-4 flex items-center justify-between">
         <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-950">{deal.badge}</span>
         <span className="flex items-center gap-1 text-xs text-zinc-400"><Star size={14} /> {deal.fuel}</span>
       </div>
