@@ -30,6 +30,7 @@ const deals = [
     fuel: "EV",
     region: "CA",
     broker: "Chrome Stallions",
+    brokerPhone: "747-555-8899",
     brokerFee: 599,
     badge: "EV",
     notes: "Loyalty required. Based on 7.75% base rate.",
@@ -51,6 +52,7 @@ const deals = [
     fuel: "EV",
     region: "CA",
     broker: "Chrome Stallions",
+    brokerPhone: "747-555-8899",
     brokerFee: 599,
     badge: "HOT",
     notes: "Loyalty required. Based on 7.75% base rate.",
@@ -72,6 +74,7 @@ const deals = [
     fuel: "EV",
     region: "CA",
     broker: "Chrome Stallions",
+    brokerPhone: "747-555-8899",
     brokerFee: 599,
     badge: "NEW",
     notes: "Loyalty required. Based on 7.75% base rate.",
@@ -93,6 +96,7 @@ const deals = [
     fuel: "EV",
     region: "CA",
     broker: "Chrome Stallions",
+    brokerPhone: "747-555-8899",
     brokerFee: 599,
     badge: "VALUE",
     notes: "Loyalty required. Based on 7.75% base rate.",
@@ -113,6 +117,7 @@ const deals = [
     interior: "Black",
     fuel: "Gas",
     broker: "test",
+    brokerPhone: "111-222-3333",
     brokerFee: 599,
     region: "CA",
     notes: "Loyalty incentive included",
@@ -134,6 +139,7 @@ const deals = [
     interior: "White",
     fuel: "EV",
     broker: "test",
+    brokerPhone: "111-222-3333",
     brokerFee: 399,
     region: "NY",
     notes: "Includes conquest rebate",
@@ -155,6 +161,7 @@ const deals = [
     interior: "Black",
     fuel: "Hybrid",
     broker: "test",
+    brokerPhone: "111-222-3333",
     brokerFee: 499,
     region: "NJ",
     notes: "Tax not included",
@@ -176,6 +183,7 @@ const deals = [
     interior: "Red",
     fuel: "Gas",
     broker: "test",
+    brokerPhone: "111-222-3333",
     brokerFee: 799,
     region: "FL",
     notes: "Demo unit special",
@@ -546,6 +554,7 @@ function DealCard({
   onSelect: (deal: any) => void;
 }) {
   const image = brandImages[deal.make] || fallbackImage;
+  const phoneForLink = deal.brokerPhone.replace(/\D/g, "");
 
   return (
     <article
@@ -629,14 +638,14 @@ function DealCard({
 
             <div className="mt-4 grid grid-cols-2 gap-2">
               <a
-                href="tel:7475558899"
+                href={`tel:${phoneForLink}`}
                 className="rounded-xl bg-zinc-950 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-zinc-800"
               >
                 Call
               </a>
 
               <a
-                href="sms:7475558899"
+                href={`sms:${phoneForLink}`}
                 className="rounded-xl bg-zinc-200 px-4 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-300"
               >
                 Text
@@ -644,7 +653,7 @@ function DealCard({
             </div>
 
             <p className="mt-3 text-center text-xs text-zinc-500">
-              747-555-8899
+              {deal.brokerPhone}
             </p>
           </div>
         </details>
