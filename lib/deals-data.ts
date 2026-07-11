@@ -150,7 +150,7 @@ export const deals: Deal[] = [
     notes:
       "Loyalty required — must currently own or lease a BMW. Based on a 7.75% base money factor before any credit adjustments. Price and incentives can change at any time.",
     packages: ["Premium Package", "Parking Assistant", "Driving Assistance Pro", "Shadowline Trim"],
-    images: [STOCK_IMAGES.ev],
+    images: ["https://di-uploads-pod32.dealerinspire.com/caseybmw/uploads/2025/12/2026-BMW-i4-eDrive40-Red.png"],
   },
   {
     id: 2,
@@ -222,7 +222,7 @@ export const deals: Deal[] = [
     badge: "HOT",
     notes: "Loyalty or conquest incentive already applied to the advertised payment. Subject to credit approval.",
     packages: ["Premium Plus", "Navigation Package"],
-    images: [STOCK_IMAGES.suv],
+    images: ["https://media.chromedata.com/MediaGallery/media/MjkzOTU4Xk1lZGlhIEdhbGxlcnk/Opm-o5Il9qxgIojKpnMfz_V4AJwRpp8jWNS9lyki2OE1PB7HXUwkM8DRlDfZc49E5gL5zeipcXxss4lCvyeh3EgPIgcFyqQgDG5oWyXSfW814eV5ZNEKrzOL5wZ_L5ps_Q4x8LWlAkRPB_pdXFAiUdpKMAgOGEUHJL6M-_jigj3ho0-WHg4NY9jh0ukiVgeX/cc_2026AUS022035134_01_640_Z9Z9.png"],
   },
   {
     id: 4,
@@ -257,7 +257,7 @@ export const deals: Deal[] = [
     badge: "EV",
     notes: "Includes federal and state EV lease credit passed through by the lender. Confirm current eligibility before signing.",
     packages: ["Long Range Battery", "Autopilot"],
-    images: [STOCK_IMAGES.ev],
+    images: ["https://autoimage.capitalone.com/stock-media/chrome/2025-Tesla-Model_3-Long_Range-PN01-cc_2025TSC031930472_01_2100_PN01.png"],
   },
   {
     id: 5,
@@ -292,7 +292,7 @@ export const deals: Deal[] = [
     badge: "NEW",
     notes: "Finance offer, not a lease. APR based on tier-1 credit approval; actual rate depends on final credit approval.",
     packages: ["Long Range Battery", "Enhanced Autopilot"],
-    images: ["https://images.unsplash.com/photo-1676754568744-7852efc67c40?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://autoimage.capitalone.com/stock-media/chrome/2026-Tesla-Model_Y-Long_Range_Launch_Series-PPSW-cc_2026TSS021956392_01_2100_PPSW.png"],
   },
   {
     id: 6,
@@ -327,7 +327,7 @@ export const deals: Deal[] = [
     badge: "VALUE",
     notes: "Tax not included in advertised payment. Sale price reflects all available manufacturer incentives.",
     packages: ["Touring Package"],
-    images: ["https://images.unsplash.com/photo-1707070182914-fb69f596c98e?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://file.kelleybluebookimages.com/kbb/base/evox/CP/54861/2025-Honda-CR-V%20Hybrid-front_54861_032_1853x855_WX_cropped.png"],
   },
   {
     id: 7,
@@ -362,7 +362,7 @@ export const deals: Deal[] = [
     badge: "VALUE",
     notes: "Finance offer requires tier-1 credit approval. Price reflects dealer discount before tax, title, and fees.",
     packages: ["Sport Trim", "Alloy Wheels"],
-    images: [STOCK_IMAGES.hatchback],
+    images: ["https://automobiles.honda.com/-/media/Honda-Automobiles/Vehicles/2025/civic-hatchback/AW/Carshot/carshot_CivicHatchback_front_CIVIC20LHATCHSPORT_2025_RallyeRed_FL2H8SEW_R-513.png"],
   },
   {
     id: 8,
@@ -397,7 +397,7 @@ export const deals: Deal[] = [
     badge: "NEW",
     notes: "Demo unit with under 2,000 miles. Full factory warranty applies.",
     packages: ["Sport Chrono Package"],
-    images: [STOCK_IMAGES.suv],
+    images: ["https://platform.cstatic-images.com/in/v2/stock_photos/8107907e-3b88-43e8-ab23-5dfbecad4124/ffeb4d15-6d70-4e97-b1d3-5f7b8b8e0cfe.png"],
   },
   {
     id: 9,
@@ -432,7 +432,7 @@ export const deals: Deal[] = [
     badge: "HOT",
     notes: "This unit is currently pending sale. Broker can source a similar allocation — contact for availability.",
     packages: ["Sport Chrono Package", "PASM Sport Suspension"],
-    images: ["https://images.unsplash.com/photo-1580274455191-1c62238fa333?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://file.kelleybluebookimages.com/kbb/base/evox/CP/50643/2024-Porsche-911-front_50643_032_2400x1800_G1_nologo.png"],
   },
   {
     id: 10,
@@ -467,7 +467,7 @@ export const deals: Deal[] = [
     badge: "VALUE",
     notes: "Regional Toyota lease support included in advertised payment. Confirm current APR/lease rates with dealer.",
     packages: ["XLE Convenience Package"],
-    images: ["https://images.unsplash.com/photo-1706509234538-9831b1b33d66?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://media.chromedata.com/MediaGallery/media/MjkzOTU4Xk1lZGlhIEdhbGxlcnk/LMd-9QmYj0TIKmjuiGTIVIAyPpWGgUaas9UkIwUHDfunO6Zuq4BFCQPIwp0L4n6KlxDaJG-pOCwoCNpfs9kZy8IfPwsr5wbYAfVYGF8TSzIBBjEkVoWlTj_yyLxMVWPw2L9dY9HDJrNIjYRwsW4aQ8z9t7hjbWgl1QFYd2gMbqsHDMcj54Ttlw/cc_2026TOS112033667_01_640_218.png"],
   },
   {
     id: 11,
@@ -502,7 +502,7 @@ export const deals: Deal[] = [
     badge: "NEW",
     notes: "Price includes Ford truck month incentive. APR shown is the best-case tier-1 rate.",
     packages: ["Lariat Sport Package", "Tow Package"],
-    images: ["https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://media.chromedata.com/MediaGallery/media/MjkzOTU4Xk1lZGlhIEdhbGxlcnk/LEaf6etXBo1PrtbQydb8M4uLiR8MTAiArmq5aWM6ggdx1uPGX-I0aFA9qpiHGLP9YK9obGPY6pH2bObXVHBqXWQQEPYO9yr-rE-joos7tH_5MAcNF4YJmQZbS0sHHqTWM5-_hZOovfamgywLTMQAglrx46B1K2zHQLrmHrLb26Z07-7Pwfwf_6KVjyvDEWcj7ZVMB5IeaBE/cc_2025FOT112016063_01_640_A3.png"],
   },
   {
     id: 12,
@@ -537,7 +537,7 @@ export const deals: Deal[] = [
     badge: "VALUE",
     notes: "Loyalty incentive applied. Tax, title, license, and doc fees are additional.",
     packages: ["Limited Package", "Panoramic Sunroof"],
-    images: ["https://images.unsplash.com/photo-1758223165169-d4ee038a0cea?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://media.chromedata.com/MediaGallery/media/MjkzOTU4Xk1lZGlhIEdhbGxlcnk/It38wX8WXQivo8iiX3aiflXq9atjDWsn3APYdZ4f_iGOCrUxyoD31Kz-s2KT2OoGQRR204UbKN5zuWSCQ1OPaYh_OY9gdQuBfkQiLrk1dDmC0ds9oehDtodndNCmXqUnYMHKrmXknPO0ZcrdbyPg17lyK9a8SlMBDbuLFLhWwnGGYLJAKOCObg/cc_2026JES052064422_01_640_PXJ.png"],
   },
   {
     id: 13,
@@ -572,7 +572,7 @@ export const deals: Deal[] = [
     badge: "EV",
     notes: "Federal EV lease incentive passed through in advertised payment. Broker fee applies at signing.",
     packages: ["SEL Convenience Package"],
-    images: ["https://images.unsplash.com/photo-1775391985326-4992d84df5ea?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://vehicle-images.carscommerce.inc/89d7-11000259/7YAKNDDC1SY004691/1d8dd5f97abba655c23c72ab805f62bf.png"],
   },
   {
     id: 14,
@@ -607,7 +607,7 @@ export const deals: Deal[] = [
     badge: "NEW",
     notes: "3-row SUV, current model year. Advertised payment assumes tier-1 credit through Kia Finance.",
     packages: ["SX Prestige Package", "3rd Row Seating"],
-    images: [STOCK_IMAGES.suv],
+    images: ["https://di-uploads-pod36.dealerinspire.com/qualitykiaofgreenwood/uploads/2025/02/2025-Kia-Telluride-Glacial-White-Pearl-Quality-Kia-of-Greenwood-SC.png"],
   },
   {
     id: 15,
@@ -642,7 +642,7 @@ export const deals: Deal[] = [
     badge: "VALUE",
     notes: "Stow 'n Go seating. Advertised payment includes current manufacturer lease cash.",
     packages: ["Limited Package", "Stow 'n Go Seating", "Rear Entertainment"],
-    images: ["https://images.unsplash.com/photo-1623371857133-6d5552bbdc13?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://autoimage.capitalone.com/stock-media/evox/2025-Chrysler-Pacifica-Select-PR6-55842_cc2400_032_PR6.png"],
   },
   {
     id: 16,
@@ -677,7 +677,7 @@ export const deals: Deal[] = [
     badge: "VALUE",
     notes: "Broker fee of $599 applies at signing, included in the due-at-signing figure shown.",
     packages: ["Premium Package", "Bose Audio"],
-    images: ["https://images.unsplash.com/photo-1743114713466-f12a85992a75?auto=format&fit=crop&w=1600&q=80"],
+    images: ["https://media.chromedata.com/MediaGallery/media/MjkzOTU4Xk1lZGlhIEdhbGxlcnk/A6ZVqgdvNgOiQq-_wJpkX_qpj--IgVkudnCgIYuqRt6JxmDFlOmjPYq4DtjyAJkaswTgZgxrVkNz_jB04K1tYtchCAyYDoARXr0ELeY6JuPdQimzEovaegBoy1dLfTlsAzVk03FgCTKKj0DVzb74SwCXwHGOuifDlHMPexGa4I_gpiyTkB8c2I9nEYtckh09/cc_2026MAS062057357_01_640_47C.png"],
   },
 
   // ---------------------------------------------------------------------
