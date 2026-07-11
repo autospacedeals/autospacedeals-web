@@ -1,0 +1,884 @@
+// =============================================================================
+// AutoSpace Deals — Deal Inventory
+// =============================================================================
+// This file is the single source of truth for every deal shown on the site.
+// It is plain TypeScript data (no database yet), so adding or editing a deal
+// is as simple as copying a block below and changing the values.
+//
+// HOW TO ADD A NEW DEAL:
+//   1. Copy any object inside the `deals` array below.
+//   2. Give it a new unique `id` and `slug` (slug = URL-friendly name, e.g.
+//      "2026-bmw-x5-xdrive40i-ca").
+//   3. Fill in the real numbers from the dealer/broker's offer.
+//   4. Save the file — the homepage and detail page update automatically.
+//
+// PHOTOS: We don't have real dealer photos yet, so `images` currently points
+// at generic stock photos grouped by body style / fuel type (see the
+// STOCK_IMAGES block below) just so the site doesn't look empty or broken.
+// Replace the `images` array on any deal with real photo URLs whenever a
+// dealer/broker sends real pictures — nothing else needs to change.
+// =============================================================================
+
+export type SellerType = "Dealer" | "Broker";
+export type DealType = "Lease" | "Finance";
+export type FuelType = "Gas" | "Hybrid" | "PHEV" | "EV";
+export type BodyStyle =
+  | "Sedan"
+  | "SUV"
+  | "Truck"
+  | "Coupe"
+  | "Minivan"
+  | "Hatchback";
+
+export interface Deal {
+  id: number;
+  slug: string;
+
+  // Vehicle
+  year: number;
+  make: string;
+  model: string;
+  trim: string;
+  bodyStyle: BodyStyle;
+  fuel: FuelType;
+  exterior: string;
+  interior: string;
+
+  // Deal
+  dealType: DealType;
+  msrp: number;
+  sellingPrice: number; // negotiated price before tax — used to calc MSRP discount
+  payment: number; // monthly payment
+  dueAtSigning: number; // due at signing (lease) or down payment (finance)
+  term: number; // months
+  milesPerYear: number | null; // null for finance deals
+  apr: number | null; // annual %, only used for finance deals
+
+  // Seller
+  sellerType: SellerType;
+  sellerName: string;
+  sellerPhone: string;
+  sellerEmail: string;
+  city: string;
+  state: string; // 2-letter code
+
+  // Trust / status
+  verified: boolean;
+  inStock: boolean;
+  popularity: number; // 0-100, used for "Most popular" sort
+  datePosted: string; // ISO date (YYYY-MM-DD)
+
+  // Content
+  badge?: string;
+  notes: string;
+  packages: string[];
+  images: string[];
+
+  // Provenance — where this listing came from. Optional; used for real deals
+  // pulled from a broker's public posts (e.g. their Leasehackr thread) so we
+  // can trace it back and re-verify pricing later.
+  sourceUrl?: string;
+
+  // Sample/demo listing flag. True for placeholder deals used to fill out
+  // the site before we have a full pipeline of real broker/dealer inventory.
+  // Sample listings use stock photos that are NOT guaranteed to match the
+  // exact year/trim — they're illustrative only, and the UI must badge them
+  // clearly so nobody mistakes a sample listing for a real, verified one.
+  sample?: boolean;
+}
+
+// -----------------------------------------------------------------------------
+// Stock category images (see note above). All hosted on Unsplash.
+// -----------------------------------------------------------------------------
+const STOCK_IMAGES = {
+  ev: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=1600&q=80",
+  sedan:
+    "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1600&q=80",
+  suv: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?auto=format&fit=crop&w=1600&q=80",
+  hatchback:
+    "https://images.unsplash.com/photo-1617469767053-d3b523a0b982?auto=format&fit=crop&w=1600&q=80",
+  performance:
+    "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80",
+  generic:
+    "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1600&q=80",
+};
+
+export function stockImageFor(fuel: FuelType, bodyStyle: BodyStyle): string {
+  if (fuel === "EV") return STOCK_IMAGES.ev;
+  if (bodyStyle === "Coupe") return STOCK_IMAGES.performance;
+  if (bodyStyle === "Sedan") return STOCK_IMAGES.sedan;
+  if (bodyStyle === "SUV") return STOCK_IMAGES.suv;
+  if (bodyStyle === "Hatchback") return STOCK_IMAGES.hatchback;
+  return STOCK_IMAGES.generic; // Truck, Minivan, anything else
+}
+
+// -----------------------------------------------------------------------------
+// Deals
+// -----------------------------------------------------------------------------
+export const deals: Deal[] = [
+  {
+    id: 1,
+    slug: "2026-bmw-i4-edrive40-ca",
+    year: 2026,
+    make: "BMW",
+    model: "i4 eDrive40",
+    trim: "Base",
+    bodyStyle: "Sedan",
+    fuel: "EV",
+    exterior: "Vegas Red",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 64000,
+    sellingPrice: 60200,
+    payment: 459,
+    dueAtSigning: 3500,
+    term: 36,
+    milesPerYear: 7500,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "747-555-2210",
+    sellerEmail: "deals@socalautobrokers.example",
+    city: "Los Angeles",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 92,
+    datePosted: "2026-06-29",
+    badge: "EV",
+    notes:
+      "Loyalty required — must currently own or lease a BMW. Based on a 7.75% base money factor before any credit adjustments. Price and incentives can change at any time.",
+    packages: ["Premium Package", "Parking Assistant", "Driving Assistance Pro", "Shadowline Trim"],
+    images: [STOCK_IMAGES.ev],
+  },
+  {
+    id: 2,
+    slug: "2026-bmw-x5-xdrive40i-ca",
+    year: 2026,
+    make: "BMW",
+    model: "X5",
+    trim: "xDrive40i",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Alpine White",
+    interior: "Cognac",
+    dealType: "Lease",
+    msrp: 71200,
+    sellingPrice: 66800,
+    payment: 689,
+    dueAtSigning: 4500,
+    term: 36,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "747-555-2210",
+    sellerEmail: "deals@socalautobrokers.example",
+    city: "Los Angeles",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 78,
+    datePosted: "2026-06-25",
+    badge: "HOT",
+    notes: "No loyalty required. Tax, title, and registration are additional and vary by county.",
+    packages: ["Premium Package", "20\" Wheels", "Convenience Package"],
+    images: [
+      "https://media.chromedata.com/MediaGallery/media/MjkzOTU4Xk1lZGlhIEdhbGxlcnk/o10qiMPxXkopc2mFsQ0AUs_xru79YZFSeXSVQkY2w4NlDrU74XvajDCTMdJdgADwu8ZxJ1V9jM9pLkbxlEmd87kbSW8dwQrxPGh0u6WUmmPUxsfCq8rOsjY5MpXvoDz-oyq3PNUY0JXrZ6rskxqYLKK5rMO78JvZ7k479i9czmeUrD5zP8tEVMCUissbJrxRllHzTg7fgiE/cc_2026BMS191998056_01_640_300.png",
+    ],
+  },
+  {
+    id: 3,
+    slug: "2026-audi-q5-premium-plus-ca",
+    year: 2026,
+    make: "Audi",
+    model: "Q5",
+    trim: "Premium Plus",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Glacier White",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 58240,
+    sellingPrice: 55100,
+    payment: 589,
+    dueAtSigning: 3500,
+    term: 36,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "415-555-2244",
+    sellerEmail: "leasing@bayareaaudi.example",
+    city: "San Jose",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 64,
+    datePosted: "2026-06-30",
+    badge: "HOT",
+    notes: "Loyalty or conquest incentive already applied to the advertised payment. Subject to credit approval.",
+    packages: ["Premium Plus", "Navigation Package"],
+    images: [STOCK_IMAGES.suv],
+  },
+  {
+    id: 4,
+    slug: "2025-tesla-model-3-long-range-ny",
+    year: 2025,
+    make: "Tesla",
+    model: "Model 3",
+    trim: "Long Range",
+    bodyStyle: "Sedan",
+    fuel: "EV",
+    exterior: "Gray Metallic",
+    interior: "White",
+    dealType: "Lease",
+    msrp: 52990,
+    sellingPrice: 49500,
+    payment: 499,
+    dueAtSigning: 2500,
+    term: 36,
+    milesPerYear: 12000,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "212-555-0133",
+    sellerEmail: "hello@evleasepros.example",
+    city: "New York",
+    state: "NY",
+    verified: true,
+    inStock: true,
+    popularity: 71,
+    datePosted: "2026-06-20",
+    badge: "EV",
+    notes: "Includes federal and state EV lease credit passed through by the lender. Confirm current eligibility before signing.",
+    packages: ["Long Range Battery", "Autopilot"],
+    images: [STOCK_IMAGES.ev],
+  },
+  {
+    id: 5,
+    slug: "2026-tesla-model-y-long-range-ny",
+    year: 2026,
+    make: "Tesla",
+    model: "Model Y",
+    trim: "Long Range",
+    bodyStyle: "SUV",
+    fuel: "EV",
+    exterior: "Pearl White",
+    interior: "Black",
+    dealType: "Finance",
+    msrp: 54990,
+    sellingPrice: 52200,
+    payment: 719,
+    dueAtSigning: 4000,
+    term: 60,
+    milesPerYear: null,
+    apr: 5.4,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "212-555-0177",
+    sellerEmail: "sales@manhattanevgallery.example",
+    city: "New York",
+    state: "NY",
+    verified: false,
+    inStock: true,
+    popularity: 58,
+    datePosted: "2026-06-15",
+    badge: "NEW",
+    notes: "Finance offer, not a lease. APR based on tier-1 credit approval; actual rate depends on final credit approval.",
+    packages: ["Long Range Battery", "Enhanced Autopilot"],
+    images: ["https://images.unsplash.com/photo-1676754568744-7852efc67c40?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 6,
+    slug: "2025-honda-cr-v-hybrid-sport-touring-nj",
+    year: 2025,
+    make: "Honda",
+    model: "CR-V Hybrid",
+    trim: "Sport Touring",
+    bodyStyle: "SUV",
+    fuel: "Hybrid",
+    exterior: "Canyon River Blue",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 41250,
+    sellingPrice: 39400,
+    payment: 429,
+    dueAtSigning: 2999,
+    term: 39,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "973-555-6612",
+    sellerEmail: "internet@gardenstatehonda.example",
+    city: "Newark",
+    state: "NJ",
+    verified: true,
+    inStock: true,
+    popularity: 66,
+    datePosted: "2026-06-27",
+    badge: "VALUE",
+    notes: "Tax not included in advertised payment. Sale price reflects all available manufacturer incentives.",
+    packages: ["Touring Package"],
+    images: ["https://images.unsplash.com/photo-1707070182914-fb69f596c98e?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 7,
+    slug: "2025-honda-civic-hatchback-sport-nj",
+    year: 2025,
+    make: "Honda",
+    model: "Civic",
+    trim: "Sport Hatchback",
+    bodyStyle: "Hatchback",
+    fuel: "Gas",
+    exterior: "Rallye Red",
+    interior: "Black",
+    dealType: "Finance",
+    msrp: 27650,
+    sellingPrice: 25900,
+    payment: 349,
+    dueAtSigning: 1999,
+    term: 60,
+    milesPerYear: null,
+    apr: 4.9,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "973-555-6612",
+    sellerEmail: "internet@gardenstatehonda.example",
+    city: "Newark",
+    state: "NJ",
+    verified: true,
+    inStock: true,
+    popularity: 41,
+    datePosted: "2026-06-18",
+    badge: "VALUE",
+    notes: "Finance offer requires tier-1 credit approval. Price reflects dealer discount before tax, title, and fees.",
+    packages: ["Sport Trim", "Alloy Wheels"],
+    images: [STOCK_IMAGES.hatchback],
+  },
+  {
+    id: 8,
+    slug: "2025-porsche-macan-base-fl",
+    year: 2025,
+    make: "Porsche",
+    model: "Macan",
+    trim: "Base",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Jet Black",
+    interior: "Bordeaux Red",
+    dealType: "Lease",
+    msrp: 68400,
+    sellingPrice: 64900,
+    payment: 899,
+    dueAtSigning: 7000,
+    term: 36,
+    milesPerYear: 7500,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "305-555-4471",
+    sellerEmail: "concierge@sunshineexotic.example",
+    city: "Miami",
+    state: "FL",
+    verified: true,
+    inStock: true,
+    popularity: 55,
+    datePosted: "2026-06-22",
+    badge: "NEW",
+    notes: "Demo unit with under 2,000 miles. Full factory warranty applies.",
+    packages: ["Sport Chrono Package"],
+    images: [STOCK_IMAGES.suv],
+  },
+  {
+    id: 9,
+    slug: "2024-porsche-911-carrera-fl",
+    year: 2024,
+    make: "Porsche",
+    model: "911",
+    trim: "Carrera",
+    bodyStyle: "Coupe",
+    fuel: "Gas",
+    exterior: "Guards Red",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 118000,
+    sellingPrice: 112500,
+    payment: 1650,
+    dueAtSigning: 9500,
+    term: 36,
+    milesPerYear: 5000,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "305-555-4471",
+    sellerEmail: "concierge@sunshineexotic.example",
+    city: "Miami",
+    state: "FL",
+    verified: true,
+    inStock: false,
+    popularity: 88,
+    datePosted: "2026-06-10",
+    badge: "HOT",
+    notes: "This unit is currently pending sale. Broker can source a similar allocation — contact for availability.",
+    packages: ["Sport Chrono Package", "PASM Sport Suspension"],
+    images: ["https://images.unsplash.com/photo-1580274455191-1c62238fa333?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 10,
+    slug: "2026-toyota-rav4-hybrid-xle-tx",
+    year: 2026,
+    make: "Toyota",
+    model: "RAV4",
+    trim: "Hybrid XLE",
+    bodyStyle: "SUV",
+    fuel: "Hybrid",
+    exterior: "Magnetic Gray",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 36800,
+    sellingPrice: 35200,
+    payment: 389,
+    dueAtSigning: 2500,
+    term: 36,
+    milesPerYear: 12000,
+    apr: null,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "512-555-7788",
+    sellerEmail: "sales@lonestartoyota.example",
+    city: "Austin",
+    state: "TX",
+    verified: true,
+    inStock: true,
+    popularity: 74,
+    datePosted: "2026-07-01",
+    badge: "VALUE",
+    notes: "Regional Toyota lease support included in advertised payment. Confirm current APR/lease rates with dealer.",
+    packages: ["XLE Convenience Package"],
+    images: ["https://images.unsplash.com/photo-1706509234538-9831b1b33d66?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 11,
+    slug: "2025-ford-f-150-lariat-tx",
+    year: 2025,
+    make: "Ford",
+    model: "F-150",
+    trim: "Lariat",
+    bodyStyle: "Truck",
+    fuel: "Gas",
+    exterior: "Oxford White",
+    interior: "Black",
+    dealType: "Finance",
+    msrp: 58900,
+    sellingPrice: 54500,
+    payment: 749,
+    dueAtSigning: 3000,
+    term: 72,
+    milesPerYear: null,
+    apr: 5.9,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "512-555-9021",
+    sellerEmail: "trucks@lonestarford.example",
+    city: "Austin",
+    state: "TX",
+    verified: false,
+    inStock: true,
+    popularity: 47,
+    datePosted: "2026-06-12",
+    badge: "NEW",
+    notes: "Price includes Ford truck month incentive. APR shown is the best-case tier-1 rate.",
+    packages: ["Lariat Sport Package", "Tow Package"],
+    images: ["https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 12,
+    slug: "2026-jeep-grand-cherokee-limited-il",
+    year: 2026,
+    make: "Jeep",
+    model: "Grand Cherokee",
+    trim: "Limited",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Diamond Black",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 47500,
+    sellingPrice: 44800,
+    payment: 459,
+    dueAtSigning: 2999,
+    term: 36,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "312-555-3345",
+    sellerEmail: "leasing@windycityjeep.example",
+    city: "Chicago",
+    state: "IL",
+    verified: true,
+    inStock: true,
+    popularity: 52,
+    datePosted: "2026-06-24",
+    badge: "VALUE",
+    notes: "Loyalty incentive applied. Tax, title, license, and doc fees are additional.",
+    packages: ["Limited Package", "Panoramic Sunroof"],
+    images: ["https://images.unsplash.com/photo-1758223165169-d4ee038a0cea?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 13,
+    slug: "2025-hyundai-ioniq-5-sel-il",
+    year: 2025,
+    make: "Hyundai",
+    model: "Ioniq 5",
+    trim: "SEL",
+    bodyStyle: "SUV",
+    fuel: "EV",
+    exterior: "Cyber Gray",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 46800,
+    sellingPrice: 43900,
+    payment: 349,
+    dueAtSigning: 2999,
+    term: 36,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "312-555-7710",
+    sellerEmail: "deals@midwestevbrokers.example",
+    city: "Chicago",
+    state: "IL",
+    verified: true,
+    inStock: true,
+    popularity: 69,
+    datePosted: "2026-06-28",
+    badge: "EV",
+    notes: "Federal EV lease incentive passed through in advertised payment. Broker fee applies at signing.",
+    packages: ["SEL Convenience Package"],
+    images: ["https://images.unsplash.com/photo-1775391985326-4992d84df5ea?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 14,
+    slug: "2026-kia-telluride-sx-il",
+    year: 2026,
+    make: "Kia",
+    model: "Telluride",
+    trim: "SX",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Wolf Gray",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 52400,
+    sellingPrice: 49800,
+    payment: 559,
+    dueAtSigning: 3500,
+    term: 36,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "312-555-9987",
+    sellerEmail: "sales@windycitykia.example",
+    city: "Chicago",
+    state: "IL",
+    verified: false,
+    inStock: true,
+    popularity: 38,
+    datePosted: "2026-06-08",
+    badge: "NEW",
+    notes: "3-row SUV, current model year. Advertised payment assumes tier-1 credit through Kia Finance.",
+    packages: ["SX Prestige Package", "3rd Row Seating"],
+    images: [STOCK_IMAGES.suv],
+  },
+  {
+    id: 15,
+    slug: "2025-chrysler-pacifica-limited-nj",
+    year: 2025,
+    make: "Chrysler",
+    model: "Pacifica",
+    trim: "Limited",
+    bodyStyle: "Minivan",
+    fuel: "Gas",
+    exterior: "Velvet Red",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 49900,
+    sellingPrice: 46200,
+    payment: 469,
+    dueAtSigning: 2999,
+    term: 36,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Dealer",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "973-555-2201",
+    sellerEmail: "internet@gardenstatechrysler.example",
+    city: "Elizabeth",
+    state: "NJ",
+    verified: true,
+    inStock: true,
+    popularity: 33,
+    datePosted: "2026-06-05",
+    badge: "VALUE",
+    notes: "Stow 'n Go seating. Advertised payment includes current manufacturer lease cash.",
+    packages: ["Limited Package", "Stow 'n Go Seating", "Rear Entertainment"],
+    images: ["https://images.unsplash.com/photo-1623371857133-6d5552bbdc13?auto=format&fit=crop&w=1600&q=80"],
+  },
+  {
+    id: 16,
+    slug: "2026-mazda-cx-5-premium-ca",
+    year: 2026,
+    make: "Mazda",
+    model: "CX-5",
+    trim: "Premium",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Machine Gray",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 35400,
+    sellingPrice: 33600,
+    payment: 359,
+    dueAtSigning: 2500,
+    term: 36,
+    milesPerYear: 10000,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "test",
+    sample: true,
+    sellerPhone: "747-555-2210",
+    sellerEmail: "deals@socalautobrokers.example",
+    city: "Los Angeles",
+    state: "CA",
+    verified: false,
+    inStock: true,
+    popularity: 29,
+    datePosted: "2026-06-14",
+    badge: "VALUE",
+    notes: "Broker fee of $599 applies at signing, included in the due-at-signing figure shown.",
+    packages: ["Premium Package", "Bose Audio"],
+    images: ["https://images.unsplash.com/photo-1743114713466-f12a85992a75?auto=format&fit=crop&w=1600&q=80"],
+  },
+
+  // ---------------------------------------------------------------------
+  // Real deals below — sourced from Chrome Stallions' own public posts on
+  // their Leasehackr marketplace thread. Chrome Stallions has given
+  // permission to be listed on AutoSpace Deals. Prices reflect what the
+  // broker posted; confirm current availability before publishing updates,
+  // since brokers rotate these specials frequently (these were posted as
+  // "May Specials" — reconfirm for the current month before launch).
+  // ---------------------------------------------------------------------
+  {
+    id: 17,
+    slug: "2026-mercedes-benz-glc-300-4matic-ca",
+    year: 2026,
+    make: "Mercedes-Benz",
+    model: "GLC 300",
+    trim: "4MATIC",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Polar White",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 57000, // estimated — Chrome Stallions posts selling price, not full MSRP; confirm sticker with broker
+    sellingPrice: 53000,
+    payment: 299,
+    dueAtSigning: 3500,
+    term: 24,
+    milesPerYear: 7500,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "Chrome Stallions",
+    sellerPhone: "949-763-5609",
+    sellerEmail: "sales@chromestallions.com",
+    city: "Los Angeles",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 80,
+    datePosted: "2026-07-04",
+    badge: "HOT",
+    notes:
+      "Payment is +tax. Requires Conquest — an eligible 2020+ vehicle currently registered to you or someone in your household (proof of registration required). $599 broker fee is included in the due-at-signing total above. Serves both Norcal and Socal.",
+    packages: ["AMG Line Lite Plus"],
+    images: ["/cars/2026-mercedes-glc300-polar-white.png"],
+    sourceUrl:
+      "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
+  },
+  {
+    id: 18,
+    slug: "2026-mercedes-benz-c300-ca",
+    year: 2026,
+    make: "Mercedes-Benz",
+    model: "C300",
+    trim: "Base",
+    bodyStyle: "Sedan",
+    fuel: "Gas",
+    exterior: "Black",
+    interior: "Beige",
+    dealType: "Lease",
+    msrp: 55500, // estimated — see note on GLC 300 above
+    sellingPrice: 52000,
+    payment: 379,
+    dueAtSigning: 3500,
+    term: 24,
+    milesPerYear: 7500,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "Chrome Stallions",
+    sellerPhone: "949-763-5609",
+    sellerEmail: "sales@chromestallions.com",
+    city: "Los Angeles",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 62,
+    datePosted: "2026-07-04",
+    badge: "VALUE",
+    notes:
+      "Payment is +tax. Requires Conquest — an eligible 2020+ vehicle currently registered to you or someone in your household (proof of registration required). $599 broker fee is included in the due-at-signing total above.",
+    packages: ["Heated & Ventilated Seats", "19\" AMG Multispokes"],
+    images: ["https://vehicle-images.carscommerce.inc/stock-images/chrome/3a20930987c9467048d312873b7913e5.png"],
+    sourceUrl:
+      "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
+  },
+  {
+    id: 19,
+    slug: "2026-mercedes-benz-gle-450-coupe-ca",
+    year: 2026,
+    make: "Mercedes-Benz",
+    model: "GLE 450 Coupe",
+    trim: "Base",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "Graphite Gray",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 86500, // estimated — see note on GLC 300 above
+    sellingPrice: 81000,
+    payment: 729,
+    dueAtSigning: 3500,
+    term: 24,
+    milesPerYear: 7500,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "Chrome Stallions",
+    sellerPhone: "949-763-5609",
+    sellerEmail: "sales@chromestallions.com",
+    city: "Los Angeles",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 57,
+    datePosted: "2026-07-04",
+    badge: "NEW",
+    notes:
+      "Coupe-styled SUV. Payment is +tax. Requires Conquest — an eligible 2020+ vehicle currently registered to you or someone in your household (proof of registration required). $699 broker fee is included in the due-at-signing total above.",
+    packages: ["Night Package", "Exclusive Trim"],
+    images: ["https://media.chromedata.com/MediaGallery/media/MjkzOTU4Xk1lZGlhIEdhbGxlcnk/A6ZVqgdvNgNS-tOdpleojQHoHqEV8nKHGlrR76ELO5XWtalKRnDL8BGHYut49a8CXEjwjGd_0bCnS3pA250bC5Ka5L8cIEayqQKh2BXLkRaF8_AqZlrL2kN2Xbx4u8s7I_b0sQ0ufjiaaQWPB2Vc7Hx-xz3FRAa249F-SycEZNiyodpt0DDRTn4MrQsCBsjsQOnu7vItCuU/cc_2026MBSA11972885_02_640_956.png"],
+    sourceUrl:
+      "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
+  },
+  {
+    id: 20,
+    slug: "2025-porsche-macan-loaner-ca",
+    year: 2025,
+    make: "Porsche",
+    model: "Macan",
+    trim: "Base (Loaner)",
+    bodyStyle: "SUV",
+    fuel: "Gas",
+    exterior: "White",
+    interior: "Black",
+    dealType: "Lease",
+    msrp: 66000, // estimated — see note on GLC 300 above
+    sellingPrice: 62000,
+    payment: 699,
+    dueAtSigning: 4995,
+    term: 24,
+    milesPerYear: 7500,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "Chrome Stallions",
+    sellerPhone: "949-763-5609",
+    sellerEmail: "sales@chromestallions.com",
+    city: "Los Angeles",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 48,
+    datePosted: "2026-07-04",
+    badge: "VALUE",
+    notes:
+      "Former loaner unit with low miles, full factory warranty remaining. Payment is +tax. $499 broker fee is included in the due-at-signing total above.",
+    packages: [],
+    images: ["https://file.kelleybluebookimages.com/kbb/base/evox/CP/55153/2025-Porsche-Macan-front_55153_032_2400x1800_A1.png"],
+    sourceUrl:
+      "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
+  },
+];
+
+// -----------------------------------------------------------------------------
+// Derived filter option lists (auto-generated from the data above)
+// -----------------------------------------------------------------------------
+export const MAKES = ["All", ...Array.from(new Set(deals.map((d) => d.make))).sort()];
+export const SELLERS = ["All", ...Array.from(new Set(deals.map((d) => d.sellerName))).sort()];
+export const BODY_STYLES: BodyStyle[] = [
+  "Sedan",
+  "SUV",
+  "Truck",
+  "Coupe",
+  "Minivan",
+  "Hatchback",
+];
+export const STATES = ["All", ...Array.from(new Set(deals.map((d) => d.state))).sort()];
+export const FUEL_TYPES: FuelType[] = ["Gas", "Hybrid", "PHEV", "EV"];
+export const TERMS = ["All", ...Array.from(new Set(deals.map((d) => String(d.term)))).sort(
+  (a, b) => Number(a) - Number(b)
+)];
+export const MILEAGE_OPTIONS = [
+  "All",
+  ...Array.from(
+    new Set(deals.filter((d) => d.milesPerYear != null).map((d) => String(d.milesPerYear)))
+  ).sort((a, b) => Number(a) - Number(b)),
+];
+
+export function getDealBySlug(slug: string): Deal | undefined {
+  return deals.find((d) => d.slug === slug);
+}
+
+export function getSimilarDeals(deal: Deal, count = 3): Deal[] {
+  return deals
+    .filter((d) => d.id !== deal.id)
+    .map((d) => {
+      let score = 0;
+      if (d.make === deal.make) score += 2;
+      if (d.bodyStyle === deal.bodyStyle) score += 2;
+      if (d.fuel === deal.fuel) score += 1;
+      if (d.state === deal.state) score += 1;
+      return { deal: d, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map((entry) => entry.deal);
+}

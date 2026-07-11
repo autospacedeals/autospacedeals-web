@@ -1,0 +1,10 @@
+// Central place for site-wide constants used in metadata, sitemap, and
+// structured data. Update SITE_URL once the site has a real domain —
+// everything else (sitemap, robots.txt, OpenGraph tags) reads from here.
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.autospacedeals.com";
+
+export const SITE_NAME = "AutoSpace Deals";
+
+export const SITE_DESCRIPTION =
+  "Browse, filter, and compare real car lease and finance deals from dealers and brokers in one place, then contact the seller directly.";

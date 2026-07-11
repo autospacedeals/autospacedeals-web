@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Leasing Guide",
+  description:
+    "Understand money factor, residual value, due at signing, and effective monthly cost before you sign a car lease.",
+};
+
 export default function LeasingGuidePage() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
-      <section className="mx-auto max-w-4xl px-6 py-16">
+    <main>
+      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
         <p className="mb-3 text-sm font-medium text-blue-400">
           AutoSpaceDeals Guide
         </p>
