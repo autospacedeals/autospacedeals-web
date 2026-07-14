@@ -123,7 +123,11 @@ export default async function DealDetailPage({
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
             <h2 className="text-lg font-bold">Payment Breakdown</h2>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Stat label={deal.dealType === "Lease" ? "Monthly payment" : "Est. monthly"} value={`${formatCurrency(deal.payment)}/mo`} big />
+              <Stat
+                label={deal.onePay ? "One-pay lease total" : deal.dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
+                value={deal.onePay ? formatCurrency(deal.dueAtSigning) : `${formatCurrency(deal.payment)}/mo`}
+                big
+              />
               <Stat label="Due at signing" value={formatCurrency(deal.dueAtSigning)} big />
               <Stat label="Term" value={`${deal.term} months`} big />
               <Stat label="MSRP" value={formatCurrency(deal.msrp)} />

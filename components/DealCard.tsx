@@ -68,11 +68,11 @@ export default function DealCard({ deal }: { deal: Deal }) {
       <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-4">
         <div>
           <p className="text-xs text-zinc-500">
-            {deal.dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
+            {deal.onePay ? "One-pay lease total" : deal.dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
           </p>
           <p className="text-3xl font-black">
-            {formatCurrency(deal.payment)}
-            <span className="text-sm font-medium text-zinc-500">/mo</span>
+            {formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment)}
+            {!deal.onePay && <span className="text-sm font-medium text-zinc-500">/mo</span>}
           </p>
         </div>
         {discount > 0 && (

@@ -85,6 +85,13 @@ export interface Deal {
   // exact year/trim — they're illustrative only, and the UI must badge them
   // clearly so nobody mistakes a sample listing for a real, verified one.
   sample?: boolean;
+
+  // One-pay lease flag. Some exotic/luxury deals are structured as a single
+  // upfront lump-sum payment for the whole term rather than a monthly bill.
+  // For these, set payment: 0 and dueAtSigning to the full one-pay amount —
+  // the UI shows dueAtSigning as the headline total instead of a "/mo" price,
+  // and the existing effectiveMonthly() math still spreads it correctly.
+  onePay?: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -1357,6 +1364,44 @@ export const deals: Deal[] = [
       "Extended wheelbase V8. Payment is +tax. $1,299 broker fee is included in the due-at-signing total above.",
     packages: [],
     images: ["https://static.tcimg.net/vehicles/primary/f3f14dd92d0777c7/2023-Bentley-Bentayga-gray-full_color-driver_side_profile.png"],
+    sourceUrl:
+      "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
+  },
+  {
+    id: 35,
+    slug: "2026-lamborghini-urus-se-demo-ca",
+    year: 2026,
+    make: "Lamborghini",
+    model: "Urus SE",
+    trim: "Demo",
+    bodyStyle: "SUV",
+    fuel: "PHEV",
+    exterior: "Blu Cepheus",
+    interior: "Black w/ Orange Stitching",
+    dealType: "Lease",
+    msrp: 342000, // broker-listed vehicle value — see note below
+    sellingPrice: 328000, // estimated — see note below
+    payment: 0,
+    dueAtSigning: 55999,
+    term: 12,
+    milesPerYear: 7500,
+    apr: null,
+    sellerType: "Broker",
+    sellerName: "Chrome Stallions",
+    sellerPhone: "949-763-5609",
+    sellerEmail: "sales@chromestallions.com",
+    city: "Los Angeles",
+    state: "CA",
+    verified: true,
+    inStock: true,
+    popularity: 74,
+    datePosted: "2026-07-09",
+    badge: "HOT",
+    onePay: true,
+    notes:
+      "One-pay lease — the full $55,999 (7.75% effective rate) is paid upfront and covers the entire 12-month term with no separate monthly bill. Demo unit; broker notes an incoming unit is expected any day. $999 broker fee is included in the one-pay total above. Photo shown is the factory Urus SE in stock trim — exact color match not available; confirm current color with broker.",
+    packages: [],
+    images: ["https://www.lamborghini.com/sites/it-en/files/DAM/lamborghini/0_facelift_2025/gateway_family/urus/Urus%20SE%20Performante-modelChooser-mobile_v2.png"],
     sourceUrl:
       "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
   },

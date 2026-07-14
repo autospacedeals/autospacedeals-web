@@ -185,7 +185,12 @@ export function sortDeals(deals: Deal[], sortBy: SortOption, referenceState: str
 
   switch (sortBy) {
     case "paymentLow":
-      return list.sort((a, b) => a.payment - b.payment);
+      // One-pay deals have no real monthly payment (payment is 0 by convention),
+      // so sort those by their effective monthly cost instead of the raw field —
+      // otherwise a $55k one-pay lease would falsely rank as "cheapest".
+      return list.sort(
+        (a, b) => (a.onePay ? effectiveMonthly(a) : a.payment) - (b.onePay ? effectiveMonthly(b) : b.payment)
+      );
     case "dueLow":
       return list.sort((a, b) => a.dueAtSigning - b.dueAtSigning);
     case "effectiveLow":
