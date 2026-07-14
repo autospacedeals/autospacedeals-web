@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Search, ShieldCheck, Car, ArrowRight, SlidersHorizontal, Store, Users } from "lucide-react";
 import {
   deals,
@@ -214,12 +215,20 @@ export default function HomePage() {
             </p>
           </div>
 
-          <a
-            href="mailto:mheryanrobert@gmail.com?subject=I%20want%20to%20list%20deals%20on%20AutoSpace%20Deals"
-            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-          >
-            List Your Deals <ArrowRight size={16} />
-          </a>
+          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+            <Link
+              href="/broker/signup"
+              className="flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+            >
+              Create a Broker Account <ArrowRight size={16} />
+            </Link>
+            <a
+              href="mailto:mheryanrobert@gmail.com?subject=I%20want%20to%20list%20deals%20on%20AutoSpace%20Deals"
+              className="text-center text-xs font-semibold text-zinc-500 hover:text-white"
+            >
+              or just email us
+            </a>
+          </div>
         </div>
       </section>
     </main>
