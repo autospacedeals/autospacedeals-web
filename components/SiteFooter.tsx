@@ -45,7 +45,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <a
-                  href="mailto:support@autospacedeals.example?subject=Question%20about%20AutoSpace%20Deals"
+                  href="mailto:mheryanrobert@gmail.com?subject=Question%20about%20AutoSpace%20Deals"
                   className="hover:text-white"
                 >
                   Contact support
@@ -63,7 +63,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <a
-                  href="mailto:support@autospacedeals.example?subject=Report%20an%20issue"
+                  href="mailto:mheryanrobert@gmail.com?subject=Report%20an%20issue"
                   className="hover:text-white"
                 >
                   Report an issue

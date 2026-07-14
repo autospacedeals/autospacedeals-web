@@ -215,7 +215,7 @@ export default function HomePage() {
           </div>
 
           <a
-            href="mailto:list@autospacedeals.example?subject=I%20want%20to%20list%20deals%20on%20AutoSpace%20Deals"
+            href="mailto:mheryanrobert@gmail.com?subject=I%20want%20to%20list%20deals%20on%20AutoSpace%20Deals"
             className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
           >
             List Your Deals <ArrowRight size={16} />

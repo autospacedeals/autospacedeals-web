@@ -66,7 +66,7 @@ export function reportIssueMailtoHref(deal: Deal): string {
   const body = encodeURIComponent(
     `Deal: ${dealTitle(deal)}\nListing URL: /deals/${deal.slug}\n\nWhat looks wrong?\n`
   );
-  return `mailto:support@autospacedeals.example?subject=${subject}&body=${body}`;
+  return `mailto:mheryanrobert@gmail.com?subject=${subject}&body=${body}`;
 }
 
 // -----------------------------------------------------------------------------
