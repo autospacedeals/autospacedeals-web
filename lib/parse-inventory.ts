@@ -6,10 +6,14 @@
 // CPO", a combined "Term" cell like "24 mo/ 7500 mi/ $5000 drive off", and
 // a combined "Spec" cell like "Chalk x black" for exterior x interior.
 //
-// This is intentionally heuristic, not AI-based — it's free to run, fast,
-// and good enough for the fairly formulaic way these sheets get written.
-// Rows it can't confidently parse are skipped and reported back rather than
-// guessed at, so nothing wrong ends up in a broker's queue.
+// When an ANTHROPIC_API_KEY is configured, an AI pass (lib/ai-parse-inventory.ts)
+// is tried first, since brokers format these sheets wildly differently and a
+// hand-written parser can't keep up with all of them. The heuristic parsing
+// below is the fallback (no key configured, or the AI call fails) and also
+// the model this whole module was originally built around — it's free to
+// run, fast, and good enough for the fairly formulaic way these sheets get
+// written. Rows it can't confidently parse are skipped and reported back
+// rather than guessed at, so nothing wrong ends up in a broker's queue.
 import * as XLSX from "xlsx";
 
 export interface ParsedDeal {
@@ -200,22 +204,43 @@ function parseLocationCell(text: string, fallbackState: string): string {
   return REGION_STATE[key] ?? fallbackState;
 }
 
-export function parseInventoryBuffer(
+async function parseRowsWithAiOrHeuristic(
+  rows: Record<string, unknown>[],
+  brokerState: string
+): Promise<ParseResult> {
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const { parseRowsWithAI } = await import("./ai-parse-inventory");
+      const result = await parseRowsWithAI(rows, brokerState);
+      if (result.parsed.length > 0 || result.skipped.length > 0) return result;
+      // AI returned nothing usable — fall through to the heuristic pass
+      // rather than reporting an empty result.
+    } catch (err) {
+      console.error("AI inventory parsing failed, falling back to heuristic parser:", err);
+    }
+  }
+  return parseRows(rows, brokerState);
+}
+
+export async function parseInventoryBuffer(
   buffer: ArrayBuffer,
   brokerState: string
-): ParseResult {
+): Promise<ParseResult> {
   const workbook = XLSX.read(buffer, { type: "array" });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 
-  return parseRows(rows, brokerState);
+  return parseRowsWithAiOrHeuristic(rows, brokerState);
 }
 
-export function parseInventoryCsv(csvText: string, brokerState: string): ParseResult {
+export async function parseInventoryCsv(
+  csvText: string,
+  brokerState: string
+): Promise<ParseResult> {
   const workbook = XLSX.read(csvText, { type: "string" });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-  return parseRows(rows, brokerState);
+  return parseRowsWithAiOrHeuristic(rows, brokerState);
 }
 
 function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseResult {

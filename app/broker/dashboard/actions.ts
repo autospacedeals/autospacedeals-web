@@ -129,7 +129,7 @@ export async function createSubmissionAction(
     if (broker) {
       try {
         const buffer = await file.arrayBuffer();
-        const result = parseInventoryBuffer(buffer, broker.state);
+        const result = await parseInventoryBuffer(buffer, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
       } catch (err) {
@@ -163,7 +163,7 @@ export async function createSubmissionAction(
           );
           if (res.ok) {
             const csvText = await res.text();
-            const result = parseInventoryCsv(csvText, broker.state);
+            const result = await parseInventoryCsv(csvText, broker.state);
             parsedDeals = result.parsed;
             skippedCount = result.skipped.length;
           }
