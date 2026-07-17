@@ -8,10 +8,14 @@ import { slugify } from "@/lib/deal-utils";
 export type SubmissionState = {
   error: string | null;
   success?: boolean;
+  submissionId?: string;
 };
 
-// Link / Google Sheet / Excel file — these go into the review queue. Admin
-// reads them and stages individual cars as drafts for the broker to confirm.
+// Link / Google Sheet / Excel file — logged for your own reference, but
+// doesn't publish anything by itself. Right after submitting, the broker
+// gets the same structured "add a car" form to fill in themselves for each
+// car from that source, which publishes immediately (see
+// createManualDealAction below) — no admin step required.
 export async function createSubmissionAction(
   _prevState: SubmissionState,
   formData: FormData
@@ -55,20 +59,26 @@ export async function createSubmissionAction(
     return { error: "Unknown source type." };
   }
 
-  const { error } = await supabase.from("submissions").insert({
-    broker_id: user.id,
-    source_type: sourceType,
-    source_url: sourceUrl,
-    notes,
-  });
+  const { data: inserted, error } = await supabase
+    .from("submissions")
+    .insert({
+      broker_id: user.id,
+      source_type: sourceType,
+      source_url: sourceUrl,
+      notes,
+    })
+    .select("id")
+    .single<{ id: string }>();
   if (error) return { error: error.message };
 
   revalidatePath("/broker/dashboard");
-  return { error: null, success: true };
+  return { error: null, success: true, submissionId: inserted?.id };
 }
 
 // "Add a car manually" — structured, trusted input from an authenticated
 // broker, so it publishes straight to the live site, no review queue.
+// Optionally tagged with the submission it came from (when a broker is
+// entering cars right after linking a source) purely for your reference.
 export async function createManualDealAction(
   _prevState: SubmissionState,
   formData: FormData
@@ -78,6 +88,8 @@ export async function createManualDealAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/broker/login");
+
+  const submissionId = String(formData.get("submissionId") || "").trim() || null;
 
   const { data: broker } = await supabase
     .from("brokers")
@@ -145,6 +157,7 @@ export async function createManualDealAction(
   const { error } = await supabase.from("deals").insert({
     slug,
     broker_id: user.id,
+    submission_id: submissionId,
     year,
     make,
     model,
@@ -179,7 +192,7 @@ export async function createManualDealAction(
 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
-  return { error: null, success: true };
+  return { error: null, success: true, submissionId: submissionId ?? undefined };
 }
 
 // -----------------------------------------------------------------------------

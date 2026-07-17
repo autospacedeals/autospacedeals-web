@@ -25,7 +25,7 @@ const CATEGORIES = [
   {
     value: "link",
     label: "Link your inventory",
-    description: "Forum post, website, Google Sheet, or a file — we'll review it",
+    description: "Forum post, website, Google Sheet, or a file — then add the cars yourself",
     icon: Link2,
   },
 ] as const;
@@ -78,8 +78,22 @@ function LinkForm() {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
   const [sourceType, setSourceType] = useState<"link" | "google_sheet" | "excel_file">("link");
 
+  if (state.success) {
+    return (
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4 sm:p-5">
+        <p className="text-sm font-semibold text-emerald-300">
+          Source saved. Now add the car(s) from it below — each one publishes as soon as you
+          submit it, and you can add as many as you need.
+        </p>
+        <div className="mt-4">
+          <ManualForm submissionId={state.submissionId} />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <form action={formAction} className="space-y-4" key={state.success ? "reset" : "form"}>
+    <form action={formAction} className="space-y-4">
       <div>
         <label className={labelClass}>Source type</label>
         <div className="grid gap-2 sm:grid-cols-3">
@@ -156,31 +170,38 @@ function LinkForm() {
       {state.error && (
         <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
       )}
-      {state.success && (
-        <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-          Submitted — we&apos;ll review it and you&apos;ll get a chance to confirm which cars go
-          live before anything is published.
-        </p>
-      )}
 
       <button
         type="submit"
         disabled={pending}
         className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
       >
-        <Upload size={16} /> {pending ? "Submitting..." : "Submit for review"}
+        <Upload size={16} /> {pending ? "Saving..." : "Save source"}
       </button>
     </form>
   );
 }
 
-function ManualForm() {
+function ManualForm({ submissionId }: { submissionId?: string }) {
   const [state, formAction, pending] = useActionState(createManualDealAction, initialState);
   const [dealType, setDealType] = useState<"Lease" | "Finance">("Lease");
   const [onePay, setOnePay] = useState(false);
+  // Bump the form's key on every successful publish so the fields clear —
+  // needed here (unlike a one-shot form) because a broker submitting a
+  // link may come back and publish several cars in a row from this same
+  // form without the page reloading in between. Adjusted during render
+  // (React's recommended pattern) rather than in an effect, so there's no
+  // extra render pass.
+  const [prevState, setPrevState] = useState(state);
+  const [resetCount, setResetCount] = useState(0);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.success) setResetCount((n) => n + 1);
+  }
 
   return (
-    <form action={formAction} className="space-y-4" key={state.success ? "reset" : "form"}>
+    <form action={formAction} className="space-y-4" key={resetCount}>
+      {submissionId && <input type="hidden" name="submissionId" value={submissionId} />}
       <div className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Vehicle</p>
@@ -354,7 +375,10 @@ function ManualForm() {
       )}
       {state.success && (
         <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-          Published — this listing is live on the site now. Manage it below anytime.
+          Published — this listing is live on the site now.{" "}
+          {submissionId
+            ? "Add another car from the same source below, or head to “Your live listings” when you're done."
+            : "Manage it below anytime."}
         </p>
       )}
 

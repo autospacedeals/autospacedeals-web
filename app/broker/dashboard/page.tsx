@@ -138,10 +138,10 @@ export default async function BrokerDashboardPage() {
       </div>
 
       <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-        <h2 className="text-lg font-bold">Submit a new source</h2>
+        <h2 className="text-lg font-bold">Add inventory</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          Link a forum thread, your website, a Google Sheet, or upload a spreadsheet of your
-          current inventory. We&apos;ll review it and add matching deals to the site.
+          Add a car directly, or link a forum thread, your website, a Google Sheet, or a
+          spreadsheet — either way, you publish it yourself and it&apos;s live right away.
         </p>
         <div className="mt-6">
           <NewSubmissionForm />

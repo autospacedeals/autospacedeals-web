@@ -81,9 +81,10 @@ export default async function AdminSubmissionsPage() {
       </p>
       <h1 className="mt-1 text-3xl font-black">Submission queue</h1>
       <p className="mt-1 text-sm text-zinc-500">
-        {pendingCount} pending · {sorted.length} total. Approving here doesn&apos;t publish deals
-        automatically — pull the source, verify the numbers, and add them to the site the usual
-        way, then mark it approved.
+        {pendingCount} pending · {sorted.length} total. Brokers now add their own cars right after
+        submitting a link/sheet/file, so nothing here needs your approval to go live. This is just
+        a reference log of what they&apos;ve linked — use &quot;Stage a car&quot; below only if you
+        want to help a broker out directly, or approve/reject to keep the log tidy.
       </p>
 
       <div className="mt-8 space-y-3">
