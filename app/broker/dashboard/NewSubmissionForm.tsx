@@ -79,11 +79,21 @@ function LinkForm() {
   const [sourceType, setSourceType] = useState<"link" | "google_sheet" | "excel_file">("link");
 
   if (state.success) {
+    const parsedCount = state.parsedCount ?? 0;
+    const skippedCount = state.skippedCount ?? 0;
     return (
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4 sm:p-5">
         <p className="text-sm font-semibold text-emerald-300">
-          Source saved. Now add the car(s) from it below — each one publishes as soon as you
-          submit it, and you can add as many as you need.
+          {parsedCount > 0
+            ? `Source saved — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it. Scroll up to “Cars ready for your confirmation” to review and publish them.`
+            : "Source saved."}
+          {skippedCount > 0 &&
+            ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}
+        </p>
+        <p className="mt-2 text-sm text-zinc-400">
+          {parsedCount > 0
+            ? "Need to add more? You can also enter cars one at a time below."
+            : "Now add the car(s) from it below — each one publishes as soon as you submit it, and you can add as many as you need."}
         </p>
         <div className="mt-4">
           <ManualForm submissionId={state.submissionId} />

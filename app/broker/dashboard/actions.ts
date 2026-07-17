@@ -5,18 +5,96 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
+import { parseInventoryBuffer, parseInventoryCsv, type ParsedDeal } from "@/lib/parse-inventory";
 
 export type SubmissionState = {
   error: string | null;
   success?: boolean;
   submissionId?: string;
+  parsedCount?: number;
+  skippedCount?: number;
 };
 
-// Link / Google Sheet / Excel file — logged for your own reference, but
-// doesn't publish anything by itself. Right after submitting, the broker
-// gets the same structured "add a car" form to fill in themselves for each
-// car from that source, which publishes immediately (see
-// createManualDealAction below) — no admin step required.
+interface BrokerProfile {
+  business_name: string;
+  seller_type: string;
+  contact_phone: string;
+  city: string;
+  state: string;
+}
+
+// Turns each successfully-parsed row into a draft deal (status: "draft")
+// owned by the broker, tied back to the submission for reference. Drafts
+// show up in the broker's "ready for your confirmation" checklist — see
+// DraftConfirmList / confirmDraftsAction.
+async function stageParsedDeals(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  userEmail: string | undefined,
+  broker: BrokerProfile,
+  submissionId: string,
+  deals: ParsedDeal[]
+) {
+  for (const d of deals) {
+    let images: string[] = [];
+    const photo = await fetchCarsxePhoto({
+      year: d.year,
+      make: d.make,
+      model: d.model,
+      trim: d.trim ?? undefined,
+    });
+    if (photo) images = [photo];
+
+    const slug = slugify([d.year, d.make, d.model, d.trim ?? "", broker.state]);
+
+    await supabase.from("deals").insert({
+      slug,
+      broker_id: userId,
+      submission_id: submissionId,
+      year: d.year,
+      make: d.make,
+      model: d.model,
+      trim: d.trim,
+      body_style: null,
+      fuel: null,
+      exterior: d.exterior,
+      interior: d.interior,
+      deal_type: "Lease",
+      msrp: d.msrp,
+      selling_price: null,
+      payment: d.payment,
+      due_at_signing: d.dueAtSigning,
+      term: d.term,
+      miles_per_year: d.milesPerYear,
+      apr: null,
+      seller_type: broker.seller_type,
+      seller_name: broker.business_name,
+      seller_phone: broker.contact_phone,
+      seller_email: userEmail ?? "",
+      city: broker.city,
+      state: d.state ?? broker.state,
+      verified: true,
+      in_stock: true,
+      popularity: 50,
+      notes: d.notes,
+      images,
+      one_pay: false,
+      status: "draft",
+    });
+  }
+}
+
+function extractGoogleSheetId(url: string): string | null {
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
+// Link / Google Sheet / Excel file. For Excel files and Google Sheets, we
+// try to automatically pull individual cars out of the file into draft
+// listings the broker can review and confirm — see lib/parse-inventory.ts.
+// For a plain forum/website link (or if parsing comes up empty), the broker
+// gets the structured "add a car" form to fill in themselves instead — see
+// createManualDealAction below. Either way, nothing needs your approval.
 export async function createSubmissionAction(
   _prevState: SubmissionState,
   formData: FormData
@@ -27,9 +105,17 @@ export async function createSubmissionAction(
   } = await supabase.auth.getUser();
   if (!user) redirect("/broker/login");
 
+  const { data: broker } = await supabase
+    .from("brokers")
+    .select("business_name, seller_type, contact_phone, city, state")
+    .eq("id", user.id)
+    .single<BrokerProfile>();
+
   const sourceType = String(formData.get("sourceType") || "link");
   const notes = String(formData.get("notes") || "").trim() || null;
   let sourceUrl = "";
+  let parsedDeals: ParsedDeal[] = [];
+  let skippedCount = 0;
 
   if (sourceType === "excel_file") {
     const file = formData.get("file") as File | null;
@@ -38,6 +124,17 @@ export async function createSubmissionAction(
     }
     if (file.size > 10 * 1024 * 1024) {
       return { error: "File is too large — please keep it under 10MB." };
+    }
+
+    if (broker) {
+      try {
+        const buffer = await file.arrayBuffer();
+        const result = parseInventoryBuffer(buffer, broker.state);
+        parsedDeals = result.parsed;
+        skippedCount = result.skipped.length;
+      } catch (err) {
+        console.error("Failed to parse uploaded inventory file:", err);
+      }
     }
 
     const path = `${user.id}/${Date.now()}-${file.name}`;
@@ -56,6 +153,25 @@ export async function createSubmissionAction(
     } catch {
       return { error: "That doesn't look like a valid URL." };
     }
+
+    if (sourceType === "google_sheet" && broker) {
+      const sheetId = extractGoogleSheetId(sourceUrl);
+      if (sheetId) {
+        try {
+          const res = await fetch(
+            `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`
+          );
+          if (res.ok) {
+            const csvText = await res.text();
+            const result = parseInventoryCsv(csvText, broker.state);
+            parsedDeals = result.parsed;
+            skippedCount = result.skipped.length;
+          }
+        } catch (err) {
+          console.error("Failed to fetch/parse Google Sheet:", err);
+        }
+      }
+    }
   } else {
     return { error: "Unknown source type." };
   }
@@ -72,8 +188,18 @@ export async function createSubmissionAction(
     .single<{ id: string }>();
   if (error) return { error: error.message };
 
+  if (broker && parsedDeals.length > 0 && inserted) {
+    await stageParsedDeals(supabase, user.id, user.email, broker, inserted.id, parsedDeals);
+  }
+
   revalidatePath("/broker/dashboard");
-  return { error: null, success: true, submissionId: inserted?.id };
+  return {
+    error: null,
+    success: true,
+    submissionId: inserted?.id,
+    parsedCount: parsedDeals.length,
+    skippedCount,
+  };
 }
 
 // "Add a car manually" — structured, trusted input from an authenticated
