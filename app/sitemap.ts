@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
-import { deals } from "@/lib/deals-data";
+import { getPublishedDeals } from "@/lib/supabase/deals";
 import { SITE_URL } from "@/lib/site";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const deals = await getPublishedDeals();
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,

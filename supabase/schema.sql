@@ -44,8 +44,9 @@ create policy "Brokers can insert their own profile"
 create table if not exists public.submissions (
   id uuid primary key default gen_random_uuid(),
   broker_id uuid not null references public.brokers (id) on delete cascade,
-  source_type text not null check (source_type in ('link', 'google_sheet', 'excel_file')),
-  source_url text not null, -- forum/website URL, Google Sheet share link, or Supabase Storage file path
+  source_type text not null check (source_type in ('link', 'google_sheet', 'excel_file', 'manual')),
+  source_url text, -- forum/website URL, Google Sheet share link, or Storage file path; null for 'manual'
+  vehicle_data jsonb, -- structured year/make/model/pricing/photos for 'manual' entries; null otherwise
   notes text,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   admin_notes text,

@@ -4,6 +4,7 @@ import { ExternalLink, ShieldCheck } from "lucide-react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { reviewSubmissionAction } from "./actions";
+import StageDealForm from "./StageDealForm";
 
 export const metadata: Metadata = {
   title: "Admin — Submission Queue",
@@ -19,6 +20,7 @@ interface Broker {
 
 interface Submission {
   id: string;
+  broker_id: string;
   source_type: "link" | "google_sheet" | "excel_file";
   source_url: string;
   notes: string | null;
@@ -51,7 +53,7 @@ export default async function AdminSubmissionsPage() {
   const { data: submissions } = await admin
     .from("submissions")
     .select(
-      "id, source_type, source_url, notes, status, admin_notes, created_at, brokers ( business_name, seller_type, contact_phone, city, state )"
+      "id, broker_id, source_type, source_url, notes, status, admin_notes, created_at, brokers ( business_name, seller_type, contact_phone, city, state )"
     )
     .order("created_at", { ascending: false })
     .returns<Submission[]>();
@@ -181,7 +183,17 @@ export default async function AdminSubmissionsPage() {
                   </button>
                 </div>
               </form>
-            ) : (
+            ) : null}
+
+            {s.status === "pending" && (
+              <StageDealForm
+                submissionId={s.id}
+                brokerId={s.broker_id}
+                defaultSourceUrl={s.source_type !== "excel_file" ? s.source_url : undefined}
+              />
+            )}
+
+            {s.status !== "pending" && (
               s.admin_notes && (
                 <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-sm text-zinc-400">
                   Admin notes: {s.admin_notes}

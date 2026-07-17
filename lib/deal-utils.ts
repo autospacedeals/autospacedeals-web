@@ -69,6 +69,38 @@ export function reportIssueMailtoHref(deal: Deal): string {
   return `mailto:mheryanrobert@gmail.com?subject=${subject}&body=${body}`;
 }
 
+// Builds a URL-friendly slug from a vehicle's year/make/model/trim/state,
+// with a short random suffix so two brokers listing the same car don't
+// collide (the `deals.slug` column is unique).
+export function slugify(parts: (string | number)[]): string {
+  const base = parts
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${base}-${suffix}`;
+}
+
+// Like getSimilarDeals in deals-data.ts, but works over any array (needed
+// now that the public pages fetch deals from the database instead of the
+// static file).
+export function getSimilarDealsFrom(allDeals: Deal[], deal: Deal, count = 3): Deal[] {
+  return allDeals
+    .filter((d) => d.id !== deal.id)
+    .map((d) => {
+      let score = 0;
+      if (d.make === deal.make) score += 2;
+      if (d.bodyStyle === deal.bodyStyle) score += 2;
+      if (d.fuel === deal.fuel) score += 1;
+      if (d.state === deal.state) score += 1;
+      return { deal: d, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map((entry) => entry.deal);
+}
+
 // -----------------------------------------------------------------------------
 // Filtering & sorting
 // -----------------------------------------------------------------------------

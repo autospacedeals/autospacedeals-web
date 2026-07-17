@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LogOut, Store, Clock, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { mapRowToDeal, type DealRow } from "@/lib/supabase/deals";
 import { signOutAction } from "../actions";
 import NewSubmissionForm from "./NewSubmissionForm";
+import DraftConfirmList from "./DraftConfirmList";
+import MyListings from "./MyListings";
+
+// Always fetch fresh so the broker's own edits (price changes, drafts
+// confirmed, listings removed) show up immediately, not from a stale cache.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Broker Dashboard",
@@ -78,6 +85,25 @@ export default async function BrokerDashboardPage() {
     }
   }
 
+  const DEAL_COLUMNS =
+    "id, slug, broker_id, year, make, model, trim, body_style, fuel, exterior, interior, " +
+    "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
+    "seller_type, seller_name, seller_phone, seller_email, city, state, " +
+    "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
+    "source_url, sample, one_pay, status, submission_id";
+
+  const { data: myDealRows } = await supabase
+    .from("deals")
+    .select(DEAL_COLUMNS)
+    .eq("broker_id", user.id)
+    .order("created_at", { ascending: false })
+    .returns<DealRow[]>();
+
+  const draftRows = (myDealRows ?? []).filter((r) => r.status === "draft");
+  const publishedRows = (myDealRows ?? []).filter((r) => r.status === "published");
+  const pendingDrafts = draftRows.map(mapRowToDeal);
+  const publishedListings = publishedRows.map(mapRowToDeal);
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -98,6 +124,17 @@ export default async function BrokerDashboardPage() {
             <LogOut size={15} /> Sign out
           </button>
         </form>
+      </div>
+
+      {pendingDrafts.length > 0 && (
+        <div className="mt-8">
+          <DraftConfirmList drafts={pendingDrafts} />
+        </div>
+      )}
+
+      <div className="mt-8">
+        <h2 className="mb-4 text-lg font-bold">Your live listings</h2>
+        <MyListings deals={publishedListings} />
       </div>
 
       <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">

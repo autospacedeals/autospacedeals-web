@@ -30,7 +30,7 @@ export type BodyStyle =
   | "Hatchback";
 
 export interface Deal {
-  id: number;
+  id: string;
   slug: string;
 
   // Vehicle
@@ -106,7 +106,7 @@ export const deals: Deal[] = [
   // "May Specials" — reconfirm for the current month before launch).
   // ---------------------------------------------------------------------
   {
-    id: 17,
+    id: "17",
     slug: "2026-mercedes-benz-glc-300-4matic-ca",
     year: 2026,
     make: "Mercedes-Benz",
@@ -143,7 +143,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
   },
   {
-    id: 18,
+    id: "18",
     slug: "2026-mercedes-benz-c300-ca",
     year: 2026,
     make: "Mercedes-Benz",
@@ -180,7 +180,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
   },
   {
-    id: 19,
+    id: "19",
     slug: "2026-mercedes-benz-gle-450-coupe-ca",
     year: 2026,
     make: "Mercedes-Benz",
@@ -217,7 +217,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
   },
   {
-    id: 20,
+    id: "20",
     slug: "2025-porsche-macan-loaner-ca",
     year: 2025,
     make: "Porsche",
@@ -260,7 +260,7 @@ export const deals: Deal[] = [
   // Broker fee is included in the due-at-signing total shown for each deal.
   // ---------------------------------------------------------------------
   {
-    id: 21,
+    id: "21",
     slug: "2026-bmw-x5-xdrive40i-msport-skyscraper-gray-ca",
     year: 2026,
     make: "BMW",
@@ -297,7 +297,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-bmw-audi-i4-415-3-5k-x5e-829-3-5k-740-885-3-5k-q7-699-3-5k/759812",
   },
   {
-    id: 22,
+    id: "22",
     slug: "2026-bmw-i4-edrive40-black-real-ca",
     year: 2026,
     make: "BMW",
@@ -334,7 +334,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-bmw-audi-i4-415-3-5k-x5e-829-3-5k-740-885-3-5k-q7-699-3-5k/759812",
   },
   {
-    id: 23,
+    id: "23",
     slug: "2026-bmw-740i-brooklyn-gray-ca",
     year: 2026,
     make: "BMW",
@@ -371,7 +371,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-bmw-audi-i4-415-3-5k-x5e-829-3-5k-740-885-3-5k-q7-699-3-5k/759812",
   },
   {
-    id: 24,
+    id: "24",
     slug: "2026-bmw-x3-30-white-ca",
     year: 2026,
     make: "BMW",
@@ -408,7 +408,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-bmw-audi-i4-415-3-5k-x5e-829-3-5k-740-885-3-5k-q7-699-3-5k/759812",
   },
   {
-    id: 25,
+    id: "25",
     slug: "2025-audi-a5-premium-plus-loaner-ca",
     year: 2025,
     make: "Audi",
@@ -445,7 +445,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-bmw-audi-i4-415-3-5k-x5e-829-3-5k-740-885-3-5k-q7-699-3-5k/759812",
   },
   {
-    id: 26,
+    id: "26",
     slug: "2025-audi-s5-premium-plus-ca",
     year: 2025,
     make: "Audi",
@@ -482,7 +482,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-bmw-audi-i4-415-3-5k-x5e-829-3-5k-740-885-3-5k-q7-699-3-5k/759812",
   },
   {
-    id: 27,
+    id: "27",
     slug: "2026-mercedes-benz-gls-450-white-ca",
     year: 2026,
     make: "Mercedes-Benz",
@@ -519,7 +519,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
   },
   {
-    id: 28,
+    id: "28",
     slug: "2026-mercedes-benz-cle53-amg-coupe-blue-ca",
     year: 2026,
     make: "Mercedes-Benz",
@@ -556,7 +556,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-benz-porsche-exotics-glb-179-3-5k-glc-279-3-5k-911-4s-1499-5k/759811",
   },
   {
-    id: 29,
+    id: "29",
     slug: "2026-porsche-cayenne-black-ca",
     year: 2026,
     make: "Porsche",
@@ -593,7 +593,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
   },
   {
-    id: 30,
+    id: "30",
     slug: "2026-porsche-panamera-ca",
     year: 2026,
     make: "Porsche",
@@ -630,7 +630,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
   },
   {
-    id: 31,
+    id: "31",
     slug: "2026-land-rover-range-rover-evoque-blue-ca",
     year: 2026,
     make: "Land Rover",
@@ -667,7 +667,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
   },
   {
-    id: 32,
+    id: "32",
     slug: "2026-land-rover-range-rover-velar-p250-ca",
     year: 2026,
     make: "Land Rover",
@@ -704,7 +704,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
   },
   {
-    id: 33,
+    id: "33",
     slug: "2026-land-rover-defender-110-gray-ca",
     year: 2026,
     make: "Land Rover",
@@ -741,7 +741,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
   },
   {
-    id: 34,
+    id: "34",
     slug: "2023-bentley-bentayga-ewb-v8-ca",
     year: 2023,
     make: "Bentley",
@@ -778,7 +778,7 @@ export const deals: Deal[] = [
       "https://forum.leasehackr.com/t/chrome-stallions-exotics-porsche-benteyga-1675-10k-911-4s-1499-5k-urus-se-onepay-54-999/770167",
   },
   {
-    id: 35,
+    id: "35",
     slug: "2026-lamborghini-urus-se-demo-ca",
     year: 2026,
     make: "Lamborghini",

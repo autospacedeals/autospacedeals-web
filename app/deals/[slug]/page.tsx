@@ -9,11 +9,12 @@ import {
   Flag,
   CircleAlert,
 } from "lucide-react";
-import { deals, getDealBySlug, getSimilarDeals } from "@/lib/deals-data";
+import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import {
   dealTitle,
   effectiveMonthly,
   formatCurrency,
+  getSimilarDealsFrom,
   msrpDiscountPercent,
   relativeDatePosted,
   reportIssueMailtoHref,
@@ -21,9 +22,9 @@ import {
 import { ContactActionsFull } from "@/components/ContactActions";
 import DealCard from "@/components/DealCard";
 
-export async function generateStaticParams() {
-  return deals.map((deal) => ({ slug: deal.slug }));
-}
+// Always fetch fresh — a broker can edit/reprice/remove their own listing at
+// any time, and the detail page should never show stale info.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -31,7 +32,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const deal = getDealBySlug(slug);
+  const deal = await getDealBySlugDb(slug);
   if (!deal) return { title: "Deal not found" };
 
   const title = `${dealTitle(deal)} — ${formatCurrency(deal.payment)}/mo`;
@@ -62,11 +63,12 @@ export default async function DealDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const deal = getDealBySlug(slug);
+  const deal = await getDealBySlugDb(slug);
   if (!deal) notFound();
 
   const discount = msrpDiscountPercent(deal);
-  const similar = getSimilarDeals(deal, 3);
+  const allDeals = await getPublishedDeals();
+  const similar = getSimilarDealsFrom(allDeals, deal, 3);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
