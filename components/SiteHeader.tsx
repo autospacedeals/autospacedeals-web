@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Car, Menu, X } from "lucide-react";
+import { Car, Menu, X, UserCircle2 } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals" },
@@ -11,7 +11,15 @@ const NAV_LINKS = [
   { href: "/leasing-guide", label: "Leasing Guide" },
 ];
 
-export default function SiteHeader() {
+// The signed-in label + destination in the header — a broker sees their
+// business name and lands in their dashboard, the admin account sees
+// "Admin" and lands in the submission queue.
+export interface HeaderAccount {
+  label: string;
+  href: string;
+}
+
+export default function SiteHeader({ account }: { account: HeaderAccount | null }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -40,12 +48,21 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/broker/login"
-            className="hidden text-sm font-semibold text-zinc-300 transition hover:text-white sm:inline-block"
-          >
-            Broker Login
-          </Link>
+          {account ? (
+            <Link
+              href={account.href}
+              className="hidden items-center gap-1.5 text-sm font-semibold text-zinc-300 transition hover:text-white sm:inline-flex"
+            >
+              <UserCircle2 size={16} /> {account.label}
+            </Link>
+          ) : (
+            <Link
+              href="/broker/login"
+              className="hidden text-sm font-semibold text-zinc-300 transition hover:text-white sm:inline-block"
+            >
+              Broker Login
+            </Link>
+          )}
           <Link
             href="/submit-a-deal"
             className="hidden rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 sm:inline-block"
@@ -78,13 +95,23 @@ export default function SiteHeader() {
                 {link.label}
               </a>
             ))}
-            <Link
-              href="/broker/login"
-              onClick={() => setOpen(false)}
-              className="rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
-            >
-              Broker Login
-            </Link>
+            {account ? (
+              <Link
+                href={account.href}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
+              >
+                <UserCircle2 size={16} /> {account.label}
+              </Link>
+            ) : (
+              <Link
+                href="/broker/login"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
+              >
+                Broker Login
+              </Link>
+            )}
             <Link
               href="/submit-a-deal"
               onClick={() => setOpen(false)}
