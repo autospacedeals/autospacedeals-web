@@ -33,20 +33,23 @@ export interface Deal {
   id: string;
   slug: string;
 
-  // Vehicle
+  // Vehicle. Only year/make/model are guaranteed — trim, body style, fuel,
+  // and exterior/interior color are all optional (a broker may not know or
+  // bother listing them), so treat empty string / null as "not specified"
+  // wherever these are displayed.
   year: number;
   make: string;
   model: string;
-  trim: string;
-  bodyStyle: BodyStyle;
-  fuel: FuelType;
-  exterior: string;
-  interior: string;
+  trim: string; // "" if not specified
+  bodyStyle: BodyStyle | null;
+  fuel: FuelType | null;
+  exterior: string; // "" if not specified
+  interior: string; // "" if not specified
 
   // Deal
   dealType: DealType;
   msrp: number;
-  sellingPrice: number; // negotiated price before tax — used to calc MSRP discount
+  sellingPrice: number | null; // negotiated price before tax — used to calc MSRP discount; null if not provided
   payment: number; // monthly payment
   dueAtSigning: number; // due at signing (lease) or down payment (finance)
   term: number; // months

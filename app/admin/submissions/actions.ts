@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { slugify } from "@/lib/deal-utils";
+import { fetchCarsxePhoto } from "@/lib/carsxe";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -76,11 +77,11 @@ export async function stageDealDraftAction(
   const year = Number(formData.get("year"));
   const make = String(formData.get("make") || "").trim();
   const model = String(formData.get("model") || "").trim();
-  const trim = String(formData.get("trim") || "").trim();
-  const bodyStyle = String(formData.get("bodyStyle") || "").trim();
-  const fuel = String(formData.get("fuel") || "").trim();
-  const exterior = String(formData.get("exterior") || "").trim();
-  const interior = String(formData.get("interior") || "").trim();
+  const trim = String(formData.get("trim") || "").trim() || null;
+  const bodyStyle = String(formData.get("bodyStyle") || "").trim() || null;
+  const fuel = String(formData.get("fuel") || "").trim() || null;
+  const exterior = String(formData.get("exterior") || "").trim() || null;
+  const interior = String(formData.get("interior") || "").trim() || null;
   const dealType = String(formData.get("dealType") || "Lease").trim();
   const onePay = formData.get("onePay") === "on";
   const payment = onePay ? 0 : Number(formData.get("payment"));
@@ -90,19 +91,21 @@ export async function stageDealDraftAction(
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
   const aprRaw = formData.get("apr");
   const apr = aprRaw ? Number(aprRaw) : null;
-  const msrpRaw = formData.get("msrp");
-  const msrp = msrpRaw ? Number(msrpRaw) : null;
+  const msrp = Number(formData.get("msrp"));
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const notes = String(formData.get("notes") || "").trim();
   const sourceUrlRaw = String(formData.get("sourceUrl") || "").trim();
-  const images = String(formData.get("images") || "")
+  let images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
 
-  if (!year || !make || !model || !trim || !bodyStyle || !fuel || !exterior || !interior) {
-    return { error: "Please fill in all vehicle details." };
+  if (!year || !make || !model) {
+    return { error: "Please fill in the year, make, and model." };
+  }
+  if (!msrp) {
+    return { error: "Please enter the MSRP." };
   }
   if (!dueAtSigning || !term) {
     return { error: "Please fill in the deal terms." };
@@ -110,11 +113,16 @@ export async function stageDealDraftAction(
   if (!onePay && !payment) {
     return { error: "Please enter a monthly payment, or mark this as a one-pay lease." };
   }
-  if (images.length === 0) {
-    return { error: "Please add at least one photo URL." };
+  if (dealType === "Lease" && !milesPerYear) {
+    return { error: "Please enter the miles per year for this lease." };
   }
 
-  const slug = slugify([year, make, model, trim, broker.state]);
+  if (images.length === 0) {
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
+    if (photo) images = [photo];
+  }
+
+  const slug = slugify([year, make, model, trim ?? "", broker.state]);
 
   const { error } = await admin.from("deals").insert({
     slug,

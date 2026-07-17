@@ -57,12 +57,12 @@ export default function DealCard({ deal }: { deal: Deal }) {
         </div>
 
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          {deal.dealType} · {deal.fuel}
+          {[deal.dealType, deal.fuel].filter(Boolean).join(" · ")}
         </p>
         <h3 className="mt-1 text-xl font-black leading-tight">
           {deal.year} {deal.make} {deal.model}
         </h3>
-        <p className="text-sm text-zinc-400">{deal.trim}</p>
+        {deal.trim && <p className="text-sm text-zinc-400">{deal.trim}</p>}
       </Link>
 
       <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-4">

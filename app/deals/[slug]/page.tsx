@@ -114,7 +114,7 @@ export default async function DealDetailPage({
 
           <div className="mt-6">
             <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-              {deal.dealType} · {deal.fuel} · {deal.bodyStyle}
+              {[deal.dealType, deal.fuel, deal.bodyStyle].filter(Boolean).join(" · ")}
             </p>
             <h1 className="mt-1 text-3xl font-black sm:text-4xl">{dealTitle(deal)}</h1>
             <p className="mt-2 flex items-center gap-2 text-zinc-400">
@@ -133,7 +133,9 @@ export default async function DealDetailPage({
               <Stat label="Due at signing" value={formatCurrency(deal.dueAtSigning)} big />
               <Stat label="Term" value={`${deal.term} months`} big />
               <Stat label="MSRP" value={formatCurrency(deal.msrp)} />
-              <Stat label="Selling price" value={formatCurrency(deal.sellingPrice)} />
+              {deal.sellingPrice != null && (
+                <Stat label="Selling price" value={formatCurrency(deal.sellingPrice)} />
+              )}
               {discount > 0 && <Stat label="Discount off MSRP" value={`${discount.toFixed(1)}%`} />}
               {deal.milesPerYear ? (
                 <Stat label="Mileage allowance" value={`${deal.milesPerYear.toLocaleString()}/yr`} />
@@ -159,10 +161,10 @@ export default async function DealDetailPage({
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
             <h2 className="text-lg font-bold">Vehicle Details</h2>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm text-zinc-300 sm:grid-cols-3">
-              <Detail label="Exterior" value={deal.exterior} />
-              <Detail label="Interior" value={deal.interior} />
-              <Detail label="Fuel type" value={deal.fuel} />
-              <Detail label="Body style" value={deal.bodyStyle} />
+              {deal.exterior && <Detail label="Exterior" value={deal.exterior} />}
+              {deal.interior && <Detail label="Interior" value={deal.interior} />}
+              {deal.fuel && <Detail label="Fuel type" value={deal.fuel} />}
+              {deal.bodyStyle && <Detail label="Body style" value={deal.bodyStyle} />}
               <Detail label="Deal type" value={deal.dealType} />
               <Detail label="Posted" value={relativeDatePosted(deal.datePosted)} />
             </dl>

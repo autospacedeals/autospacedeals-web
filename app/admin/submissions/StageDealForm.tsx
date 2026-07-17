@@ -71,18 +71,16 @@ export default function StageDealForm({
             <input required type="text" name="model" placeholder="X5" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Trim</label>
-            <input required type="text" name="trim" placeholder="xDrive40i" className={inputClass} />
+            <label className={labelClass}>Trim (optional)</label>
+            <input type="text" name="trim" placeholder="xDrive40i" className={inputClass} />
           </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-4">
           <div>
-            <label className={labelClass}>Body style</label>
-            <select required name="bodyStyle" defaultValue="" className={selectClass}>
-              <option value="" disabled>
-                Select...
-              </option>
+            <label className={labelClass}>Body style (optional)</label>
+            <select name="bodyStyle" defaultValue="" className={selectClass}>
+              <option value="">Not specified</option>
               {BODY_STYLES.map((b) => (
                 <option key={b} value={b}>
                   {b}
@@ -91,11 +89,9 @@ export default function StageDealForm({
             </select>
           </div>
           <div>
-            <label className={labelClass}>Fuel</label>
-            <select required name="fuel" defaultValue="" className={selectClass}>
-              <option value="" disabled>
-                Select...
-              </option>
+            <label className={labelClass}>Fuel (optional)</label>
+            <select name="fuel" defaultValue="" className={selectClass}>
+              <option value="">Not specified</option>
               {FUEL_TYPES.map((f) => (
                 <option key={f} value={f}>
                   {f}
@@ -104,12 +100,12 @@ export default function StageDealForm({
             </select>
           </div>
           <div>
-            <label className={labelClass}>Exterior</label>
-            <input required type="text" name="exterior" placeholder="Alpine White" className={inputClass} />
+            <label className={labelClass}>Exterior (optional)</label>
+            <input type="text" name="exterior" placeholder="Alpine White" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Interior</label>
-            <input required type="text" name="interior" placeholder="Black" className={inputClass} />
+            <label className={labelClass}>Interior (optional)</label>
+            <input type="text" name="interior" placeholder="Black" className={inputClass} />
           </div>
         </div>
 
@@ -128,10 +124,10 @@ export default function StageDealForm({
           </div>
           <div>
             <label className={labelClass}>MSRP</label>
-            <input type="number" name="msrp" placeholder="65000" className={inputClass} />
+            <input required type="number" name="msrp" placeholder="65000" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Selling price</label>
+            <label className={labelClass}>Selling price (optional)</label>
             <input type="number" name="sellingPrice" placeholder="61000" className={inputClass} />
           </div>
         </div>
@@ -175,7 +171,7 @@ export default function StageDealForm({
           {dealType === "Lease" && (
             <div>
               <label className={labelClass}>Miles/year</label>
-              <input type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
+              <input required type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
             </div>
           )}
           {dealType === "Finance" && (
@@ -187,13 +183,15 @@ export default function StageDealForm({
         </div>
 
         <div>
-          <label className={labelClass}>Photo URLs (one per line)</label>
+          <label className={labelClass}>Photo URLs (optional, one per line)</label>
           <textarea
-            required
             name="images"
             placeholder={"https://example.com/photo1.jpg"}
             className={`${inputClass} min-h-16 resize-y font-mono text-xs`}
           />
+          <p className="mt-1 text-xs text-zinc-600">
+            Leave blank to try pulling a matching stock photo automatically.
+          </p>
         </div>
 
         <div>

@@ -219,17 +219,15 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
               <input required type="text" name="model" placeholder="X5" className={inputClass} />
             </div>
             <div className="sm:col-span-1">
-              <label className={labelClass}>Trim</label>
-              <input required type="text" name="trim" placeholder="xDrive40i" className={inputClass} />
+              <label className={labelClass}>Trim (optional)</label>
+              <input type="text" name="trim" placeholder="xDrive40i" className={inputClass} />
             </div>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-4">
             <div className="sm:col-span-1">
-              <label className={labelClass}>Body style</label>
-              <select required name="bodyStyle" defaultValue="" className={selectClass}>
-                <option value="" disabled>
-                  Select...
-                </option>
+              <label className={labelClass}>Body style (optional)</label>
+              <select name="bodyStyle" defaultValue="" className={selectClass}>
+                <option value="">Not specified</option>
                 {BODY_STYLES.map((b) => (
                   <option key={b} value={b}>
                     {b}
@@ -238,11 +236,9 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
               </select>
             </div>
             <div className="sm:col-span-1">
-              <label className={labelClass}>Fuel type</label>
-              <select required name="fuel" defaultValue="" className={selectClass}>
-                <option value="" disabled>
-                  Select...
-                </option>
+              <label className={labelClass}>Fuel type (optional)</label>
+              <select name="fuel" defaultValue="" className={selectClass}>
+                <option value="">Not specified</option>
                 {FUEL_TYPES.map((f) => (
                   <option key={f} value={f}>
                     {f}
@@ -251,12 +247,12 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
               </select>
             </div>
             <div className="sm:col-span-1">
-              <label className={labelClass}>Exterior color</label>
-              <input required type="text" name="exterior" placeholder="Alpine White" className={inputClass} />
+              <label className={labelClass}>Exterior color (optional)</label>
+              <input type="text" name="exterior" placeholder="Alpine White" className={inputClass} />
             </div>
             <div className="sm:col-span-1">
-              <label className={labelClass}>Interior color</label>
-              <input required type="text" name="interior" placeholder="Black" className={inputClass} />
+              <label className={labelClass}>Interior color (optional)</label>
+              <input type="text" name="interior" placeholder="Black" className={inputClass} />
             </div>
           </div>
         </div>
@@ -278,10 +274,10 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             </div>
             <div>
               <label className={labelClass}>MSRP</label>
-              <input type="number" name="msrp" placeholder="65000" className={inputClass} />
+              <input required type="number" name="msrp" placeholder="65000" className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Selling price</label>
+              <label className={labelClass}>Selling price (optional)</label>
               <input type="number" name="sellingPrice" placeholder="61000" className={inputClass} />
             </div>
           </div>
@@ -333,7 +329,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             {dealType === "Lease" && (
               <div>
                 <label className={labelClass}>Miles per year</label>
-                <input type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
+                <input required type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
               </div>
             )}
             {dealType === "Finance" && (
@@ -346,17 +342,19 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
         </div>
 
         <div>
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Photos</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">
+            Photos (optional)
+          </p>
           <label className={labelClass}>Photo URLs (one per line)</label>
           <textarea
-            required
             name="images"
             placeholder={"https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg"}
             className={`${inputClass} min-h-20 resize-y font-mono text-xs`}
           />
           <p className="mt-1 text-xs text-zinc-600">
             Links to real photos of this vehicle — a manufacturer site, your own listing, etc. No
-            attachments yet, just links for now.
+            attachments yet, just links for now. Leave this blank and we&apos;ll try to pull a
+            matching stock photo automatically.
           </p>
         </div>
       </div>

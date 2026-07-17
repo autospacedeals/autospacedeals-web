@@ -9,7 +9,7 @@ export function formatCurrency(amount: number): string {
 }
 
 export function dealTitle(deal: Deal): string {
-  return `${deal.year} ${deal.make} ${deal.model} ${deal.trim}`;
+  return [deal.year, deal.make, deal.model, deal.trim].filter(Boolean).join(" ");
 }
 
 // Effective monthly cost = spreads due-at-signing across the term so deals
@@ -19,7 +19,7 @@ export function effectiveMonthly(deal: Deal): number {
 }
 
 export function msrpDiscountPercent(deal: Deal): number {
-  if (deal.msrp <= 0) return 0;
+  if (deal.msrp <= 0 || deal.sellingPrice == null) return 0;
   return ((deal.msrp - deal.sellingPrice) / deal.msrp) * 100;
 }
 

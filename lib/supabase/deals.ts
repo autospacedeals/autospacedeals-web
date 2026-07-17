@@ -5,6 +5,10 @@
 import type { Deal } from "@/lib/deals-data";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 
+// Shown when a broker hasn't uploaded a photo and the CarsXE auto-lookup
+// (see lib/carsxe.ts) didn't find a match either.
+export const PLACEHOLDER_IMAGE = "/cars/placeholder.svg";
+
 // A plain anon-key client (no cookies/session needed) — public deal data is
 // readable by anyone per the "Anyone can view published deals" RLS policy.
 function publicClient() {
@@ -23,11 +27,11 @@ export interface DealRow {
   year: number;
   make: string;
   model: string;
-  trim: string;
-  body_style: string;
-  fuel: string;
-  exterior: string;
-  interior: string;
+  trim: string | null;
+  body_style: string | null;
+  fuel: string | null;
+  exterior: string | null;
+  interior: string | null;
   deal_type: string;
   msrp: number | null;
   selling_price: number | null;
@@ -64,14 +68,14 @@ export function mapRowToDeal(row: DealRow): Deal {
     year: row.year,
     make: row.make,
     model: row.model,
-    trim: row.trim,
-    bodyStyle: row.body_style as Deal["bodyStyle"],
-    fuel: row.fuel as Deal["fuel"],
-    exterior: row.exterior,
-    interior: row.interior,
+    trim: row.trim ?? "",
+    bodyStyle: (row.body_style as Deal["bodyStyle"]) ?? null,
+    fuel: (row.fuel as Deal["fuel"]) ?? null,
+    exterior: row.exterior ?? "",
+    interior: row.interior ?? "",
     dealType: row.deal_type as Deal["dealType"],
     msrp: row.msrp ?? 0,
-    sellingPrice: row.selling_price ?? 0,
+    sellingPrice: row.selling_price,
     payment: row.payment,
     dueAtSigning: row.due_at_signing,
     term: row.term,
@@ -90,7 +94,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     badge: row.badge ?? undefined,
     notes: row.notes ?? "",
     packages: row.packages ?? [],
-    images: row.images ?? [],
+    images: row.images && row.images.length > 0 ? row.images : [PLACEHOLDER_IMAGE],
     sourceUrl: row.source_url ?? undefined,
     sample: row.sample,
     onePay: row.one_pay,
