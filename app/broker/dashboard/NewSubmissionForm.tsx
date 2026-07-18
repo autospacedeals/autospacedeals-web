@@ -1,12 +1,22 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Link as LinkIcon, Sheet, FileSpreadsheet, Upload, Car, Link2 } from "lucide-react";
+import {
+  Link as LinkIcon,
+  Sheet,
+  FileSpreadsheet,
+  Upload,
+  Car,
+  Link2,
+  PenLine,
+  ImageUp,
+} from "lucide-react";
 import {
   createSubmissionAction,
   createManualDealAction,
   type SubmissionState,
 } from "./actions";
+import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
 const initialState: SubmissionState = { error: null };
 
@@ -34,10 +44,13 @@ const LINK_TYPES = [
   { value: "link", label: "Forum post / website", icon: LinkIcon },
   { value: "google_sheet", label: "Google Sheet", icon: Sheet },
   { value: "excel_file", label: "Upload Excel file", icon: FileSpreadsheet },
+  { value: "free_text", label: "Type it up", icon: PenLine },
+  { value: "screenshot", label: "Upload a screenshot", icon: ImageUp },
 ] as const;
 
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
+const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
 export default function NewSubmissionForm() {
   const [category, setCategory] = useState<"manual" | "link" | null>(null);
@@ -76,7 +89,9 @@ export default function NewSubmissionForm() {
 
 function LinkForm() {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
-  const [sourceType, setSourceType] = useState<"link" | "google_sheet" | "excel_file">("link");
+  const [sourceType, setSourceType] = useState<
+    "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot"
+  >("link");
 
   if (state.success) {
     const parsedCount = state.parsedCount ?? 0;
@@ -106,7 +121,7 @@ function LinkForm() {
     <form action={formAction} className="space-y-4">
       <div>
         <label className={labelClass}>Source type</label>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {LINK_TYPES.map(({ value, label, icon: Icon }) => (
             <label
               key={value}
@@ -141,6 +156,38 @@ function LinkForm() {
             className="block w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-zinc-950 hover:file:bg-zinc-200"
           />
           <p className="mt-1 text-xs text-zinc-600">Max 10MB.</p>
+        </div>
+      ) : sourceType === "free_text" ? (
+        <div>
+          <label className={labelClass}>Paste the deal details</label>
+          <textarea
+            required
+            name="dealText"
+            placeholder={
+              "2026 BMW X5 xDrive40i, 36mo/10k, $799/mo, $4999 due, MSRP 68k\n\n" +
+              "2025 Porsche Taycan Turbo S, 24mo/7.5k, $1,899/mo, $8k due at signing..."
+            }
+            className={`${inputClass} min-h-40 resize-y`}
+          />
+          <p className="mt-1 text-xs text-zinc-600">
+            Paste in as much as you&apos;ve got — pricing, terms, colors, whatever you have. Our AI
+            reads it and pulls out each car as a draft for you to review before it publishes.
+          </p>
+        </div>
+      ) : sourceType === "screenshot" ? (
+        <div>
+          <label className={labelClass}>Screenshot</label>
+          <input
+            required
+            type="file"
+            name="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="block w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-zinc-950 hover:file:bg-zinc-200"
+          />
+          <p className="mt-1 text-xs text-zinc-600">
+            A screenshot of a text thread, forum post, or spreadsheet. Our AI reads it and pulls
+            out each car as a draft for you to review before it publishes. Max 10MB.
+          </p>
         </div>
       ) : (
         <div>
@@ -196,6 +243,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
   const [state, formAction, pending] = useActionState(createManualDealAction, initialState);
   const [dealType, setDealType] = useState<"Lease" | "Finance">("Lease");
   const [onePay, setOnePay] = useState(false);
+  const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
   // Bump the form's key on every successful publish so the fields clear —
   // needed here (unlike a one-shot form) because a broker submitting a
   // link may come back and publish several cars in a row from this same
@@ -206,7 +254,10 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
   const [resetCount, setResetCount] = useState(0);
   if (state !== prevState) {
     setPrevState(state);
-    if (state.success) setResetCount((n) => n + 1);
+    if (state.success) {
+      setResetCount((n) => n + 1);
+      setIncentives([]);
+    }
   }
 
   return (
@@ -233,8 +284,18 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
               <input type="text" name="trim" placeholder="xDrive40i" className={inputClass} />
             </div>
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-4">
-            <div className="sm:col-span-1">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div>
+              <label className={labelClass}>Condition</label>
+              <select name="condition" defaultValue="New" className={selectClass}>
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className={labelClass}>Body style (optional)</label>
               <select name="bodyStyle" defaultValue="" className={selectClass}>
                 <option value="">Not specified</option>
@@ -245,7 +306,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 ))}
               </select>
             </div>
-            <div className="sm:col-span-1">
+            <div>
               <label className={labelClass}>Fuel type (optional)</label>
               <select name="fuel" defaultValue="" className={selectClass}>
                 <option value="">Not specified</option>
@@ -256,11 +317,11 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 ))}
               </select>
             </div>
-            <div className="sm:col-span-1">
+            <div>
               <label className={labelClass}>Exterior color (optional)</label>
               <input type="text" name="exterior" placeholder="Alpine White" className={inputClass} />
             </div>
-            <div className="sm:col-span-1">
+            <div>
               <label className={labelClass}>Interior color (optional)</label>
               <input type="text" name="interior" placeholder="Black" className={inputClass} />
             </div>
@@ -352,6 +413,11 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
         </div>
 
         <div>
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Incentives</p>
+          <IncentivesEditor value={incentives} onChange={setIncentives} />
+        </div>
+
+        <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">
             Photos (optional)
           </p>
@@ -363,8 +429,9 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
           />
           <p className="mt-1 text-xs text-zinc-600">
             Links to real photos of this vehicle — a manufacturer site, your own listing, etc. No
-            attachments yet, just links for now. Leave this blank and we&apos;ll try to pull a
-            matching stock photo automatically.
+            attachments yet, just links for now. Leave this blank and we&apos;ll try to automatically
+            find a matching stock photo, but we can&apos;t guarantee it&apos;ll be the exact
+            year/trim/color — upload your own for the most accurate listing.
           </p>
         </div>
       </div>

@@ -41,6 +41,22 @@ export async function reviewSubmissionAction(formData: FormData) {
 
 export type StageDealState = { error: string | null; success?: boolean };
 
+function parseIncentivesField(formData: FormData): { name: string; amount: number }[] {
+  const raw = String(formData.get("incentives") || "[]");
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (i): i is { name: string; amount: number } =>
+          i && typeof i.name === "string" && i.name.trim().length > 0 && typeof i.amount === "number" && i.amount > 0
+      )
+      .map((i) => ({ name: i.name.trim(), amount: i.amount }));
+  } catch {
+    return [];
+  }
+}
+
 // Admin reads a broker's submitted link/sheet/file and stages an individual
 // car from it as a "draft" deal, owned by that broker. It shows up in their
 // dashboard for them to confirm (or uncheck) before it actually goes live —
@@ -95,6 +111,8 @@ export async function stageDealDraftAction(
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const notes = String(formData.get("notes") || "").trim();
+  const condition = String(formData.get("condition") || "").trim() || null;
+  const incentives = parseIncentivesField(formData);
   const sourceUrlRaw = String(formData.get("sourceUrl") || "").trim();
   let images = String(formData.get("images") || "")
     .split("\n")
@@ -117,6 +135,7 @@ export async function stageDealDraftAction(
     return { error: "Please enter the miles per year for this lease." };
   }
 
+  const photoAutoSourced = images.length === 0;
   if (images.length === 0) {
     const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
     if (photo) images = [photo];
@@ -151,6 +170,9 @@ export async function stageDealDraftAction(
     state: broker.state,
     seller_email: brokerEmail,
     verified: true,
+    condition,
+    incentives,
+    photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,
     notes,

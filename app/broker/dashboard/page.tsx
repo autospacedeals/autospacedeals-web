@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 
 interface Broker {
   id: string;
+  contact_name: string | null;
   business_name: string;
   seller_type: string;
   contact_phone: string;
@@ -62,7 +63,7 @@ export default async function BrokerDashboardPage() {
 
   const { data: broker } = await supabase
     .from("brokers")
-    .select("id, business_name, seller_type, contact_phone, city, state")
+    .select("id, contact_name, business_name, seller_type, contact_phone, city, state")
     .eq("id", user.id)
     .single<Broker>();
 
@@ -90,7 +91,7 @@ export default async function BrokerDashboardPage() {
     "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
     "seller_type, seller_name, seller_phone, seller_email, city, state, " +
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
-    "source_url, sample, one_pay, status, submission_id";
+    "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced";
 
   const { data: myDealRows } = await supabase
     .from("deals")
@@ -113,6 +114,7 @@ export default async function BrokerDashboardPage() {
           </p>
           <h1 className="mt-1 text-3xl font-black">{broker?.business_name ?? user.email}</h1>
           <p className="mt-1 text-sm text-zinc-500">
+            {broker?.contact_name && `${broker.contact_name} · `}
             {broker?.city}, {broker?.state} · {broker?.contact_phone} · {user.email}
           </p>
         </div>

@@ -23,6 +23,28 @@ export function msrpDiscountPercent(deal: Deal): number {
   return ((deal.msrp - deal.sellingPrice) / deal.msrp) * 100;
 }
 
+// Rough, estimate-only payment math for the interactive calculator on the
+// deal page: extra money put down (or an incentive applied) reduces the
+// amount financed, and that reduction is spread evenly across the
+// remaining term to lower the monthly payment. This intentionally ignores
+// money factor / APR / residual precision — those aren't captured for every
+// deal, and the whole point of this tool is a ballpark "what if" a shopper
+// can play with, not a finance quote. The UI is required to disclaim this.
+export function estimatePayment(
+  deal: Deal,
+  input: { dueAtSigning: number; incentivesTotal: number }
+): { monthly: number; total: number } {
+  const term = deal.term > 0 ? deal.term : 1;
+  const capReduction = input.dueAtSigning - deal.dueAtSigning + input.incentivesTotal;
+
+  if (deal.onePay) {
+    return { monthly: 0, total: Math.max(0, deal.dueAtSigning - input.incentivesTotal) };
+  }
+
+  const monthly = Math.max(0, deal.payment - capReduction / term);
+  return { monthly, total: Math.max(0, input.dueAtSigning) };
+}
+
 export function formatDate(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
     month: "short",

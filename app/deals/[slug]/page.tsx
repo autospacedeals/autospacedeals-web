@@ -3,12 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  ShieldCheck,
   MapPin,
   Store,
   Flag,
   CircleAlert,
 } from "lucide-react";
+import PaymentEstimator from "@/components/PaymentEstimator";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import {
   dealTitle,
@@ -25,6 +25,14 @@ import DealCard from "@/components/DealCard";
 // Always fetch fresh — a broker can edit/reprice/remove their own listing at
 // any time, and the detail page should never show stale info.
 export const dynamic = "force-dynamic";
+
+const CONDITION_STYLES: Record<string, string> = {
+  New: "bg-blue-500 text-white",
+  CPO: "bg-emerald-500 text-white",
+  Loaner: "bg-amber-500 text-zinc-950",
+  Demo: "bg-amber-500 text-zinc-950",
+  Used: "bg-zinc-700 text-white",
+};
 
 export async function generateMetadata({
   params,
@@ -100,15 +108,25 @@ export default async function DealDetailPage({
                 </span>
               )}
             </div>
-            {deal.verified && (
-              <span className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-zinc-950/90 px-3 py-1 text-xs font-semibold text-emerald-400">
-                <ShieldCheck size={14} /> Verified Seller
+            {deal.condition && (
+              <span
+                className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-bold ${
+                  CONDITION_STYLES[deal.condition] ?? "bg-zinc-950/90 text-zinc-300"
+                }`}
+              >
+                {deal.condition}
               </span>
             )}
-            {deal.sample && (
+            {deal.sample ? (
               <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-amber-500/90 px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-950">
                 <CircleAlert size={14} /> Sample listing — photo is a stock image, not the exact vehicle
               </span>
+            ) : (
+              deal.photoAutoSourced && (
+                <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-zinc-950/85 px-3 py-2 text-xs font-semibold text-zinc-300">
+                  <CircleAlert size={14} /> Stock photo — may not be the exact vehicle
+                </span>
+              )
             )}
           </div>
 
@@ -127,7 +145,9 @@ export default async function DealDetailPage({
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Stat
                 label={deal.onePay ? "One-pay lease total" : deal.dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
-                value={deal.onePay ? formatCurrency(deal.dueAtSigning) : `${formatCurrency(deal.payment)}/mo`}
+                value={
+                  deal.onePay ? formatCurrency(deal.dueAtSigning) : `${formatCurrency(deal.payment)}/mo + tax`
+                }
                 big
               />
               <Stat label="Due at signing" value={formatCurrency(deal.dueAtSigning)} big />
@@ -158,6 +178,8 @@ export default async function DealDetailPage({
             </div>
           </div>
 
+          <PaymentEstimator deal={deal} />
+
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
             <h2 className="text-lg font-bold">Vehicle Details</h2>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm text-zinc-300 sm:grid-cols-3">
@@ -171,7 +193,7 @@ export default async function DealDetailPage({
 
             {deal.packages.length > 0 && (
               <div className="mt-5">
-                <p className="text-sm font-semibold text-zinc-400">Packages &amp; incentives</p>
+                <p className="text-sm font-semibold text-zinc-400">Packages</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {deal.packages.map((item) => (
                     <span key={item} className="rounded-full bg-white/10 px-3 py-1 text-sm">
@@ -229,12 +251,6 @@ export default async function DealDetailPage({
             <p className="mt-1 text-sm text-zinc-500">
               {deal.city}, {deal.state} · {deal.sellerPhone}
             </p>
-            {deal.verified && (
-              <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
-                <ShieldCheck size={15} /> Verified seller
-              </p>
-            )}
-
             <div className="mt-5 border-t border-white/10 pt-5">
               <ContactActionsFull deal={deal} />
             </div>

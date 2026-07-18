@@ -35,13 +35,14 @@ export async function signUpAction(
 ): Promise<AuthState> {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
+  const contactName = String(formData.get("contactName") || "").trim();
   const businessName = String(formData.get("businessName") || "").trim();
   const sellerType = String(formData.get("sellerType") || "Broker");
   const contactPhone = String(formData.get("contactPhone") || "").trim();
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim().toUpperCase();
 
-  if (!email || !password || !businessName || !contactPhone || !city || !state) {
+  if (!email || !password || !contactName || !businessName || !contactPhone || !city || !state) {
     return { error: "Please fill in every field." };
   }
   if (password.length < 8) {
@@ -64,6 +65,7 @@ export async function signUpAction(
   const admin = createAdminClient();
   const { error: profileError } = await admin.from("brokers").insert({
     id: data.user.id,
+    contact_name: contactName,
     business_name: businessName,
     seller_type: sellerType,
     contact_phone: contactPhone,

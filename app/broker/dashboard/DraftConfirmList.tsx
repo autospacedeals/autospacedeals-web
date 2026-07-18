@@ -6,6 +6,7 @@ import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { confirmDraftsAction, updateDraftDealAction } from "./actions";
+import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
@@ -14,6 +15,7 @@ const selectClass = inputClass + " appearance-none";
 
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
+const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
 export default function DraftConfirmList({ drafts }: { drafts: Deal[] }) {
   const [checked, setChecked] = useState<Set<string>>(new Set(drafts.map((d) => d.id)));
@@ -79,6 +81,7 @@ function DraftRow({
   const [error, setError] = useState<string | null>(null);
   const [dealType, setDealType] = useState<"Lease" | "Finance">(deal.dealType);
   const [onePay, setOnePay] = useState(deal.onePay);
+  const [incentives, setIncentives] = useState<IncentiveRow[]>(deal.incentives ?? []);
 
   if (!editing) {
     return (
@@ -149,7 +152,17 @@ function DraftRow({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <label className={labelClass}>Condition</label>
+            <select name="condition" defaultValue={deal.condition ?? "New"} className={selectClass}>
+              {CONDITIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className={labelClass}>Body style (optional)</label>
             <select name="bodyStyle" defaultValue={deal.bodyStyle ?? ""} className={selectClass}>
@@ -265,6 +278,8 @@ function DraftRow({
           </div>
         )}
 
+        <IncentivesEditor value={incentives} onChange={setIncentives} />
+
         <div>
           <label className={labelClass}>Photo URLs (one per line, optional)</label>
           <textarea
@@ -274,7 +289,8 @@ function DraftRow({
             className={`${inputClass} min-h-16 resize-y font-mono text-xs`}
           />
           <p className="mt-1 text-xs text-zinc-600">
-            Leave blank and we&apos;ll try to auto-pull a matching stock photo.
+            Leave blank and we&apos;ll try to automatically find a matching stock photo, but we
+            can&apos;t guarantee it&apos;ll be the exact year/trim/color.
           </p>
         </div>
 

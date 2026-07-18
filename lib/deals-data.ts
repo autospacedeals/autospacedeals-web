@@ -28,6 +28,12 @@ export type BodyStyle =
   | "Coupe"
   | "Minivan"
   | "Hatchback";
+export type VehicleCondition = "New" | "Loaner" | "Demo" | "CPO" | "Used";
+
+export interface Incentive {
+  name: string;
+  amount: number;
+}
 
 export interface Deal {
   id: string;
@@ -65,7 +71,8 @@ export interface Deal {
   state: string; // 2-letter code
 
   // Trust / status
-  verified: boolean;
+  verified: boolean; // legacy — no longer shown in the UI (replaced by `condition`), kept for the DB column
+  condition?: VehicleCondition | null; // shown on the listing photo in place of the old "Verified" badge
   inStock: boolean;
   popularity: number; // 0-100, used for "Most popular" sort
   datePosted: string; // ISO date (YYYY-MM-DD)
@@ -75,6 +82,15 @@ export interface Deal {
   notes: string;
   packages: string[];
   images: string[];
+  // True when the photo came from our CarsXE auto-lookup or the generic
+  // placeholder rather than a broker upload — the UI discloses this since
+  // it isn't guaranteed to be the exact vehicle.
+  photoAutoSourced?: boolean;
+  // Stackable incentives (loyalty, fleet, military, etc.) a shopper can
+  // toggle on the deal page to see the effect on their estimated payment.
+  // Broker-managed; AI can suggest starting points but never publishes
+  // amounts without broker review.
+  incentives?: Incentive[];
 
   // Provenance — where this listing came from. Optional; used for real deals
   // pulled from a broker's public posts (e.g. their Leasehackr thread) so we

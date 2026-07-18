@@ -44,6 +44,10 @@ export default function SignupForm() {
           </select>
         </div>
         <div>
+          <label className={labelClass}>Your name</label>
+          <input required name="contactName" placeholder="Jordan Smith" className={inputClass} />
+        </div>
+        <div>
           <label className={labelClass}>Business name</label>
           <input required name="businessName" placeholder="Chrome Stallions" className={inputClass} />
         </div>

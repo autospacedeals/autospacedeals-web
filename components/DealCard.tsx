@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Gauge, ShieldCheck, ArrowRight, Store } from "lucide-react";
+import { MapPin, Gauge, ArrowRight, Store } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { formatCurrency, msrpDiscountPercent, relativeDatePosted } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
@@ -9,6 +9,14 @@ const BADGE_STYLES: Record<string, string> = {
   NEW: "bg-blue-500 text-white",
   VALUE: "bg-emerald-500 text-white",
   EV: "bg-teal-500 text-white",
+};
+
+const CONDITION_STYLES: Record<string, string> = {
+  New: "bg-blue-500 text-white",
+  CPO: "bg-emerald-500 text-white",
+  Loaner: "bg-amber-500 text-zinc-950",
+  Demo: "bg-amber-500 text-zinc-950",
+  Used: "bg-zinc-700 text-white",
 };
 
 export default function DealCard({ deal }: { deal: Deal }) {
@@ -43,16 +51,26 @@ export default function DealCard({ deal }: { deal: Deal }) {
             )}
           </div>
 
-          {deal.verified && (
-            <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-zinc-950/90 px-2.5 py-1 text-xs font-semibold text-emerald-400">
-              <ShieldCheck size={13} /> Verified
+          {deal.condition && (
+            <span
+              className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-bold ${
+                CONDITION_STYLES[deal.condition] ?? "bg-zinc-950/90 text-zinc-300"
+              }`}
+            >
+              {deal.condition}
             </span>
           )}
 
-          {deal.sample && (
+          {deal.sample ? (
             <span className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2.5 py-1 text-center text-[11px] font-bold uppercase tracking-wide text-zinc-950">
               Sample listing — photo not exact vehicle
             </span>
+          ) : (
+            deal.photoAutoSourced && (
+              <span className="absolute inset-x-0 bottom-0 bg-zinc-950/85 px-2.5 py-1 text-center text-[11px] font-semibold text-zinc-300">
+                Stock photo — may not be exact vehicle
+              </span>
+            )
           )}
         </div>
 
@@ -72,7 +90,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
           </p>
           <p className="text-3xl font-black">
             {formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment)}
-            {!deal.onePay && <span className="text-sm font-medium text-zinc-500">/mo</span>}
+            {!deal.onePay && <span className="text-sm font-medium text-zinc-500">/mo + tax</span>}
           </p>
         </div>
         {discount > 0 && (

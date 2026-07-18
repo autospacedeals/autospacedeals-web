@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { stageDealDraftAction, type StageDealState } from "./actions";
+import IncentivesEditor, { type IncentiveRow } from "@/app/broker/dashboard/IncentivesEditor";
 
 const initialState: StageDealState = { error: null };
 
@@ -13,6 +14,7 @@ const selectClass = inputClass + " appearance-none";
 
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
+const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
 export default function StageDealForm({
   submissionId,
@@ -27,6 +29,7 @@ export default function StageDealForm({
   const [state, formAction, pending] = useActionState(stageDealDraftAction, initialState);
   const [dealType, setDealType] = useState<"Lease" | "Finance">("Lease");
   const [onePay, setOnePay] = useState(false);
+  const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
 
   if (!open) {
     return (
@@ -76,7 +79,17 @@ export default function StageDealForm({
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <label className={labelClass}>Condition</label>
+            <select name="condition" defaultValue="New" className={selectClass}>
+              {CONDITIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className={labelClass}>Body style (optional)</label>
             <select name="bodyStyle" defaultValue="" className={selectClass}>
@@ -182,6 +195,8 @@ export default function StageDealForm({
           )}
         </div>
 
+        <IncentivesEditor value={incentives} onChange={setIncentives} />
+
         <div>
           <label className={labelClass}>Photo URLs (optional, one per line)</label>
           <textarea
@@ -190,7 +205,8 @@ export default function StageDealForm({
             className={`${inputClass} min-h-16 resize-y font-mono text-xs`}
           />
           <p className="mt-1 text-xs text-zinc-600">
-            Leave blank to try pulling a matching stock photo automatically.
+            Leave blank to try automatically finding a matching stock photo — not guaranteed to be
+            the exact year/trim/color.
           </p>
         </div>
 

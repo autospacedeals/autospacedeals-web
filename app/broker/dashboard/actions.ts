@@ -6,6 +6,19 @@ import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
 import { parseInventoryBuffer, parseInventoryCsv, type ParsedDeal } from "@/lib/parse-inventory";
+import {
+  parseFreeTextWithAI,
+  parseImageWithAI,
+  type SupportedImageType,
+} from "@/lib/ai-parse-inventory";
+import { suggestIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
+
+const SUPPORTED_IMAGE_TYPES: SupportedImageType[] = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
 
 export type SubmissionState = {
   error: string | null;
@@ -74,6 +87,9 @@ async function stageParsedDeals(
       city: broker.city,
       state: d.state ?? broker.state,
       verified: true,
+      condition: null,
+      incentives: [],
+      photo_auto_sourced: true,
       in_stock: true,
       popularity: 50,
       notes: d.notes,
@@ -81,6 +97,45 @@ async function stageParsedDeals(
       one_pay: false,
       status: "draft",
     });
+  }
+}
+
+// Called directly from the client (not a <form> submit) when a broker hits
+// "Suggest with AI" on a car's incentives list. Returns starting suggestions
+// only — nothing is saved here, the broker edits/removes before the
+// surrounding form is actually submitted.
+export async function suggestIncentivesAction(input: {
+  year: number;
+  make: string;
+  model: string;
+  trim?: string;
+}): Promise<{ incentives: SuggestedIncentive[]; error: string | null }> {
+  if (!input.year || !input.make.trim() || !input.model.trim()) {
+    return { incentives: [], error: "Fill in year, make, and model first." };
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { incentives: [], error: "AI suggestions aren't configured yet — add incentives manually." };
+  }
+  const incentives = await suggestIncentives(input);
+  return { incentives, error: null };
+}
+
+// Parses the hidden `incentives` field (JSON string written by
+// IncentivesEditor) that every deal-editing form submits, tolerating a
+// missing/invalid value rather than throwing.
+function parseIncentivesField(formData: FormData): { name: string; amount: number }[] {
+  const raw = String(formData.get("incentives") || "[]");
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (i): i is { name: string; amount: number } =>
+          i && typeof i.name === "string" && i.name.trim().length > 0 && typeof i.amount === "number" && i.amount > 0
+      )
+      .map((i) => ({ name: i.name.trim(), amount: i.amount }));
+  } catch {
+    return [];
   }
 }
 
@@ -172,6 +227,61 @@ export async function createSubmissionAction(
         }
       }
     }
+  } else if (sourceType === "free_text") {
+    const dealText = String(formData.get("dealText") || "").trim();
+    if (!dealText) return { error: "Paste in the deal details first." };
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return { error: "AI reading isn't configured yet — please use \"Add a car manually\" instead." };
+    }
+
+    if (broker) {
+      try {
+        const result = await parseFreeTextWithAI(dealText, broker.state);
+        parsedDeals = result.parsed;
+        skippedCount = result.skipped.length;
+      } catch (err) {
+        console.error("Failed to AI-parse typed deal text:", err);
+        return { error: "Couldn't read that — please try again or use \"Add a car manually.\"" };
+      }
+    }
+
+    sourceUrl = dealText.slice(0, 2000);
+  } else if (sourceType === "screenshot") {
+    const file = formData.get("file") as File | null;
+    if (!file || file.size === 0) {
+      return { error: "Please choose a screenshot to upload." };
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return { error: "Image is too large — please keep it under 10MB." };
+    }
+    if (!SUPPORTED_IMAGE_TYPES.includes(file.type as SupportedImageType)) {
+      return { error: "Please upload a JPEG, PNG, WEBP, or GIF image." };
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return { error: "AI reading isn't configured yet — please use \"Add a car manually\" instead." };
+    }
+
+    if (broker) {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const result = await parseImageWithAI(
+          buffer.toString("base64"),
+          file.type as SupportedImageType,
+          broker.state
+        );
+        parsedDeals = result.parsed;
+        skippedCount = result.skipped.length;
+      } catch (err) {
+        console.error("Failed to AI-parse screenshot:", err);
+        return { error: "Couldn't read that image — please try again or use \"Add a car manually.\"" };
+      }
+    }
+
+    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("broker-uploads").upload(path, file);
+    if (uploadError) return { error: uploadError.message };
+
+    sourceUrl = path;
   } else {
     return { error: "Unknown source type." };
   }
@@ -252,6 +362,8 @@ export async function createManualDealAction(
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const notes = String(formData.get("notes") || "").trim();
+  const condition = String(formData.get("condition") || "").trim() || null;
+  const incentives = parseIncentivesField(formData);
   let images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -281,6 +393,7 @@ export async function createManualDealAction(
     }
   }
 
+  const photoAutoSourced = images.length === 0;
   if (images.length === 0) {
     const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
     if (photo) images = [photo];
@@ -315,6 +428,9 @@ export async function createManualDealAction(
     city: broker.city,
     state: broker.state,
     verified: true,
+    condition,
+    incentives,
+    photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,
     notes,
@@ -419,6 +535,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const notes = String(formData.get("notes") || "").trim();
+  const condition = String(formData.get("condition") || "").trim() || null;
+  const incentives = parseIncentivesField(formData);
   const images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -449,6 +567,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   }
 
   let finalImages = images;
+  const photoAutoSourced = images.length === 0;
   if (finalImages.length === 0) {
     const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
     if (photo) finalImages = [photo];
@@ -474,6 +593,9 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       miles_per_year: milesPerYear,
       apr,
       notes,
+      condition,
+      incentives,
+      photo_auto_sourced: photoAutoSourced,
       images: finalImages,
       one_pay: onePay,
     })

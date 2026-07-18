@@ -59,6 +59,9 @@ export interface DealRow {
   one_pay: boolean;
   status: "draft" | "published";
   submission_id: string | null;
+  condition: string | null;
+  incentives: { name: string; amount: number }[] | null;
+  photo_auto_sourced: boolean;
 }
 
 export function mapRowToDeal(row: DealRow): Deal {
@@ -98,6 +101,9 @@ export function mapRowToDeal(row: DealRow): Deal {
     sourceUrl: row.source_url ?? undefined,
     sample: row.sample,
     onePay: row.one_pay,
+    condition: (row.condition as Deal["condition"]) ?? null,
+    incentives: row.incentives ?? [],
+    photoAutoSourced: row.photo_auto_sourced,
   };
 }
 
@@ -106,7 +112,7 @@ const DEAL_COLUMNS =
   "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
   "seller_type, seller_name, seller_phone, seller_email, city, state, " +
   "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
-  "source_url, sample, one_pay, status, submission_id";
+  "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced";
 
 export async function getPublishedDeals(): Promise<Deal[]> {
   const supabase = publicClient();

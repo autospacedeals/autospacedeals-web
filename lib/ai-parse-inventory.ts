@@ -1,12 +1,16 @@
-// AI-powered inventory sheet parsing. Every broker formats their spreadsheet
-// differently (different columns, combined cells, shorthand, typos), which
-// a hand-written parser can never fully keep up with — so when an API key
-// is configured, this is tried first and the heuristic parser in
-// parse-inventory.ts is only a fallback (missing key, API error, etc).
+// AI-powered deal extraction — from a spreadsheet, from a broker just
+// typing up what they've got, or from a screenshot. Brokers format their
+// inventory wildly differently (different columns, combined cells,
+// shorthand, typos, or no structure at all), which a hand-written parser
+// can never fully keep up with, so when an API key is configured this is
+// tried first; the heuristic parser in parse-inventory.ts is only a
+// fallback for the spreadsheet case (missing key, API error, etc — there's
+// no heuristic equivalent for free text or images).
 //
 // This never publishes anything directly: every row it extracts becomes a
 // "draft" deal the broker still has to review and confirm, so a wrong
-// guess here just means unchecking a box, not a bad listing going live.
+// guess here just means unchecking a box (or fixing a field), not a bad
+// listing going live.
 import Anthropic from "@anthropic-ai/sdk";
 import type { ParsedDeal, ParseResult } from "./parse-inventory";
 
@@ -14,7 +18,7 @@ const MODEL = "claude-haiku-4-5-20251001";
 
 const EXTRACT_TOOL = {
   name: "extract_deals",
-  description: "Return every distinct vehicle listing found in the sheet.",
+  description: "Return every distinct vehicle listing found.",
   input_schema: {
     type: "object" as const,
     properties: {
@@ -62,6 +66,63 @@ function rowsToTable(rows: Record<string, unknown>[]): string {
   return lines.join("\n");
 }
 
+// Shared: pull the tool_use block out of a response and turn its raw
+// candidates into validated ParsedDeal rows (or a skip reason), the same
+// way regardless of whether the source was a table, free text, or an image.
+function toolResponseToResult(response: Anthropic.Message, brokerState: string): ParseResult {
+  const toolUse = response.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+  );
+  if (!toolUse) return { parsed: [], skipped: [] };
+
+  const raw = toolUse.input as { deals?: Record<string, unknown>[] };
+  const candidates = Array.isArray(raw.deals) ? raw.deals : [];
+
+  const parsed: ParsedDeal[] = [];
+  const skipped: { row: number; reason: string }[] = [];
+
+  candidates.forEach((c, idx) => {
+    const year = typeof c.year === "number" ? c.year : null;
+    const make = typeof c.make === "string" && c.make.trim() ? c.make.trim() : null;
+    const model = typeof c.model === "string" && c.model.trim() ? c.model.trim() : null;
+    const msrp = typeof c.msrp === "number" ? c.msrp : null;
+    const payment = typeof c.payment === "number" ? c.payment : null;
+    const term = typeof c.term === "number" ? c.term : null;
+    const dueAtSigning = typeof c.dueAtSigning === "number" ? c.dueAtSigning : null;
+
+    const missing: string[] = [];
+    if (!year) missing.push("year");
+    if (!make || !model) missing.push("make/model");
+    if (!msrp) missing.push("MSRP");
+    if (!payment) missing.push("payment");
+    if (!term) missing.push("term");
+    if (!dueAtSigning) missing.push("due at signing");
+
+    if (missing.length > 0) {
+      skipped.push({ row: idx + 1, reason: `Couldn't determine: ${missing.join(", ")}` });
+      return;
+    }
+
+    parsed.push({
+      year: year!,
+      make: make!,
+      model: model!,
+      trim: typeof c.trim === "string" && c.trim.trim() ? c.trim.trim() : null,
+      msrp: msrp!,
+      payment: payment!,
+      term: term!,
+      milesPerYear: typeof c.milesPerYear === "number" ? c.milesPerYear : null,
+      dueAtSigning: dueAtSigning!,
+      exterior: typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null,
+      interior: typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null,
+      state: typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState,
+      notes: typeof c.notes === "string" ? c.notes.trim() : "",
+    });
+  });
+
+  return { parsed, skipped };
+}
+
 export async function parseRowsWithAI(
   rows: Record<string, unknown>[],
   brokerState: string
@@ -95,55 +156,78 @@ export async function parseRowsWithAI(
     ],
   });
 
-  const toolUse = response.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
-  );
-  if (!toolUse) return { parsed: [], skipped: [] };
+  return toolResponseToResult(response, brokerState);
+}
 
-  const raw = toolUse.input as { deals?: Record<string, unknown>[] };
-  const candidates = Array.isArray(raw.deals) ? raw.deals : [];
+// Broker typed up one or more deals in plain language instead of a
+// spreadsheet — e.g. pasted from a text thread or forum post.
+export async function parseFreeTextWithAI(text: string, brokerState: string): Promise<ParseResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || !text.trim()) return { parsed: [], skipped: [] };
 
-  const parsed: ParsedDeal[] = [];
-  const skipped: { row: number; reason: string }[] = [];
+  const client = new Anthropic({ apiKey });
 
-  candidates.forEach((c, idx) => {
-    const year = typeof c.year === "number" ? c.year : null;
-    const make = typeof c.make === "string" && c.make.trim() ? c.make.trim() : null;
-    const model = typeof c.model === "string" && c.model.trim() ? c.model.trim() : null;
-    const msrp = typeof c.msrp === "number" ? c.msrp : null;
-    const payment = typeof c.payment === "number" ? c.payment : null;
-    const term = typeof c.term === "number" ? c.term : null;
-    const dueAtSigning = typeof c.dueAtSigning === "number" ? c.dueAtSigning : null;
-
-    const missing: string[] = [];
-    if (!year) missing.push("year");
-    if (!make || !model) missing.push("make/model");
-    if (!msrp) missing.push("MSRP");
-    if (!payment) missing.push("payment");
-    if (!term) missing.push("term");
-    if (!dueAtSigning) missing.push("due at signing");
-
-    if (missing.length > 0) {
-      skipped.push({ row: idx + 2, reason: `Couldn't determine: ${missing.join(", ")}` });
-      return;
-    }
-
-    parsed.push({
-      year: year!,
-      make: make!,
-      model: model!,
-      trim: typeof c.trim === "string" && c.trim.trim() ? c.trim.trim() : null,
-      msrp: msrp!,
-      payment: payment!,
-      term: term!,
-      milesPerYear: typeof c.milesPerYear === "number" ? c.milesPerYear : null,
-      dueAtSigning: dueAtSigning!,
-      exterior: typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null,
-      interior: typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null,
-      state: typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState,
-      notes: typeof c.notes === "string" ? c.notes.trim() : "",
-    });
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    tools: [EXTRACT_TOOL],
+    tool_choice: { type: "tool", name: "extract_deals" },
+    messages: [
+      {
+        role: "user",
+        content:
+          `A broker typed up one or more car lease/finance deals in plain language (not a spreadsheet). ` +
+          `Extract every distinct vehicle listing you can find. Use your knowledge of car makes/models ` +
+          `to fill in make when only a model name is given. If a field genuinely isn't mentioned, use ` +
+          `null for it rather than guessing — do not fabricate numbers.\n\n${text}`,
+      },
+    ],
   });
 
-  return { parsed, skipped };
+  return toolResponseToResult(response, brokerState);
+}
+
+export type SupportedImageType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
+// Broker uploaded a screenshot (text thread, forum post, spreadsheet, flyer,
+// etc.) instead of typing anything — read it with vision and extract the
+// same way.
+export async function parseImageWithAI(
+  base64: string,
+  mediaType: SupportedImageType,
+  brokerState: string
+): Promise<ParseResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || !base64) return { parsed: [], skipped: [] };
+
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    tools: [EXTRACT_TOOL],
+    tool_choice: { type: "tool", name: "extract_deals" },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: base64 },
+          },
+          {
+            type: "text",
+            text:
+              `This is a screenshot of one or more car lease/finance deals (a text message, forum post, ` +
+              `spreadsheet, flyer, etc). Extract every distinct vehicle listing you can read. Use your ` +
+              `knowledge of car makes/models to fill in make when only a model name is given. If a field ` +
+              `genuinely isn't visible or determinable, use null for it rather than guessing — do not ` +
+              `fabricate numbers.`,
+          },
+        ],
+      },
+    ],
+  });
+
+  return toolResponseToResult(response, brokerState);
 }
