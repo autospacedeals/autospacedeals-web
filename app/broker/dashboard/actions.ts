@@ -383,6 +383,110 @@ export async function deleteDealAction(formData: FormData): Promise<{ error: str
   return { error: null };
 }
 
+// Broker fills in or fixes a draft's details before confirming it — e.g.
+// adding a trim/color the parser missed, or correcting something it got
+// wrong. Same fields and validation as the manual "add a car" form, but
+// updates the existing draft row in place instead of inserting a new one.
+// Status stays "draft" here; confirmDraftsAction is what actually publishes.
+export async function updateDraftDealAction(formData: FormData): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Missing deal id." };
+
+  const year = Number(formData.get("year"));
+  const make = String(formData.get("make") || "").trim();
+  const model = String(formData.get("model") || "").trim();
+  const trim = String(formData.get("trim") || "").trim() || null;
+  const bodyStyle = String(formData.get("bodyStyle") || "").trim() || null;
+  const fuel = String(formData.get("fuel") || "").trim() || null;
+  const exterior = String(formData.get("exterior") || "").trim() || null;
+  const interior = String(formData.get("interior") || "").trim() || null;
+  const dealType = String(formData.get("dealType") || "Lease").trim();
+  const onePay = formData.get("onePay") === "on";
+  const payment = onePay ? 0 : Number(formData.get("payment"));
+  const dueAtSigning = Number(formData.get("dueAtSigning"));
+  const term = Number(formData.get("term"));
+  const milesPerYearRaw = formData.get("milesPerYear");
+  const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
+  const aprRaw = formData.get("apr");
+  const apr = aprRaw ? Number(aprRaw) : null;
+  const msrp = Number(formData.get("msrp"));
+  const sellingPriceRaw = formData.get("sellingPrice");
+  const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
+  const notes = String(formData.get("notes") || "").trim();
+  const images = String(formData.get("images") || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!year || !make || !model) {
+    return { error: "Please fill in the year, make, and model." };
+  }
+  if (!msrp) {
+    return { error: "Please enter the MSRP." };
+  }
+  if (!dueAtSigning || !term) {
+    return { error: "Please fill in the deal terms (due at signing and term)." };
+  }
+  if (!onePay && !payment) {
+    return { error: "Please enter a monthly payment, or mark this as a one-pay lease." };
+  }
+  if (dealType === "Lease" && !milesPerYear) {
+    return { error: "Please enter the miles per year for this lease." };
+  }
+  for (const url of images) {
+    try {
+      // eslint-disable-next-line no-new
+      new URL(url);
+    } catch {
+      return { error: `"${url}" doesn't look like a valid photo URL.` };
+    }
+  }
+
+  let finalImages = images;
+  if (finalImages.length === 0) {
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
+    if (photo) finalImages = [photo];
+  }
+
+  const { error } = await supabase
+    .from("deals")
+    .update({
+      year,
+      make,
+      model,
+      trim,
+      body_style: bodyStyle,
+      fuel,
+      exterior,
+      interior,
+      deal_type: dealType,
+      msrp,
+      selling_price: sellingPrice,
+      payment,
+      due_at_signing: dueAtSigning,
+      term,
+      miles_per_year: milesPerYear,
+      apr,
+      notes,
+      images: finalImages,
+      one_pay: onePay,
+    })
+    .eq("id", id)
+    .eq("broker_id", user.id)
+    .eq("status", "draft");
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  return { error: null };
+}
+
 // Broker confirms which staged drafts (added by admin from a submitted
 // link/sheet/file) should actually go live. Checked ids get published,
 // unchecked ones are discarded.
