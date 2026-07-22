@@ -20,7 +20,7 @@ import {
   reportIssueMailtoHref,
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
-import DealCard from "@/components/DealCard";
+import DealCard, { HIDDEN_BADGES } from "@/components/DealCard";
 
 // Always fetch fresh — a broker can edit/reprice/remove their own listing at
 // any time, and the detail page should never show stale info.
@@ -97,7 +97,7 @@ export default async function DealDetailPage({
               className="h-64 w-full object-cover sm:h-80 md:h-96"
             />
             <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-              {deal.badge && (
+              {deal.badge && !HIDDEN_BADGES.has(deal.badge) && (
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-950">
                   {deal.badge}
                 </span>

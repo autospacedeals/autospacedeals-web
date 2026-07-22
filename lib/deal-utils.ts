@@ -35,12 +35,20 @@ export function estimatePayment(
   input: { dueAtSigning: number; incentivesTotal: number }
 ): { monthly: number; total: number } {
   const term = deal.term > 0 ? deal.term : 1;
-  const capReduction = input.dueAtSigning - deal.dueAtSigning + input.incentivesTotal;
 
   if (deal.onePay) {
-    return { monthly: 0, total: Math.max(0, deal.dueAtSigning - input.incentivesTotal) };
+    // No monthly bill on a one-pay lease — the "due at signing" figure the
+    // shopper edits *is* the total, so incentives (and any adjustment) come
+    // straight off that number rather than being amortized anywhere.
+    return { monthly: 0, total: Math.max(0, input.dueAtSigning - input.incentivesTotal) };
   }
 
+  // Any difference between the shopper's chosen due-at-signing and the
+  // advertised one — plus any selected incentives — is treated as extra (or
+  // less) cap cost reduction, spread evenly across the remaining term. So
+  // pushing due-at-signing down toward $0 rolls that amount into the
+  // monthly payment instead; pushing it up lowers the monthly payment.
+  const capReduction = input.dueAtSigning - deal.dueAtSigning + input.incentivesTotal;
   const monthly = Math.max(0, deal.payment - capReduction / term);
   return { monthly, total: Math.max(0, input.dueAtSigning) };
 }

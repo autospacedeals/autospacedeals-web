@@ -11,6 +11,12 @@ const BADGE_STYLES: Record<string, string> = {
   EV: "bg-teal-500 text-white",
 };
 
+// Deprioritized for now per Robert — keeping the styles/logic above intact
+// (and the underlying `badge` data untouched) in case we want these back;
+// this just stops them from rendering. Exported so the deal detail page's
+// photo badge respects the same list.
+export const HIDDEN_BADGES = new Set(["HOT", "VALUE"]);
+
 const CONDITION_STYLES: Record<string, string> = {
   New: "bg-blue-500 text-white",
   CPO: "bg-emerald-500 text-white",
@@ -35,7 +41,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
           />
 
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-            {deal.badge && (
+            {deal.badge && !HIDDEN_BADGES.has(deal.badge) && (
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-bold ${
                   BADGE_STYLES[deal.badge] ?? "bg-white text-zinc-950"

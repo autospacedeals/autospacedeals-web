@@ -7,6 +7,7 @@ import { signOutAction } from "../actions";
 import NewSubmissionForm from "./NewSubmissionForm";
 import DraftConfirmList from "./DraftConfirmList";
 import MyListings from "./MyListings";
+import DeleteSubmissionButton from "./DeleteSubmissionButton";
 
 // Always fetch fresh so the broker's own edits (price changes, drafts
 // confirmed, listings removed) show up immediately, not from a stale cache.
@@ -28,7 +29,7 @@ interface Broker {
 
 interface Submission {
   id: string;
-  source_type: "link" | "google_sheet" | "excel_file";
+  source_type: "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot";
   source_url: string;
   notes: string | null;
   status: "pending" | "approved" | "rejected";
@@ -52,6 +53,8 @@ const SOURCE_TYPE_LABELS: Record<Submission["source_type"], string> = {
   link: "Forum post / website",
   google_sheet: "Google Sheet",
   excel_file: "Excel file",
+  free_text: "Typed up",
+  screenshot: "Screenshot",
 };
 
 export default async function BrokerDashboardPage() {
@@ -74,11 +77,11 @@ export default async function BrokerDashboardPage() {
     .order("created_at", { ascending: false })
     .returns<Submission[]>();
 
-  // Excel files are stored in a private bucket — generate short-lived signed
-  // URLs so the broker can view what they uploaded.
+  // Excel files and screenshots are stored in a private bucket — generate
+  // short-lived signed URLs so the broker can view what they uploaded.
   const fileLinks: Record<string, string> = {};
   for (const s of submissions ?? []) {
-    if (s.source_type === "excel_file") {
+    if (s.source_type === "excel_file" || s.source_type === "screenshot") {
       const { data } = await supabase.storage
         .from("broker-uploads")
         .createSignedUrl(s.source_url, 60 * 10);
@@ -169,15 +172,18 @@ export default async function BrokerDashboardPage() {
                     <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
                       {SOURCE_TYPE_LABELS[s.source_type]}
                     </div>
-                    <span
-                      className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_STYLES[s.status]}`}
-                    >
-                      <StatusIcon size={12} /> {s.status}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_STYLES[s.status]}`}
+                      >
+                        <StatusIcon size={12} /> {s.status}
+                      </span>
+                      <DeleteSubmissionButton id={s.id} />
+                    </div>
                   </div>
 
                   <div className="mt-2">
-                    {s.source_type === "excel_file" ? (
+                    {s.source_type === "excel_file" || s.source_type === "screenshot" ? (
                       fileLinks[s.id] ? (
                         <a
                           href={fileLinks[s.id]}
@@ -185,11 +191,16 @@ export default async function BrokerDashboardPage() {
                           rel="noopener noreferrer"
                           className="flex items-center gap-1.5 text-sm font-semibold text-white hover:underline"
                         >
-                          View uploaded file <ExternalLink size={13} />
+                          {s.source_type === "screenshot" ? "View screenshot" : "View uploaded file"}{" "}
+                          <ExternalLink size={13} />
                         </a>
                       ) : (
-                        <p className="text-sm text-zinc-500">File uploaded</p>
+                        <p className="text-sm text-zinc-500">
+                          {s.source_type === "screenshot" ? "Screenshot uploaded" : "File uploaded"}
+                        </p>
                       )
+                    ) : s.source_type === "free_text" ? (
+                      <p className="whitespace-pre-wrap text-sm text-zinc-400">{s.source_url}</p>
                     ) : (
                       <a
                         href={s.source_url}

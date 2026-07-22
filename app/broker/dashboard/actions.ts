@@ -459,22 +459,92 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const id = String(formData.get("id") || "");
   if (!id) return { error: "Missing deal id." };
 
-  const payment = Number(formData.get("payment"));
+  const year = Number(formData.get("year"));
+  const make = String(formData.get("make") || "").trim();
+  const model = String(formData.get("model") || "").trim();
+  const trim = String(formData.get("trim") || "").trim() || null;
+  const bodyStyle = String(formData.get("bodyStyle") || "").trim() || null;
+  const fuel = String(formData.get("fuel") || "").trim() || null;
+  const exterior = String(formData.get("exterior") || "").trim() || null;
+  const interior = String(formData.get("interior") || "").trim() || null;
+  const dealType = String(formData.get("dealType") || "Lease").trim();
+  const onePay = formData.get("onePay") === "on";
+  const payment = onePay ? 0 : Number(formData.get("payment"));
   const dueAtSigning = Number(formData.get("dueAtSigning"));
+  const term = Number(formData.get("term"));
+  const milesPerYearRaw = formData.get("milesPerYear");
+  const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
+  const aprRaw = formData.get("apr");
+  const apr = aprRaw ? Number(aprRaw) : null;
+  const msrp = Number(formData.get("msrp"));
+  const sellingPriceRaw = formData.get("sellingPrice");
+  const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const inStock = formData.get("inStock") === "on";
   const notes = String(formData.get("notes") || "").trim();
   const condition = String(formData.get("condition") || "").trim() || null;
   const incentives = parseIncentivesField(formData);
+  const images = String(formData.get("images") || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!year || !make || !model) {
+    return { error: "Please fill in the year, make, and model." };
+  }
+  if (!msrp) {
+    return { error: "Please enter the MSRP." };
+  }
+  if (!dueAtSigning || !term) {
+    return { error: "Please fill in the deal terms (due at signing and term)." };
+  }
+  if (!onePay && !payment) {
+    return { error: "Please enter a monthly payment, or mark this as a one-pay lease." };
+  }
+  if (dealType === "Lease" && !milesPerYear) {
+    return { error: "Please enter the miles per year for this lease." };
+  }
+  for (const url of images) {
+    try {
+      // eslint-disable-next-line no-new
+      new URL(url);
+    } catch {
+      return { error: `"${url}" doesn't look like a valid photo URL.` };
+    }
+  }
+
+  let finalImages = images;
+  const photoAutoSourced = images.length === 0;
+  if (finalImages.length === 0) {
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
+    if (photo) finalImages = [photo];
+  }
 
   const { error } = await supabase
     .from("deals")
     .update({
+      year,
+      make,
+      model,
+      trim,
+      body_style: bodyStyle,
+      fuel,
+      exterior,
+      interior,
+      deal_type: dealType,
+      msrp,
+      selling_price: sellingPrice,
       payment,
       due_at_signing: dueAtSigning,
+      term,
+      miles_per_year: milesPerYear,
+      apr,
       in_stock: inStock,
       notes,
       condition,
       incentives,
+      images: finalImages,
+      photo_auto_sourced: photoAutoSourced,
+      one_pay: onePay,
     })
     .eq("id", id)
     .eq("broker_id", user.id);
@@ -482,6 +552,41 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   if (error) return { error: error.message };
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
+  return { error: null };
+}
+
+// Deletes a submission log entry (and its uploaded file, if any) — this is
+// just the reference record of what a broker linked/uploaded/typed, not the
+// deals it may have produced, so it's always safe to remove.
+export async function deleteSubmissionAction(formData: FormData): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "Missing submission id." };
+
+  const { data: submission } = await supabase
+    .from("submissions")
+    .select("source_type, source_url")
+    .eq("id", id)
+    .eq("broker_id", user.id)
+    .single<{ source_type: string; source_url: string | null }>();
+
+  const { error } = await supabase
+    .from("submissions")
+    .delete()
+    .eq("id", id)
+    .eq("broker_id", user.id);
+  if (error) return { error: error.message };
+
+  if (submission?.source_url && (submission.source_type === "excel_file" || submission.source_type === "screenshot")) {
+    await supabase.storage.from("broker-uploads").remove([submission.source_url]);
+  }
+
+  revalidatePath("/broker/dashboard");
   return { error: null };
 }
 

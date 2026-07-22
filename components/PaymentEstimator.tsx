@@ -11,7 +11,10 @@ import { estimatePayment, formatCurrency } from "@/lib/deal-utils";
 // estimatePayment) since the point is a ballpark "what if," not a finance
 // quote, and that's disclosed clearly below the numbers.
 export default function PaymentEstimator({ deal }: { deal: Deal }) {
-  const [dueAtSigning, setDueAtSigning] = useState(deal.dueAtSigning);
+  // Tracked as a raw string so the field can be freely cleared/retyped
+  // without snapping to $0 mid-edit; the parsed, clamped number below is
+  // what actually drives the live calculation on every keystroke.
+  const [dueAtSigningInput, setDueAtSigningInput] = useState(String(deal.dueAtSigning));
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const incentives = deal.incentives ?? [];
   const incentivesTotal = incentives.reduce(
@@ -19,6 +22,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
     0
   );
 
+  const dueAtSigning = Math.max(0, Number(dueAtSigningInput) || 0);
   const estimate = estimatePayment(deal, { dueAtSigning, incentivesTotal });
   const isDefault = dueAtSigning === deal.dueAtSigning && selected.size === 0;
 
@@ -32,7 +36,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   }
 
   function reset() {
-    setDueAtSigning(deal.dueAtSigning);
+    setDueAtSigningInput(String(deal.dueAtSigning));
     setSelected(new Set());
   }
 
@@ -65,8 +69,8 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
           type="number"
           min={0}
           step={100}
-          value={dueAtSigning}
-          onChange={(e) => setDueAtSigning(Math.max(0, Number(e.target.value) || 0))}
+          value={dueAtSigningInput}
+          onChange={(e) => setDueAtSigningInput(e.target.value)}
           className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white focus:border-white/30 focus:outline-none sm:w-56"
         />
         <p className="mt-1 text-xs text-zinc-600">
