@@ -19,7 +19,17 @@ alter table public.deals
   add column if not exists photo_auto_sourced boolean not null default false;
 
 alter table public.brokers
-  add column if not exists contact_name text;
+  add column if not exists contact_name text,
+  add column if not exists about text;
+
+-- Public "About this broker" page: anyone can view a broker's profile
+-- (business name, city/state, phone, about text) the same way anyone can
+-- already view their listings — nothing here is more sensitive than what's
+-- already shown on every one of their deal cards.
+drop policy if exists "Anyone can view broker profiles" on public.brokers;
+create policy "Anyone can view broker profiles"
+  on public.brokers for select
+  using (true);
 
 -- Two new submission source types: a broker typing up deals in plain text,
 -- or uploading a screenshot — both read by AI into draft listings the same

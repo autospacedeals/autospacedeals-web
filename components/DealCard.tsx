@@ -121,7 +121,19 @@ export default function DealCard({ deal }: { deal: Deal }) {
           <MapPin size={15} /> {deal.city}, {deal.state}
         </p>
         <p className="flex items-center gap-2">
-          <Store size={15} /> {deal.sellerName} · {deal.sellerType}
+          <Store size={15} />
+          {deal.brokerId ? (
+            <Link
+              href={`/brokers/${deal.brokerId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-semibold text-zinc-300 hover:text-white hover:underline"
+            >
+              {deal.sellerName}
+            </Link>
+          ) : (
+            deal.sellerName
+          )}{" "}
+          · {deal.sellerType}
         </p>
         <p className="flex items-center gap-2 text-xs text-zinc-500">
           <Gauge size={13} /> {relativeDatePosted(deal.datePosted)}

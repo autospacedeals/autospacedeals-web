@@ -47,7 +47,11 @@ async function stageParsedDeals(
   broker: BrokerProfile,
   submissionId: string,
   deals: ParsedDeal[]
-) {
+): Promise<{ staged: number; failed: number; lastError: string | null }> {
+  let staged = 0;
+  let failed = 0;
+  let lastError: string | null = null;
+
   for (const d of deals) {
     let images: string[] = [];
     const photo = await fetchCarsxePhoto({
@@ -60,7 +64,7 @@ async function stageParsedDeals(
 
     const slug = slugify([d.year, d.make, d.model, d.trim ?? "", broker.state]);
 
-    await supabase.from("deals").insert({
+    const { error } = await supabase.from("deals").insert({
       slug,
       broker_id: userId,
       submission_id: submissionId,
@@ -97,7 +101,41 @@ async function stageParsedDeals(
       one_pay: false,
       status: "draft",
     });
+
+    if (error) {
+      failed++;
+      lastError = error.message;
+      console.error("Failed to save a parsed deal as a draft:", error.message, {
+        year: d.year,
+        make: d.make,
+        model: d.model,
+      });
+    } else {
+      staged++;
+    }
   }
+
+  return { staged, failed, lastError };
+}
+
+// Broker edits the "about" text shown on their public profile page
+// (/brokers/[id]) — everything else there (business name, city/state,
+// phone) is already editable via their account/signup info.
+export async function updateBrokerAboutAction(formData: FormData): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  const about = String(formData.get("about") || "").trim() || null;
+
+  const { error } = await supabase.from("brokers").update({ about }).eq("id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  revalidatePath(`/brokers/${user.id}`);
+  return { error: null };
 }
 
 // Called directly from the client (not a <form> submit) when a broker hits
@@ -187,8 +225,17 @@ export async function createSubmissionAction(
         const result = await parseInventoryBuffer(buffer, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
+        if (parsedDeals.length === 0 && skippedCount === 0) {
+          return {
+            error:
+              "We opened the file but couldn't find any rows on the first sheet — check the file and try again, or add cars manually below.",
+          };
+        }
       } catch (err) {
         console.error("Failed to parse uploaded inventory file:", err);
+        return {
+          error: "Couldn't read that file — make sure it's a valid .xlsx, .xls, or .csv, or add cars manually below.",
+        };
       }
     }
 
@@ -209,22 +256,62 @@ export async function createSubmissionAction(
       return { error: "That doesn't look like a valid URL." };
     }
 
-    if (sourceType === "google_sheet" && broker) {
+    if (sourceType === "google_sheet") {
+      if (!broker) {
+        return { error: "Couldn't find your broker profile — try signing in again." };
+      }
+
       const sheetId = extractGoogleSheetId(sourceUrl);
-      if (sheetId) {
-        try {
-          const res = await fetch(
-            `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`
-          );
-          if (res.ok) {
-            const csvText = await res.text();
-            const result = await parseInventoryCsv(csvText, broker.state);
-            parsedDeals = result.parsed;
-            skippedCount = result.skipped.length;
+      if (!sheetId) {
+        return {
+          error:
+            "That doesn't look like a Google Sheets link — copy the URL from your browser's address bar while viewing the sheet.",
+        };
+      }
+
+      try {
+        const res = await fetch(
+          `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`,
+          {
+            // Google's export endpoint sometimes behaves differently (or
+            // blocks) requests without a browser-like User-Agent.
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; AutoSpaceDealsBot/1.0)" },
           }
-        } catch (err) {
-          console.error("Failed to fetch/parse Google Sheet:", err);
+        );
+
+        if (!res.ok) {
+          return {
+            error: `Couldn't open that Google Sheet (error ${res.status}). Make sure sharing is set to "Anyone with the link can view" and try again.`,
+          };
         }
+
+        const csvText = await res.text();
+        // A private/unshared sheet's export URL redirects to a Google
+        // sign-in or "request access" HTML page instead of CSV — catch that
+        // instead of silently trying (and failing) to parse it as data.
+        const looksLikeHtml = /^\s*<(!doctype|html)/i.test(csvText);
+        if (looksLikeHtml) {
+          return {
+            error:
+              'That Google Sheet isn\'t publicly viewable yet. In Google Sheets, click "Share" → set to "Anyone with the link" → Viewer, then try again.',
+          };
+        }
+
+        const result = await parseInventoryCsv(csvText, broker.state);
+        parsedDeals = result.parsed;
+        skippedCount = result.skipped.length;
+
+        if (parsedDeals.length === 0 && skippedCount === 0) {
+          return {
+            error:
+              "We opened the sheet but couldn't find any rows on the first tab. Make sure your inventory is on the first sheet tab, or add cars manually below.",
+          };
+        }
+      } catch (err) {
+        console.error("Failed to fetch/parse Google Sheet:", err);
+        return {
+          error: "Couldn't read that Google Sheet — double-check the link and sharing settings, or add cars manually below.",
+        };
       }
     }
   } else if (sourceType === "free_text") {
@@ -239,6 +326,12 @@ export async function createSubmissionAction(
         const result = await parseFreeTextWithAI(dealText, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
+        if (parsedDeals.length === 0 && skippedCount === 0) {
+          return {
+            error:
+              "We couldn't find a car in that text — try including the year, make, model, and pricing/terms, or add it manually below.",
+          };
+        }
       } catch (err) {
         console.error("Failed to AI-parse typed deal text:", err);
         return { error: "Couldn't read that — please try again or use \"Add a car manually.\"" };
@@ -271,6 +364,12 @@ export async function createSubmissionAction(
         );
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
+        if (parsedDeals.length === 0 && skippedCount === 0) {
+          return {
+            error:
+              "We couldn't find a car in that screenshot — make sure the pricing/terms are legible, or add it manually below.",
+          };
+        }
       } catch (err) {
         console.error("Failed to AI-parse screenshot:", err);
         return { error: "Couldn't read that image — please try again or use \"Add a car manually.\"" };
@@ -298,17 +397,33 @@ export async function createSubmissionAction(
     .single<{ id: string }>();
   if (error) return { error: error.message };
 
+  let stageFailed = 0;
+  let stageLastError: string | null = null;
   if (broker && parsedDeals.length > 0 && inserted) {
-    await stageParsedDeals(supabase, user.id, user.email, broker, inserted.id, parsedDeals);
+    const staging = await stageParsedDeals(supabase, user.id, user.email, broker, inserted.id, parsedDeals);
+    stageFailed = staging.failed;
+    stageLastError = staging.lastError;
   }
 
   revalidatePath("/broker/dashboard");
+
+  // Every parsed car failed to save as a draft — this is a real backend
+  // problem (e.g. a database migration that hasn't been run), not "no cars
+  // found," so it needs to say so rather than quietly claiming success.
+  if (parsedDeals.length > 0 && stageFailed === parsedDeals.length) {
+    return {
+      error: `We read ${parsedDeals.length} car${parsedDeals.length === 1 ? "" : "s"} but couldn't save ${
+        parsedDeals.length === 1 ? "it" : "them"
+      } as drafts (${stageLastError ?? "unknown error"}). This looks like a backend issue — let Robert know so he can check it, or add the car(s) manually below in the meantime.`,
+    };
+  }
+
   return {
     error: null,
     success: true,
     submissionId: inserted?.id,
-    parsedCount: parsedDeals.length,
-    skippedCount,
+    parsedCount: parsedDeals.length - stageFailed,
+    skippedCount: skippedCount + stageFailed,
   };
 }
 

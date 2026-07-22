@@ -8,6 +8,7 @@ import NewSubmissionForm from "./NewSubmissionForm";
 import DraftConfirmList from "./DraftConfirmList";
 import MyListings from "./MyListings";
 import DeleteSubmissionButton from "./DeleteSubmissionButton";
+import AboutEditor from "./AboutEditor";
 
 // Always fetch fresh so the broker's own edits (price changes, drafts
 // confirmed, listings removed) show up immediately, not from a stale cache.
@@ -25,6 +26,7 @@ interface Broker {
   contact_phone: string;
   city: string;
   state: string;
+  about: string | null;
 }
 
 interface Submission {
@@ -66,7 +68,7 @@ export default async function BrokerDashboardPage() {
 
   const { data: broker } = await supabase
     .from("brokers")
-    .select("id, contact_name, business_name, seller_type, contact_phone, city, state")
+    .select("id, contact_name, business_name, seller_type, contact_phone, city, state, about")
     .eq("id", user.id)
     .single<Broker>();
 
@@ -130,6 +132,8 @@ export default async function BrokerDashboardPage() {
           </button>
         </form>
       </div>
+
+      <AboutEditor about={broker?.about ?? null} brokerId={user.id} />
 
       {pendingDrafts.length > 0 && (
         <div className="mt-8">

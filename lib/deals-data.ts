@@ -69,6 +69,9 @@ export interface Deal {
   sellerEmail: string;
   city: string;
   state: string; // 2-letter code
+  // Links to the broker's public About page — null for sample/legacy
+  // listings that aren't tied to a real broker account.
+  brokerId?: string | null;
 
   // Trust / status
   verified: boolean; // legacy — no longer shown in the UI (replaced by `condition`), kept for the DB column

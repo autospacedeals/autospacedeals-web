@@ -247,10 +247,27 @@ export default async function DealDetailPage({
             <p className="flex items-center gap-2 text-sm font-semibold text-zinc-400">
               <Store size={16} /> {deal.sellerType}
             </p>
-            <p className="mt-1 text-xl font-black">{deal.sellerName}</p>
+            {deal.brokerId ? (
+              <Link
+                href={`/brokers/${deal.brokerId}`}
+                className="mt-1 block text-xl font-black hover:underline"
+              >
+                {deal.sellerName}
+              </Link>
+            ) : (
+              <p className="mt-1 text-xl font-black">{deal.sellerName}</p>
+            )}
             <p className="mt-1 text-sm text-zinc-500">
               {deal.city}, {deal.state} · {deal.sellerPhone}
             </p>
+            {deal.brokerId && (
+              <Link
+                href={`/brokers/${deal.brokerId}`}
+                className="mt-1 inline-block text-sm font-semibold text-zinc-400 underline decoration-dotted hover:text-white"
+              >
+                View seller profile
+              </Link>
+            )}
             <div className="mt-5 border-t border-white/10 pt-5">
               <ContactActionsFull deal={deal} />
             </div>

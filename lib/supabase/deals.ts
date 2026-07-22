@@ -90,6 +90,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     sellerEmail: row.seller_email,
     city: row.city,
     state: row.state,
+    brokerId: row.broker_id,
     verified: row.verified,
     inStock: row.in_stock,
     popularity: row.popularity,
@@ -125,6 +126,23 @@ export async function getPublishedDeals(): Promise<Deal[]> {
 
   if (error) {
     console.error("getPublishedDeals failed:", error.message);
+    return [];
+  }
+  return (data ?? []).map(mapRowToDeal);
+}
+
+export async function getPublishedDealsByBroker(brokerId: string): Promise<Deal[]> {
+  const supabase = publicClient();
+  const { data, error } = await supabase
+    .from("deals")
+    .select(DEAL_COLUMNS)
+    .eq("status", "published")
+    .eq("broker_id", brokerId)
+    .order("date_posted", { ascending: false })
+    .returns<DealRow[]>();
+
+  if (error) {
+    console.error("getPublishedDealsByBroker failed:", error.message);
     return [];
   }
   return (data ?? []).map(mapRowToDeal);
