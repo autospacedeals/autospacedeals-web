@@ -5,9 +5,12 @@ import { Pencil, Trash2, X } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency } from "@/lib/deal-utils";
 import { updateDealAction, deleteDealAction } from "./actions";
+import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
+const selectClass = inputClass + " appearance-none";
+const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
 export default function MyListings({ deals }: { deals: Deal[] }) {
   if (deals.length === 0) {
@@ -29,6 +32,7 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
 
 function ListingRow({ deal }: { deal: Deal }) {
   const [editing, setEditing] = useState(false);
+  const [incentives, setIncentives] = useState<IncentiveRow[]>(deal.incentives ?? []);
 
   if (!editing) {
     return (
@@ -75,7 +79,14 @@ function ListingRow({ deal }: { deal: Deal }) {
         className="mt-3 space-y-3"
       >
         <input type="hidden" name="id" value={deal.id} />
-        <div className="grid gap-3 sm:grid-cols-2">
+        {/* Not user-editable here (vehicle identity is fixed once published) —
+            just lets IncentivesEditor's "Suggest with AI" button read them. */}
+        <input type="hidden" name="year" value={deal.year} />
+        <input type="hidden" name="make" value={deal.make} />
+        <input type="hidden" name="model" value={deal.model} />
+        <input type="hidden" name="trim" value={deal.trim} />
+
+        <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <label className="mb-1 block text-xs font-semibold text-zinc-400">
               {deal.onePay ? "One-pay amount" : "Monthly payment"}
@@ -96,6 +107,16 @@ function ListingRow({ deal }: { deal: Deal }) {
               className={inputClass}
             />
           </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-zinc-400">Condition</label>
+            <select name="condition" defaultValue={deal.condition ?? "New"} className={selectClass}>
+              {CONDITIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
@@ -106,6 +127,8 @@ function ListingRow({ deal }: { deal: Deal }) {
             className={`${inputClass} min-h-20 resize-y`}
           />
         </div>
+
+        <IncentivesEditor value={incentives} onChange={setIncentives} />
 
         <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-400">
           <input

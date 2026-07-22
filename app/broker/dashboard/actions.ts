@@ -463,6 +463,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const dueAtSigning = Number(formData.get("dueAtSigning"));
   const inStock = formData.get("inStock") === "on";
   const notes = String(formData.get("notes") || "").trim();
+  const condition = String(formData.get("condition") || "").trim() || null;
+  const incentives = parseIncentivesField(formData);
 
   const { error } = await supabase
     .from("deals")
@@ -471,6 +473,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       due_at_signing: dueAtSigning,
       in_stock: inStock,
       notes,
+      condition,
+      incentives,
     })
     .eq("id", id)
     .eq("broker_id", user.id);
