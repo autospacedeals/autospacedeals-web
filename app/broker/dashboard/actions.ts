@@ -357,11 +357,7 @@ export async function createSubmissionAction(
     if (broker) {
       try {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const result = await parseImageWithAI(
-          buffer.toString("base64"),
-          file.type as SupportedImageType,
-          broker.state
-        );
+        const result = await parseImageWithAI(buffer, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
         if (parsedDeals.length === 0 && skippedCount === 0) {
@@ -372,7 +368,8 @@ export async function createSubmissionAction(
         }
       } catch (err) {
         console.error("Failed to AI-parse screenshot:", err);
-        return { error: "Couldn't read that image — please try again or use \"Add a car manually.\"" };
+        const message = err instanceof Error ? err.message : "Couldn't read that image.";
+        return { error: `${message} Please try again or use "Add a car manually."` };
       }
     }
 

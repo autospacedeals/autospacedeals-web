@@ -12,6 +12,7 @@
 // guess here just means unchecking a box (or fixing a field), not a bad
 // listing going live.
 import Anthropic from "@anthropic-ai/sdk";
+import sharp from "sharp";
 import type { ParsedDeal, ParseResult } from "./parse-inventory";
 
 const MODEL = "claude-haiku-4-5-20251001";
@@ -192,42 +193,72 @@ export type SupportedImageType = "image/jpeg" | "image/png" | "image/webp" | "im
 // Broker uploaded a screenshot (text thread, forum post, spreadsheet, flyer,
 // etc.) instead of typing anything — read it with vision and extract the
 // same way.
+//
+// Phone screenshots are often several MB and thousands of pixels tall (a
+// modern iPhone screenshot can be 1290x2796+, and base64 encoding adds ~33%
+// on top of that). Claude's vision API silently rejects images that are too
+// large/high-resolution, which is the most likely cause of "can't read the
+// image" failures — so every upload is normalized here first: re-oriented,
+// downscaled to a sane max dimension, and re-encoded as JPEG, regardless of
+// what format/size it arrived in.
 export async function parseImageWithAI(
-  base64: string,
-  mediaType: SupportedImageType,
+  imageBuffer: Buffer,
   brokerState: string
 ): Promise<ParseResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || !base64) return { parsed: [], skipped: [] };
+  if (!apiKey || !imageBuffer || imageBuffer.length === 0) return { parsed: [], skipped: [] };
+
+  let base64: string;
+  try {
+    const resized = await sharp(imageBuffer)
+      .rotate() // respect EXIF orientation (phone screenshots/photos)
+      .resize({ width: 1568, height: 1568, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+    base64 = resized.toString("base64");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Failed to process screenshot with sharp:", err);
+    throw new Error(
+      `That file doesn't look like a valid image (${message}). Please try a different screenshot or use "Add a car manually."`
+    );
+  }
 
   const client = new Anthropic({ apiKey });
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 4096,
-    tools: [EXTRACT_TOOL],
-    tool_choice: { type: "tool", name: "extract_deals" },
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mediaType, data: base64 },
-          },
-          {
-            type: "text",
-            text:
-              `This is a screenshot of one or more car lease/finance deals (a text message, forum post, ` +
-              `spreadsheet, flyer, etc). Extract every distinct vehicle listing you can read. Use your ` +
-              `knowledge of car makes/models to fill in make when only a model name is given. If a field ` +
-              `genuinely isn't visible or determinable, use null for it rather than guessing — do not ` +
-              `fabricate numbers.`,
-          },
-        ],
-      },
-    ],
-  });
+  let response: Anthropic.Message;
+  try {
+    response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      tools: [EXTRACT_TOOL],
+      tool_choice: { type: "tool", name: "extract_deals" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: "image/jpeg", data: base64 },
+            },
+            {
+              type: "text",
+              text:
+                `This is a screenshot of one or more car lease/finance deals (a text message, forum post, ` +
+                `spreadsheet, flyer, etc). Extract every distinct vehicle listing you can read. Use your ` +
+                `knowledge of car makes/models to fill in make when only a model name is given. If a field ` +
+                `genuinely isn't visible or determinable, use null for it rather than guessing — do not ` +
+                `fabricate numbers.`,
+            },
+          ],
+        },
+      ],
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Anthropic vision API call failed:", err);
+    throw new Error(`AI couldn't read that screenshot (${message}).`);
+  }
 
   return toolResponseToResult(response, brokerState);
 }
