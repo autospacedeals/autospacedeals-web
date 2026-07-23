@@ -31,22 +31,36 @@ function publicClient() {
 }
 
 export async function getBrokerProfile(id: string): Promise<BrokerProfile | null> {
-  const supabase = publicClient();
-  const { data, error } = await supabase
-    .from("brokers")
-    .select("id, business_name, seller_type, city, state, contact_phone, about")
-    .eq("id", id)
-    .maybeSingle<BrokerRow>();
+  try {
+    const supabase = publicClient();
+    const { data, error } = await supabase
+      .from("brokers")
+      .select("id, business_name, seller_type, city, state, contact_phone, about")
+      .eq("id", id)
+      .maybeSingle<BrokerRow>();
 
-  if (error || !data) return null;
+    if (error) {
+      console.error("getBrokerProfile failed:", error.message);
+      return null;
+    }
+    if (!data) return null;
 
-  return {
-    id: data.id,
-    businessName: data.business_name,
-    sellerType: data.seller_type,
-    city: data.city,
-    state: data.state,
-    contactPhone: data.contact_phone,
-    about: data.about,
-  };
+    return {
+      id: data.id,
+      businessName: data.business_name ?? "",
+      sellerType: data.seller_type ?? "Broker",
+      city: data.city ?? "",
+      state: data.state ?? "",
+      contactPhone: data.contact_phone ?? "",
+      about: data.about,
+    };
+  } catch (err) {
+    // Defensive: a thrown (not returned-as-error) exception here — e.g. a
+    // network hiccup talking to Supabase — would otherwise take down the
+    // whole page with a generic Vercel error screen instead of a normal
+    // "not found". Log it so it's visible in Vercel's runtime logs, but
+    // degrade to null so the page can still render something sensible.
+    console.error("getBrokerProfile threw:", err);
+    return null;
+  }
 }

@@ -132,20 +132,36 @@ export async function getPublishedDeals(): Promise<Deal[]> {
 }
 
 export async function getPublishedDealsByBroker(brokerId: string): Promise<Deal[]> {
-  const supabase = publicClient();
-  const { data, error } = await supabase
-    .from("deals")
-    .select(DEAL_COLUMNS)
-    .eq("status", "published")
-    .eq("broker_id", brokerId)
-    .order("date_posted", { ascending: false })
-    .returns<DealRow[]>();
+  try {
+    const supabase = publicClient();
+    const { data, error } = await supabase
+      .from("deals")
+      .select(DEAL_COLUMNS)
+      .eq("status", "published")
+      .eq("broker_id", brokerId)
+      .order("date_posted", { ascending: false })
+      .returns<DealRow[]>();
 
-  if (error) {
-    console.error("getPublishedDealsByBroker failed:", error.message);
+    if (error) {
+      console.error("getPublishedDealsByBroker failed:", error.message);
+      return [];
+    }
+    // Map each row independently so one malformed row (bad test data, a
+    // future column-shape change, etc.) can't take down the whole broker
+    // profile page — skip it and log instead of throwing.
+    const deals: Deal[] = [];
+    for (const row of data ?? []) {
+      try {
+        deals.push(mapRowToDeal(row));
+      } catch (err) {
+        console.error("mapRowToDeal failed for deal", row?.id, err);
+      }
+    }
+    return deals;
+  } catch (err) {
+    console.error("getPublishedDealsByBroker threw:", err);
     return [];
   }
-  return (data ?? []).map(mapRowToDeal);
 }
 
 export async function getDealBySlugDb(slug: string): Promise<Deal | undefined> {

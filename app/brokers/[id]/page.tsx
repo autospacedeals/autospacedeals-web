@@ -32,7 +32,14 @@ export default async function BrokerProfilePage({
   const broker = await getBrokerProfile(id);
   if (!broker) notFound();
 
-  const listings = await getPublishedDealsByBroker(id);
+  // Listings are secondary to the broker's own info — if fetching them
+  // somehow throws, still show the profile rather than a blank error page.
+  let listings: Awaited<ReturnType<typeof getPublishedDealsByBroker>> = [];
+  try {
+    listings = await getPublishedDealsByBroker(id);
+  } catch (err) {
+    console.error("Failed to load broker's listings:", err);
+  }
   const phone = phoneDigits(broker.contactPhone);
 
   return (
@@ -53,8 +60,11 @@ export default async function BrokerProfilePage({
           <span className="flex items-center gap-1.5">
             <MapPin size={15} /> {broker.city}, {broker.state}
           </span>
-          <a href={`tel:${phone}`} className="flex items-center gap-1.5 font-semibold text-white hover:underline">
-            <Phone size={15} /> {broker.contactPhone}
+          <a
+            href={phone ? `tel:${phone}` : undefined}
+            className="flex items-center gap-1.5 font-semibold text-white hover:underline"
+          >
+            <Phone size={15} /> {broker.contactPhone || "No phone on file"}
           </a>
         </div>
 

@@ -75,8 +75,8 @@ export function relativeDatePosted(dateStr: string, today?: Date): string {
   return `Posted ${formatDate(dateStr)}`;
 }
 
-export function phoneDigits(phone: string): string {
-  return phone.replace(/\D/g, "");
+export function phoneDigits(phone: string | null | undefined): string {
+  return (phone ?? "").replace(/\D/g, "");
 }
 
 export function dealMailtoHref(deal: Deal, subjectPrefix = "Interested in"): string {
