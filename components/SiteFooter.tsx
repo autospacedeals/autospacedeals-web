@@ -39,7 +39,7 @@ export default function SiteFooter() {
             <p className="text-sm font-semibold text-zinc-300">Dealers &amp; Brokers</p>
             <ul className="mt-3 space-y-2 text-sm text-zinc-500">
               <li>
-                <Link href="/submit-a-deal" className="hover:text-white">
+                <Link href="/broker/signup" className="hover:text-white">
                   List your deals
                 </Link>
               </li>

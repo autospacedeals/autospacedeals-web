@@ -1,13 +1,26 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import LoginForm from "./LoginForm";
+import { createClient } from "@/lib/supabase/server";
+import { isAdminEmail } from "@/lib/admin";
 
 export const metadata: Metadata = {
   title: "Broker/Dealer Login",
   description: "Sign in to your AutoSpace Deals broker or dealer account.",
 };
 
-export default function BrokerLoginPage() {
+export default async function BrokerLoginPage() {
+  // Already signed in — skip straight to the dashboard instead of showing
+  // a login form again.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    redirect(isAdminEmail(user.email) ? "/admin/submissions" : "/broker/dashboard");
+  }
+
   return (
     <main className="mx-auto max-w-md px-4 py-16 sm:px-6">
       <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-zinc-400">

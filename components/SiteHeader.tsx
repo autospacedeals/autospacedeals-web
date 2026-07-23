@@ -64,7 +64,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
             </Link>
           )}
           <Link
-            href="/submit-a-deal"
+            href="/broker/signup"
             className="hidden rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 sm:inline-block"
           >
             Submit a Deal
@@ -113,7 +113,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
               </Link>
             )}
             <Link
-              href="/submit-a-deal"
+              href="/broker/signup"
               onClick={() => setOpen(false)}
               className="mt-2 rounded-lg bg-white px-3 py-3 text-center font-semibold text-zinc-950"
             >
