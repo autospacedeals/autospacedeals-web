@@ -682,17 +682,31 @@ export async function deleteSubmissionAction(formData: FormData): Promise<{ erro
 
   const { data: submission } = await supabase
     .from("submissions")
-    .select("source_type, source_url")
+    .select("source_type, source_url, status")
     .eq("id", id)
     .eq("broker_id", user.id)
-    .single<{ source_type: string; source_url: string | null }>();
+    .single<{ source_type: string; source_url: string | null; status: string }>();
 
-  const { error } = await supabase
+  // RLS only allows brokers to delete their own PENDING submissions (approved/
+  // rejected ones stay for the review trail). Trying to delete anything else
+  // fails silently at the database level — zero rows removed, no error — so
+  // check the row count ourselves and surface a real message instead of
+  // letting the button appear to do nothing.
+  const { error, data: deletedRows } = await supabase
     .from("submissions")
     .delete()
     .eq("id", id)
-    .eq("broker_id", user.id);
+    .eq("broker_id", user.id)
+    .select("id");
   if (error) return { error: error.message };
+  if (!deletedRows || deletedRows.length === 0) {
+    return {
+      error:
+        submission && submission.status !== "pending"
+          ? "Only pending submissions can be deleted — this one has already been reviewed."
+          : "Couldn't delete that submission — it may have already been removed. Refresh and try again.",
+    };
+  }
 
   if (submission?.source_url && (submission.source_type === "excel_file" || submission.source_type === "screenshot")) {
     await supabase.storage.from("broker-uploads").remove([submission.source_url]);
