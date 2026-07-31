@@ -204,6 +204,14 @@ function ListingRow({ deal }: { deal: Deal }) {
           <div>
             <label className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>
             <input required type="number" name="dueAtSigning" defaultValue={deal.dueAtSigning} className={inputClass} />
+            <input
+              type="number"
+              step="0.01"
+              name="dueAtSigningTaxRate"
+              defaultValue={deal.dueAtSigningTaxRate ?? ""}
+              placeholder="Assumed tax % (optional)"
+              className={`${inputClass} mt-1.5 text-xs`}
+            />
           </div>
           <div>
             <label className={labelClass}>Term (months)</label>

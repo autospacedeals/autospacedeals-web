@@ -465,6 +465,8 @@ export async function createManualDealAction(
   const onePay = formData.get("onePay") === "on";
   const payment = onePay ? 0 : Number(formData.get("payment"));
   const dueAtSigning = Number(formData.get("dueAtSigning"));
+  const dueAtSigningTaxRateRaw = formData.get("dueAtSigningTaxRate");
+  const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -530,6 +532,7 @@ export async function createManualDealAction(
     selling_price: sellingPrice,
     payment,
     due_at_signing: dueAtSigning,
+    due_at_signing_tax_rate: dueAtSigningTaxRate,
     term,
     miles_per_year: milesPerYear,
     apr,
@@ -583,6 +586,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const onePay = formData.get("onePay") === "on";
   const payment = onePay ? 0 : Number(formData.get("payment"));
   const dueAtSigning = Number(formData.get("dueAtSigning"));
+  const dueAtSigningTaxRateRaw = formData.get("dueAtSigningTaxRate");
+  const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -647,6 +652,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       selling_price: sellingPrice,
       payment,
       due_at_signing: dueAtSigning,
+      due_at_signing_tax_rate: dueAtSigningTaxRate,
       term,
       miles_per_year: milesPerYear,
       apr,
@@ -761,6 +767,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const onePay = formData.get("onePay") === "on";
   const payment = onePay ? 0 : Number(formData.get("payment"));
   const dueAtSigning = Number(formData.get("dueAtSigning"));
+  const dueAtSigningTaxRateRaw = formData.get("dueAtSigningTaxRate");
+  const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -824,6 +832,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       selling_price: sellingPrice,
       payment,
       due_at_signing: dueAtSigning,
+      due_at_signing_tax_rate: dueAtSigningTaxRate,
       term,
       miles_per_year: milesPerYear,
       apr,

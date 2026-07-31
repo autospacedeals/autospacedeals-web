@@ -96,7 +96,8 @@ export default async function BrokerDashboardPage() {
     "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
     "seller_type, seller_name, seller_phone, seller_email, city, state, " +
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
-    "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced";
+    "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
+    "due_at_signing_tax_rate";
 
   const { data: myDealRows } = await supabase
     .from("deals")

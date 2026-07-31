@@ -389,6 +389,13 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 placeholder={onePay ? "55999" : "4999"}
                 className={inputClass}
               />
+              <input
+                type="number"
+                step="0.01"
+                name="dueAtSigningTaxRate"
+                placeholder="Assumed tax % (optional)"
+                className={`${inputClass} mt-1.5 text-xs`}
+              />
             </div>
             <div>
               <label className={labelClass}>Term (months)</label>

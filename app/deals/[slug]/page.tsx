@@ -150,7 +150,16 @@ export default async function DealDetailPage({
                 }
                 big
               />
-              <Stat label="Due at signing" value={formatCurrency(deal.dueAtSigning)} big />
+              <Stat
+                label="Due at signing"
+                value={formatCurrency(deal.dueAtSigning)}
+                note={
+                  deal.dueAtSigningTaxRate
+                    ? `Assumes ${deal.dueAtSigningTaxRate}% tax · may not include broker fee`
+                    : "May not include broker fee — see notes below"
+                }
+                big
+              />
               <Stat label="Term" value={`${deal.term} months`} big />
               <Stat label="MSRP" value={formatCurrency(deal.msrp)} />
               {deal.sellingPrice != null && (
@@ -213,10 +222,14 @@ export default async function DealDetailPage({
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5 text-sm leading-6 text-amber-200/90">
             <CircleAlert size={18} className="mt-0.5 shrink-0" />
             <p>
-              This deal is subject to availability and credit approval. Advertised payment and
-              due-at-signing amounts may not include tax, title, registration, and documentation
-              fees unless stated in the notes above. Always confirm final pricing and terms
-              directly with {deal.sellerName} before signing.
+              This deal is subject to availability and credit approval. Unless a broker fee is
+              specifically called out in the notes above,{" "}
+              <span className="font-semibold">
+                the due-at-signing amount shown does not include one
+              </span>{" "}
+              — and advertised payment/due-at-signing amounts may not include tax, title,
+              registration, and documentation fees either unless stated above. Always confirm
+              the full, out-the-door total directly with {deal.sellerName} before signing.
             </p>
           </div>
 
@@ -295,11 +308,22 @@ export default async function DealDetailPage({
   );
 }
 
-function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
+function Stat({
+  label,
+  value,
+  big,
+  note,
+}: {
+  label: string;
+  value: string;
+  big?: boolean;
+  note?: string;
+}) {
   return (
     <div>
       <p className="text-xs text-zinc-500">{label}</p>
       <p className={big ? "text-xl font-black" : "font-bold text-zinc-200"}>{value}</p>
+      {note && <p className="text-[11px] text-zinc-600">{note}</p>}
     </div>
   );
 }

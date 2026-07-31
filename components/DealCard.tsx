@@ -107,7 +107,15 @@ export default function DealCard({ deal }: { deal: Deal }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-zinc-300">
-        <Stat label="Due at signing" value={formatCurrency(deal.dueAtSigning)} />
+        <Stat
+          label="Due at signing"
+          value={formatCurrency(deal.dueAtSigning)}
+          note={
+            deal.dueAtSigningTaxRate
+              ? `assumes ${deal.dueAtSigningTaxRate}% tax · may excl. broker fee`
+              : "may exclude broker fee"
+          }
+        />
         <Stat label="Term" value={`${deal.term} mo`} />
         <Stat
           label="Mileage"
@@ -152,11 +160,12 @@ export default function DealCard({ deal }: { deal: Deal }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="rounded-xl bg-white/5 px-3 py-2">
       <p className="text-[11px] text-zinc-500">{label}</p>
       <p className="font-bold">{value}</p>
+      {note && <p className="text-[10px] text-zinc-600">{note}</p>}
     </div>
   );
 }

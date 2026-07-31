@@ -2,6 +2,7 @@
 // via the anon client since anyone can view a broker's basic info, same as
 // anyone can already view their listings.
 import { createClient as createAnonClient } from "@supabase/supabase-js";
+import { withTimeout } from "./with-timeout";
 
 export interface BrokerProfile {
   id: string;
@@ -33,11 +34,15 @@ function publicClient() {
 export async function getBrokerProfile(id: string): Promise<BrokerProfile | null> {
   try {
     const supabase = publicClient();
-    const { data, error } = await supabase
-      .from("brokers")
-      .select("id, business_name, seller_type, city, state, contact_phone, about")
-      .eq("id", id)
-      .maybeSingle<BrokerRow>();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("brokers")
+        .select("id, business_name, seller_type, city, state, contact_phone, about")
+        .eq("id", id)
+        .maybeSingle<BrokerRow>(),
+      10000,
+      "getBrokerProfile"
+    );
 
     if (error) {
       console.error("getBrokerProfile failed:", error.message);

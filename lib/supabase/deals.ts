@@ -4,6 +4,7 @@
 // removals) show up on the live site immediately.
 import type { Deal } from "@/lib/deals-data";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
+import { withTimeout } from "./with-timeout";
 
 // Shown when a broker hasn't uploaded a photo and the CarsXE auto-lookup
 // (see lib/carsxe.ts) didn't find a match either.
@@ -62,6 +63,7 @@ export interface DealRow {
   condition: string | null;
   incentives: { name: string; amount: number }[] | null;
   photo_auto_sourced: boolean;
+  due_at_signing_tax_rate: number | null;
 }
 
 export function mapRowToDeal(row: DealRow): Deal {
@@ -105,6 +107,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     condition: (row.condition as Deal["condition"]) ?? null,
     incentives: row.incentives ?? [],
     photoAutoSourced: row.photo_auto_sourced,
+    dueAtSigningTaxRate: row.due_at_signing_tax_rate ?? null,
   };
 }
 
@@ -113,51 +116,70 @@ const DEAL_COLUMNS =
   "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
   "seller_type, seller_name, seller_phone, seller_email, city, state, " +
   "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
-  "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced";
+  "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
+  "due_at_signing_tax_rate";
+
+// Maps each row independently so one malformed row (bad test data, a
+// future column-shape change, etc.) can't take down an entire listing page
+// — the bad row is skipped and logged instead of throwing and crashing
+// everything else on the page.
+function mapRowsSafely(rows: DealRow[]): Deal[] {
+  const deals: Deal[] = [];
+  for (const row of rows) {
+    try {
+      deals.push(mapRowToDeal(row));
+    } catch (err) {
+      console.error("mapRowToDeal failed for deal", row?.id, err);
+    }
+  }
+  return deals;
+}
 
 export async function getPublishedDeals(): Promise<Deal[]> {
-  const supabase = publicClient();
-  const { data, error } = await supabase
-    .from("deals")
-    .select(DEAL_COLUMNS)
-    .eq("status", "published")
-    .order("date_posted", { ascending: false })
-    .returns<DealRow[]>();
+  try {
+    const supabase = publicClient();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("deals")
+        .select(DEAL_COLUMNS)
+        .eq("status", "published")
+        .order("date_posted", { ascending: false })
+        .returns<DealRow[]>(),
+      10000,
+      "getPublishedDeals"
+    );
 
-  if (error) {
-    console.error("getPublishedDeals failed:", error.message);
+    if (error) {
+      console.error("getPublishedDeals failed:", error.message);
+      return [];
+    }
+    return mapRowsSafely(data ?? []);
+  } catch (err) {
+    console.error("getPublishedDeals threw:", err);
     return [];
   }
-  return (data ?? []).map(mapRowToDeal);
 }
 
 export async function getPublishedDealsByBroker(brokerId: string): Promise<Deal[]> {
   try {
     const supabase = publicClient();
-    const { data, error } = await supabase
-      .from("deals")
-      .select(DEAL_COLUMNS)
-      .eq("status", "published")
-      .eq("broker_id", brokerId)
-      .order("date_posted", { ascending: false })
-      .returns<DealRow[]>();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("deals")
+        .select(DEAL_COLUMNS)
+        .eq("status", "published")
+        .eq("broker_id", brokerId)
+        .order("date_posted", { ascending: false })
+        .returns<DealRow[]>(),
+      10000,
+      "getPublishedDealsByBroker"
+    );
 
     if (error) {
       console.error("getPublishedDealsByBroker failed:", error.message);
       return [];
     }
-    // Map each row independently so one malformed row (bad test data, a
-    // future column-shape change, etc.) can't take down the whole broker
-    // profile page — skip it and log instead of throwing.
-    const deals: Deal[] = [];
-    for (const row of data ?? []) {
-      try {
-        deals.push(mapRowToDeal(row));
-      } catch (err) {
-        console.error("mapRowToDeal failed for deal", row?.id, err);
-      }
-    }
-    return deals;
+    return mapRowsSafely(data ?? []);
   } catch (err) {
     console.error("getPublishedDealsByBroker threw:", err);
     return [];
@@ -165,14 +187,33 @@ export async function getPublishedDealsByBroker(brokerId: string): Promise<Deal[
 }
 
 export async function getDealBySlugDb(slug: string): Promise<Deal | undefined> {
-  const supabase = publicClient();
-  const { data, error } = await supabase
-    .from("deals")
-    .select(DEAL_COLUMNS)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle<DealRow>();
+  try {
+    const supabase = publicClient();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("deals")
+        .select(DEAL_COLUMNS)
+        .eq("slug", slug)
+        .eq("status", "published")
+        .maybeSingle<DealRow>(),
+      10000,
+      "getDealBySlugDb"
+    );
 
-  if (error || !data) return undefined;
-  return mapRowToDeal(data);
+    if (error) {
+      console.error("getDealBySlugDb failed:", error.message);
+      return undefined;
+    }
+    if (!data) return undefined;
+
+    try {
+      return mapRowToDeal(data);
+    } catch (err) {
+      console.error("mapRowToDeal failed for deal", data.id, err);
+      return undefined;
+    }
+  } catch (err) {
+    console.error("getDealBySlugDb threw:", err);
+    return undefined;
+  }
 }

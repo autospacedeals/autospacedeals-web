@@ -89,6 +89,12 @@ export interface Deal {
   // placeholder rather than a broker upload — the UI discloses this since
   // it isn't guaranteed to be the exact vehicle.
   photoAutoSourced?: boolean;
+
+  // Optional: the broker's stated assumed tax rate baked into their
+  // advertised due-at-signing figure (e.g. 7.75 for "assumes 7.75% tax") —
+  // purely a disclosed label, never used in any calculation. Null/undefined
+  // means no assumption was stated.
+  dueAtSigningTaxRate?: number | null;
   // Stackable incentives (loyalty, fleet, military, etc.) a shopper can
   // toggle on the deal page to see the effect on their estimated payment.
   // Broker-managed; AI can suggest starting points but never publishes
