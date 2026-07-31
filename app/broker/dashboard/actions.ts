@@ -744,6 +744,33 @@ export async function deleteDealAction(formData: FormData): Promise<{ error: str
   return { error: null };
 }
 
+// Bulk version for the "select multiple rows, delete" flow in the spreadsheet
+// view of the broker's listings. Scoped to the caller's own rows the same
+// way the single-delete action is, so a broker can never delete someone
+// else's listing even if IDs were tampered with client-side.
+export async function deleteDealsAction(ids: string[]): Promise<{ error: string | null; deletedCount: number }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  const cleanIds = ids.filter(Boolean);
+  if (cleanIds.length === 0) return { error: "No listings selected.", deletedCount: 0 };
+
+  const { error, data: deletedRows } = await supabase
+    .from("deals")
+    .delete()
+    .in("id", cleanIds)
+    .eq("broker_id", user.id)
+    .select("id");
+  if (error) return { error: error.message, deletedCount: 0 };
+
+  revalidatePath("/broker/dashboard");
+  revalidatePath("/");
+  return { error: null, deletedCount: deletedRows?.length ?? 0 };
+}
+
 // Broker fills in or fixes a draft's details before confirming it — e.g.
 // adding a trim/color the parser missed, or correcting something it got
 // wrong. Same fields and validation as the manual "add a car" form, but
