@@ -31,6 +31,7 @@ export type SubmissionState = {
 interface BrokerProfile {
   business_name: string;
   seller_type: string;
+  dealership_name: string | null;
   contact_phone: string;
   city: string;
   state: string;
@@ -86,6 +87,7 @@ async function stageParsedDeals(
       apr: null,
       seller_type: broker.seller_type,
       seller_name: broker.business_name,
+      seller_dealership: broker.dealership_name,
       seller_phone: broker.contact_phone,
       seller_email: userEmail ?? "",
       city: broker.city,
@@ -200,7 +202,7 @@ export async function createSubmissionAction(
 
   const { data: broker } = await supabase
     .from("brokers")
-    .select("business_name, seller_type, contact_phone, city, state")
+    .select("business_name, seller_type, dealership_name, contact_phone, city, state")
     .eq("id", user.id)
     .single<BrokerProfile>();
 
@@ -442,11 +444,12 @@ export async function createManualDealAction(
 
   const { data: broker } = await supabase
     .from("brokers")
-    .select("business_name, seller_type, contact_phone, city, state")
+    .select("business_name, seller_type, dealership_name, contact_phone, city, state")
     .eq("id", user.id)
     .single<{
       business_name: string;
       seller_type: string;
+      dealership_name: string | null;
       contact_phone: string;
       city: string;
       state: string;
@@ -538,6 +541,7 @@ export async function createManualDealAction(
     apr,
     seller_type: broker.seller_type,
     seller_name: broker.business_name,
+    seller_dealership: broker.dealership_name,
     seller_phone: broker.contact_phone,
     seller_email: user.email ?? "",
     city: broker.city,

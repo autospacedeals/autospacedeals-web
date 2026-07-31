@@ -8,6 +8,7 @@ export interface BrokerProfile {
   id: string;
   businessName: string;
   sellerType: string;
+  dealershipName: string | null;
   city: string;
   state: string;
   contactPhone: string;
@@ -18,6 +19,7 @@ interface BrokerRow {
   id: string;
   business_name: string;
   seller_type: string;
+  dealership_name: string | null;
   city: string;
   state: string;
   contact_phone: string;
@@ -37,7 +39,7 @@ export async function getBrokerProfile(id: string): Promise<BrokerProfile | null
     const { data, error } = await withTimeout(
       supabase
         .from("brokers")
-        .select("id, business_name, seller_type, city, state, contact_phone, about")
+        .select("id, business_name, seller_type, dealership_name, city, state, contact_phone, about")
         .eq("id", id)
         .maybeSingle<BrokerRow>(),
       10000,
@@ -54,6 +56,7 @@ export async function getBrokerProfile(id: string): Promise<BrokerProfile | null
       id: data.id,
       businessName: data.business_name ?? "",
       sellerType: data.seller_type ?? "Broker",
+      dealershipName: data.dealership_name,
       city: data.city ?? "",
       state: data.state ?? "",
       contactPhone: data.contact_phone ?? "",

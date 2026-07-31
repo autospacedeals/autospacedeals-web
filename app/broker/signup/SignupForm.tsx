@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { MailCheck, UserPlus } from "lucide-react";
 import { signUpAction, type AuthState } from "../actions";
@@ -13,6 +13,8 @@ const labelClass = "mb-1.5 block text-sm font-semibold text-zinc-300";
 
 export default function SignupForm() {
   const [state, formAction, pending] = useActionState(signUpAction, initialState);
+  const [sellerType, setSellerType] = useState("Broker");
+  const isSalesperson = sellerType === "Salesperson";
 
   if (state.needsConfirmation) {
     return (
@@ -38,19 +40,36 @@ export default function SignupForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>I am a</label>
-          <select name="sellerType" defaultValue="Broker" className={inputClass}>
+          <select
+            name="sellerType"
+            value={sellerType}
+            onChange={(e) => setSellerType(e.target.value)}
+            className={inputClass}
+          >
             <option value="Broker">Broker</option>
-            <option value="Dealer">Dealer</option>
+            <option value="Salesperson">Dealership salesperson</option>
           </select>
         </div>
         <div>
           <label className={labelClass}>Your name</label>
           <input required name="contactName" placeholder="Jordan Smith" className={inputClass} />
         </div>
-        <div>
-          <label className={labelClass}>Business name</label>
-          <input required name="businessName" placeholder="Chrome Stallions" className={inputClass} />
-        </div>
+        {isSalesperson ? (
+          <div>
+            <label className={labelClass}>Dealership you work at</label>
+            <input
+              required
+              name="dealershipName"
+              placeholder="AutoNation Toyota Irvine"
+              className={inputClass}
+            />
+          </div>
+        ) : (
+          <div>
+            <label className={labelClass}>Business name</label>
+            <input required name="businessName" placeholder="Chrome Stallions" className={inputClass} />
+          </div>
+        )}
         <div>
           <label className={labelClass}>Contact phone</label>
           <input required name="contactPhone" placeholder="949-555-1234" className={inputClass} />

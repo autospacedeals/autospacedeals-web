@@ -270,6 +270,9 @@ export default async function DealDetailPage({
             ) : (
               <p className="mt-1 text-xl font-black">{deal.sellerName}</p>
             )}
+            {deal.sellerDealership && (
+              <p className="text-sm text-zinc-400">at {deal.sellerDealership}</p>
+            )}
             <p className="mt-1 text-sm text-zinc-500">
               {deal.city}, {deal.state} · {deal.sellerPhone}
             </p>

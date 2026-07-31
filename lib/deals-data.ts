@@ -18,7 +18,7 @@
 // model year or trim, which erodes trust in the listing.
 // =============================================================================
 
-export type SellerType = "Dealer" | "Broker";
+export type SellerType = "Broker" | "Salesperson";
 export type DealType = "Lease" | "Finance";
 export type FuelType = "Gas" | "Hybrid" | "PHEV" | "EV";
 export type BodyStyle =
@@ -95,6 +95,12 @@ export interface Deal {
   // purely a disclosed label, never used in any calculation. Null/undefined
   // means no assumption was stated.
   dueAtSigningTaxRate?: number | null;
+
+  // Set when the seller is a dealership salesperson (sellerType
+  // "Salesperson") rather than an independent broker — the dealership
+  // they work at, shown alongside their own name wherever the seller is
+  // displayed. Null for brokers/dealers.
+  sellerDealership?: string | null;
   // Stackable incentives (loyalty, fleet, military, etc.) a shopper can
   // toggle on the deal page to see the effect on their estimated payment.
   // Broker-managed; AI can suggest starting points but never publishes

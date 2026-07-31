@@ -76,11 +76,12 @@ export async function stageDealDraftAction(
 
   const { data: broker } = await admin
     .from("brokers")
-    .select("business_name, seller_type, contact_phone, city, state")
+    .select("business_name, seller_type, dealership_name, contact_phone, city, state")
     .eq("id", brokerId)
     .single<{
       business_name: string;
       seller_type: string;
+      dealership_name: string | null;
       contact_phone: string;
       city: string;
       state: string;
@@ -165,6 +166,7 @@ export async function stageDealDraftAction(
     apr,
     seller_type: broker.seller_type,
     seller_name: broker.business_name,
+    seller_dealership: broker.dealership_name,
     seller_phone: broker.contact_phone,
     city: broker.city,
     state: broker.state,

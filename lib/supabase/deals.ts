@@ -43,6 +43,7 @@ export interface DealRow {
   apr: number | null;
   seller_type: string;
   seller_name: string;
+  seller_dealership: string | null;
   seller_phone: string;
   seller_email: string;
   city: string;
@@ -88,6 +89,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     apr: row.apr,
     sellerType: row.seller_type as Deal["sellerType"],
     sellerName: row.seller_name,
+    sellerDealership: row.seller_dealership,
     sellerPhone: row.seller_phone,
     sellerEmail: row.seller_email,
     city: row.city,
@@ -114,7 +116,7 @@ export function mapRowToDeal(row: DealRow): Deal {
 const DEAL_COLUMNS =
   "id, slug, broker_id, year, make, model, trim, body_style, fuel, exterior, interior, " +
   "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
-  "seller_type, seller_name, seller_phone, seller_email, city, state, " +
+  "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
   "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
   "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
   "due_at_signing_tax_rate";

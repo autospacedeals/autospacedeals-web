@@ -142,6 +142,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
             deal.sellerName
           )}{" "}
           · {deal.sellerType}
+          {deal.sellerDealership && ` at ${deal.sellerDealership}`}
         </p>
         <p className="flex items-center gap-2 text-xs text-zinc-500">
           <Gauge size={13} /> {relativeDatePosted(deal.datePosted)}

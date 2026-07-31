@@ -36,14 +36,24 @@ export async function signUpAction(
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
   const contactName = String(formData.get("contactName") || "").trim();
-  const businessName = String(formData.get("businessName") || "").trim();
   const sellerType = String(formData.get("sellerType") || "Broker");
+  const dealershipName = String(formData.get("dealershipName") || "").trim() || null;
+  // A dealership salesperson leads with their own name everywhere a
+  // "business name" is normally shown (deal cards, their profile page,
+  // etc.) — the dealership they work at is the separate affiliation field.
+  const businessName =
+    sellerType === "Salesperson"
+      ? contactName
+      : String(formData.get("businessName") || "").trim();
   const contactPhone = String(formData.get("contactPhone") || "").trim();
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim().toUpperCase();
 
   if (!email || !password || !contactName || !businessName || !contactPhone || !city || !state) {
     return { error: "Please fill in every field." };
+  }
+  if (sellerType === "Salesperson" && !dealershipName) {
+    return { error: "Please enter the dealership you work at." };
   }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
@@ -68,6 +78,7 @@ export async function signUpAction(
     contact_name: contactName,
     business_name: businessName,
     seller_type: sellerType,
+    dealership_name: dealershipName,
     contact_phone: contactPhone,
     city,
     state,

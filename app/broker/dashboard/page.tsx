@@ -23,6 +23,7 @@ interface Broker {
   contact_name: string | null;
   business_name: string;
   seller_type: string;
+  dealership_name: string | null;
   contact_phone: string;
   city: string;
   state: string;
@@ -68,7 +69,9 @@ export default async function BrokerDashboardPage() {
 
   const { data: broker } = await supabase
     .from("brokers")
-    .select("id, contact_name, business_name, seller_type, contact_phone, city, state, about")
+    .select(
+      "id, contact_name, business_name, seller_type, dealership_name, contact_phone, city, state, about"
+    )
     .eq("id", user.id)
     .single<Broker>();
 
@@ -94,7 +97,7 @@ export default async function BrokerDashboardPage() {
   const DEAL_COLUMNS =
     "id, slug, broker_id, year, make, model, trim, body_style, fuel, exterior, interior, " +
     "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
-    "seller_type, seller_name, seller_phone, seller_email, city, state, " +
+    "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
     "due_at_signing_tax_rate";
@@ -119,6 +122,9 @@ export default async function BrokerDashboardPage() {
             <Store size={16} /> {broker?.seller_type ?? "Broker"} dashboard
           </p>
           <h1 className="mt-1 text-3xl font-black">{broker?.business_name ?? user.email}</h1>
+          {broker?.dealership_name && (
+            <p className="text-sm text-zinc-400">at {broker.dealership_name}</p>
+          )}
           <p className="mt-1 text-sm text-zinc-500">
             {broker?.contact_name && `${broker.contact_name} · `}
             {broker?.city}, {broker?.state} · {broker?.contact_phone} · {user.email}

@@ -56,6 +56,9 @@ export default async function BrokerProfilePage({
           <Store size={16} /> {broker.sellerType}
         </p>
         <h1 className="mt-1 text-3xl font-black sm:text-4xl">{broker.businessName}</h1>
+        {broker.dealershipName && (
+          <p className="text-sm text-zinc-400">at {broker.dealershipName}</p>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-zinc-400">
           <span className="flex items-center gap-1.5">
             <MapPin size={15} /> {broker.city}, {broker.state}
