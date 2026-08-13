@@ -5,6 +5,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { reviewSubmissionAction } from "./actions";
 import StageDealForm from "./StageDealForm";
+import RefreshSamplePhotosButton from "./RefreshSamplePhotosButton";
 
 export const metadata: Metadata = {
   title: "Admin — Submission Queue",
@@ -86,6 +87,8 @@ export default async function AdminSubmissionsPage() {
         a reference log of what they&apos;ve linked — use &quot;Stage a car&quot; below only if you
         want to help a broker out directly, or approve/reject to keep the log tidy.
       </p>
+
+      <RefreshSamplePhotosButton />
 
       <div className="mt-8 space-y-3">
         {sorted.length === 0 && (

@@ -17,6 +17,55 @@ async function assertAdmin() {
   }
 }
 
+// One-off maintenance action: re-fetch CarsXE photos for the sample/demo
+// listings only (deals.sample = true) — CarsXE's results have reportedly
+// improved since these were first seeded. Scoped to sample listings only
+// (not real broker inventory) since it overwrites whatever photo is
+// currently there. Uses the admin/service-role client since sample rows
+// have no broker_id owner for the normal RLS policies to match against.
+export async function refreshSamplePhotosAction(): Promise<{
+  error: string | null;
+  updated: number;
+  noMatch: number;
+  total: number;
+}> {
+  await assertAdmin();
+  const admin = createAdminClient();
+
+  const { data: rows, error } = await admin
+    .from("deals")
+    .select("id, year, make, model, trim")
+    .eq("sample", true);
+
+  if (error) return { error: error.message, updated: 0, noMatch: 0, total: 0 };
+  if (!rows || rows.length === 0) return { error: null, updated: 0, noMatch: 0, total: 0 };
+
+  let updated = 0;
+  let noMatch = 0;
+
+  for (const row of rows) {
+    const url = await fetchCarsxePhoto({
+      year: row.year,
+      make: row.make,
+      model: row.model,
+      trim: row.trim ?? undefined,
+    });
+    if (!url) {
+      noMatch++;
+      continue;
+    }
+    const { error: updateError } = await admin
+      .from("deals")
+      .update({ images: [url], photo_auto_sourced: true })
+      .eq("id", row.id);
+    if (!updateError) updated++;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/submissions");
+  return { error: null, updated, noMatch, total: rows.length };
+}
+
 export async function reviewSubmissionAction(formData: FormData) {
   await assertAdmin();
 
