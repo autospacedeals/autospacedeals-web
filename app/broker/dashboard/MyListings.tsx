@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -19,14 +19,17 @@ import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 // list, not a literal spreadsheet grid of boxes. A cell only "lights up"
 // on hover/focus so the row stays visually calm until you interact with it.
 // Also strips the native up/down spinner arrows browsers add to
-// type="number" inputs — they clutter the tight cell layout here.
+// type="number" inputs, and forces a hard line-break ("block") so a
+// secondary sub-field (like the tax-rate hint under Payment) always stacks
+// under the main value instead of sitting inline and overflowing into the
+// next column when the column is narrow.
 const noSpinner =
   "[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 const cellInputClass =
-  `w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
+  `block w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
 const cellSelectClass = cellInputClass + " appearance-none cursor-pointer";
 const cellSubInputClass =
-  `mt-1 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
+  `mt-1 block w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
 const inputClass =
   `w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none ${noSpinner}`;
 const labelClass = "mb-1 block text-xs font-semibold text-zinc-400";
@@ -36,9 +39,59 @@ const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
 
-const COLUMN_COUNT = 20;
-const th = "px-2.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500 whitespace-nowrap";
-const td = "px-2.5 py-2 align-top whitespace-nowrap";
+// Resizable data columns — drag the handle on the right edge of a header to
+// widen/narrow it, like a spreadsheet. Non-data columns (checkbox, photo,
+// action buttons) stay fixed since resizing those wouldn't do much.
+type ColKey =
+  | "year"
+  | "make"
+  | "model"
+  | "trim"
+  | "condition"
+  | "dealType"
+  | "msrp"
+  | "payment"
+  | "dueAtSigning"
+  | "term"
+  | "milesPerYear";
+
+const COLUMNS: { key: ColKey; label: string; defaultWidth: number }[] = [
+  { key: "year", label: "Year", defaultWidth: 76 },
+  { key: "make", label: "Make", defaultWidth: 120 },
+  { key: "model", label: "Model", defaultWidth: 150 },
+  { key: "trim", label: "Trim", defaultWidth: 130 },
+  { key: "condition", label: "Condition", defaultWidth: 110 },
+  { key: "dealType", label: "Deal type", defaultWidth: 110 },
+  { key: "msrp", label: "MSRP", defaultWidth: 120 },
+  { key: "payment", label: "Payment", defaultWidth: 130 },
+  { key: "dueAtSigning", label: "Due at signing", defaultWidth: 140 },
+  { key: "term", label: "Term", defaultWidth: 80 },
+  { key: "milesPerYear", label: "Mi/yr", defaultWidth: 100 },
+];
+
+const DEFAULT_WIDTHS: Record<ColKey, number> = COLUMNS.reduce(
+  (acc, c) => ({ ...acc, [c.key]: c.defaultWidth }),
+  {} as Record<ColKey, number>
+);
+
+const MIN_COL_WIDTH = 56;
+const WIDTHS_STORAGE_KEY = "asd_my_listings_col_widths_v1";
+
+// Fixed-width utility columns (checkbox, photo, toggles, action buttons).
+const UTILITY_WIDTHS = {
+  select: 40,
+  photo: 60,
+  onePay: 64,
+  inStock: 72,
+  save: 88,
+  seeCard: 96,
+  more: 96,
+  delete: 48,
+};
+
+const COLUMN_COUNT = 8 + COLUMNS.length; // utility columns + resizable columns
+const th = "relative select-none px-2.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500";
+const td = "px-2.5 py-2 align-top overflow-hidden";
 
 interface RowDraft {
   year: string;
@@ -102,6 +155,64 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [widths, setWidths] = useState<Record<ColKey, number>>(DEFAULT_WIDTHS);
+  const dragRef = useRef<{ col: ColKey; startX: number; startWidth: number } | null>(null);
+
+  // Load any saved column widths once the page is hydrated (avoids an SSR
+  // hydration mismatch, since the server always renders the defaults).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(WIDTHS_STORAGE_KEY);
+      // localStorage isn't available during SSR, so this has to happen
+      // post-mount — intentionally syncing from a browser-only API, not
+      // deriving from other React state, so the usual "don't setState in an
+      // effect" guidance doesn't apply here.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved) setWidths({ ...DEFAULT_WIDTHS, ...JSON.parse(saved) });
+    } catch {
+      // Ignore — just fall back to defaults.
+    }
+  }, []);
+
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      const d = dragRef.current;
+      if (!d) return;
+      const next = Math.max(MIN_COL_WIDTH, d.startWidth + (e.clientX - d.startX));
+      setWidths((prev) => {
+        const updated = { ...prev, [d.col]: next };
+        try {
+          localStorage.setItem(WIDTHS_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // Ignore storage failures — resizing still works for the session.
+        }
+        return updated;
+      });
+    }
+    function onUp() {
+      dragRef.current = null;
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
+  function startResize(col: ColKey, e: React.MouseEvent) {
+    e.preventDefault();
+    dragRef.current = { col, startX: e.clientX, startWidth: widths[col] };
+  }
+
+  function resetWidths() {
+    setWidths(DEFAULT_WIDTHS);
+    try {
+      localStorage.removeItem(WIDTHS_STORAGE_KEY);
+    } catch {
+      // Ignore.
+    }
+  }
 
   if (deals.length === 0) {
     return (
@@ -157,8 +268,12 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-zinc-500">
-          Click any field to edit it, then hit Save on that row. Scroll right for more columns, and
-          expand a row (chevron) for everything else.
+          Click any field to edit it, then hit Save on that row. Drag a column&apos;s right edge to
+          resize it, or{" "}
+          <button type="button" onClick={resetWidths} className="underline decoration-dotted hover:text-white">
+            reset column widths
+          </button>
+          . Expand a row (chevron) for everything else.
         </p>
         <div className="flex items-center gap-2">
           {bulkError && <p className="text-xs text-red-400">{bulkError}</p>}
@@ -175,7 +290,20 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] p-2">
-        <table className="w-full border-separate text-sm [border-spacing:0_4px]">
+        <table className="table-fixed border-separate text-sm [border-spacing:0_4px]">
+          <colgroup>
+            <col style={{ width: UTILITY_WIDTHS.select }} />
+            <col style={{ width: UTILITY_WIDTHS.photo }} />
+            {COLUMNS.map((c) => (
+              <col key={c.key} style={{ width: widths[c.key] }} />
+            ))}
+            <col style={{ width: UTILITY_WIDTHS.onePay }} />
+            <col style={{ width: UTILITY_WIDTHS.inStock }} />
+            <col style={{ width: UTILITY_WIDTHS.save }} />
+            <col style={{ width: UTILITY_WIDTHS.seeCard }} />
+            <col style={{ width: UTILITY_WIDTHS.more }} />
+            <col style={{ width: UTILITY_WIDTHS.delete }} />
+          </colgroup>
           <thead>
             <tr>
               <th className={th}>
@@ -188,17 +316,16 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
                 />
               </th>
               <th className={th}></th>
-              <th className={th}>Year</th>
-              <th className={th}>Make</th>
-              <th className={th}>Model</th>
-              <th className={th}>Trim</th>
-              <th className={th}>Condition</th>
-              <th className={th}>Deal type</th>
-              <th className={th}>MSRP</th>
-              <th className={th}>Payment</th>
-              <th className={th}>Due at signing</th>
-              <th className={th}>Term</th>
-              <th className={th}>Mi/yr</th>
+              {COLUMNS.map((c) => (
+                <th key={c.key} className={th}>
+                  <span className="block truncate pr-2">{c.label}</span>
+                  <div
+                    onMouseDown={(e) => startResize(c.key, e)}
+                    className="absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-white/20 active:bg-white/30"
+                    title="Drag to resize"
+                  />
+                </th>
+              ))}
               <th className={th}>1-pay</th>
               <th className={th}>In stock</th>
               <th className={th}></th>
@@ -335,7 +462,7 @@ function ListingRow({
             type="number"
             value={draft.year}
             onChange={(e) => set("year", e.target.value)}
-            className={`${cellInputClass} w-20`}
+            className={cellInputClass}
           />
         </td>
         <td className={cell}>
@@ -343,7 +470,7 @@ function ListingRow({
             type="text"
             value={draft.make}
             onChange={(e) => set("make", e.target.value)}
-            className={`${cellInputClass} w-32`}
+            className={cellInputClass}
           />
         </td>
         <td className={cell}>
@@ -351,7 +478,7 @@ function ListingRow({
             type="text"
             value={draft.model}
             onChange={(e) => set("model", e.target.value)}
-            className={`${cellInputClass} w-36`}
+            className={cellInputClass}
           />
         </td>
         <td className={cell}>
@@ -359,14 +486,14 @@ function ListingRow({
             type="text"
             value={draft.trim}
             onChange={(e) => set("trim", e.target.value)}
-            className={`${cellInputClass} w-32`}
+            className={cellInputClass}
           />
         </td>
         <td className={cell}>
           <select
             value={draft.condition}
             onChange={(e) => set("condition", e.target.value)}
-            className={`${cellSelectClass} w-28`}
+            className={cellSelectClass}
           >
             {CONDITIONS.map((c) => (
               <option key={c} value={c}>
@@ -379,7 +506,7 @@ function ListingRow({
           <select
             value={draft.dealType}
             onChange={(e) => set("dealType", e.target.value as "Lease" | "Finance")}
-            className={`${cellSelectClass} w-28`}
+            className={cellSelectClass}
           >
             <option value="Lease">Lease</option>
             <option value="Finance">Finance</option>
@@ -390,16 +517,16 @@ function ListingRow({
             type="number"
             value={draft.msrp}
             onChange={(e) => set("msrp", e.target.value)}
-            className={`${cellInputClass} w-28`}
+            className={cellInputClass}
           />
           <label className="mt-1 flex cursor-pointer items-center gap-1 text-[10px] text-zinc-600">
             <input
               type="checkbox"
               checked={draft.maskMsrp}
               onChange={(e) => set("maskMsrp", e.target.checked)}
-              className="h-3 w-3 rounded border-white/20 bg-white/5"
+              className="h-3 w-3 shrink-0 rounded border-white/20 bg-white/5"
             />
-            Mask
+            <span className="truncate">Mask</span>
           </label>
         </td>
         <td className={cell}>
@@ -408,7 +535,7 @@ function ListingRow({
             disabled={draft.onePay}
             value={draft.payment}
             onChange={(e) => set("payment", e.target.value)}
-            className={`${cellInputClass} w-28 disabled:opacity-40`}
+            className={`${cellInputClass} disabled:opacity-40`}
           />
           {!draft.onePay && (
             <input
@@ -417,7 +544,7 @@ function ListingRow({
               value={draft.paymentTaxRate}
               onChange={(e) => set("paymentTaxRate", e.target.value)}
               placeholder="tax % incl."
-              className={`${cellSubInputClass} w-28`}
+              className={cellSubInputClass}
             />
           )}
         </td>
@@ -426,7 +553,7 @@ function ListingRow({
             type="number"
             value={draft.dueAtSigning}
             onChange={(e) => set("dueAtSigning", e.target.value)}
-            className={`${cellInputClass} w-28`}
+            className={cellInputClass}
           />
           <input
             type="number"
@@ -434,7 +561,7 @@ function ListingRow({
             value={draft.dueAtSigningTaxRate}
             onChange={(e) => set("dueAtSigningTaxRate", e.target.value)}
             placeholder="tax % assumed"
-            className={`${cellSubInputClass} w-28`}
+            className={cellSubInputClass}
           />
         </td>
         <td className={cell}>
@@ -442,7 +569,7 @@ function ListingRow({
             type="number"
             value={draft.term}
             onChange={(e) => set("term", e.target.value)}
-            className={`${cellInputClass} w-20`}
+            className={cellInputClass}
           />
         </td>
         <td className={cell}>
@@ -451,7 +578,7 @@ function ListingRow({
               type="number"
               value={draft.milesPerYear}
               onChange={(e) => set("milesPerYear", e.target.value)}
-              className={`${cellInputClass} w-24`}
+              className={cellInputClass}
             />
           ) : (
             <span className="text-xs text-zinc-600">—</span>
