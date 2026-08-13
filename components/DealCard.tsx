@@ -137,7 +137,6 @@ export default function DealCard({ deal }: { deal: Deal }) {
           {deal.brokerId ? (
             <Link
               href={`/brokers/${deal.brokerId}`}
-              onClick={(e) => e.stopPropagation()}
               className="font-semibold text-zinc-300 hover:text-white hover:underline"
             >
               {deal.sellerName}
