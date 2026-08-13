@@ -1,7 +1,14 @@
 import type { Deal } from "./deals-data";
 
+// Defensive against bad/missing data: the type says `number`, but a value
+// coming from the database (or a row that slipped through with a null in a
+// column TypeScript assumes is always populated) can arrive as null,
+// undefined, or NaN at runtime — calling .toLocaleString() on that throws
+// and, since this function is used everywhere a dollar amount is shown,
+// took down entire pages for any listing with one bad numeric field.
 export function formatCurrency(amount: number): string {
-  return amount.toLocaleString("en-US", {
+  const safe = typeof amount === "number" && Number.isFinite(amount) ? amount : 0;
+  return safe.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
@@ -33,13 +40,20 @@ export function displayMsrp(deal: Deal): string {
 }
 
 // Effective monthly cost = spreads due-at-signing across the term so deals
-// with different upfront amounts can be compared fairly.
+// with different upfront amounts can be compared fairly. Guards against a
+// zero/missing term (would otherwise divide by zero) and any non-finite
+// inputs, same reasoning as formatCurrency above.
 export function effectiveMonthly(deal: Deal): number {
-  return (deal.payment * deal.term + deal.dueAtSigning) / deal.term;
+  const payment = Number.isFinite(deal.payment) ? deal.payment : 0;
+  const dueAtSigning = Number.isFinite(deal.dueAtSigning) ? deal.dueAtSigning : 0;
+  const term = Number.isFinite(deal.term) && deal.term > 0 ? deal.term : 1;
+  return (payment * term + dueAtSigning) / term;
 }
 
 export function msrpDiscountPercent(deal: Deal): number {
-  if (deal.msrp <= 0 || deal.sellingPrice == null) return 0;
+  if (!deal.msrp || deal.msrp <= 0 || deal.sellingPrice == null || !Number.isFinite(deal.sellingPrice)) {
+    return 0;
+  }
   return ((deal.msrp - deal.sellingPrice) / deal.msrp) * 100;
 }
 
@@ -83,11 +97,13 @@ export function formatDate(dateStr: string): string {
 
 export function daysAgo(dateStr: string, today: Date = new Date()): number {
   const posted = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(posted.getTime())) return 0;
   const diff = today.getTime() - posted.getTime();
   return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
 export function relativeDatePosted(dateStr: string, today?: Date): string {
+  if (!dateStr) return "Recently posted";
   const days = daysAgo(dateStr, today);
   if (days <= 0) return "Posted today";
   if (days === 1) return "Posted 1 day ago";

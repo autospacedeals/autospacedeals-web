@@ -9,6 +9,7 @@ import {
   CircleAlert,
 } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
+import type { Deal } from "@/lib/deals-data";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import {
   dealTitle,
@@ -75,9 +76,28 @@ export default async function DealDetailPage({
   const deal = await getDealBySlugDb(slug);
   if (!deal) notFound();
 
-  const discount = msrpDiscountPercent(deal);
-  const allDeals = await getPublishedDeals();
-  const similar = getSimilarDealsFrom(allDeals, deal, 3);
+  // Every value derived from the deal is computed up front, in one place,
+  // wrapped defensively — a single bad field (a stray null slipping through
+  // a type that assumes it can't happen, a malformed packages entry, etc.)
+  // shouldn't be able to take down the whole page for every listing from
+  // one broker. Falls back to safe defaults and logs the real error server
+  // side instead of surfacing the generic error boundary.
+  let discount = 0;
+  let similar: Deal[] = [];
+  try {
+    discount = msrpDiscountPercent(deal);
+  } catch (err) {
+    console.error("DealDetailPage: msrpDiscountPercent failed for", deal.id, err);
+  }
+  try {
+    const allDeals = await getPublishedDeals();
+    similar = getSimilarDealsFrom(allDeals, deal, 3);
+  } catch (err) {
+    console.error("DealDetailPage: similar deals failed for", deal.id, err);
+  }
+  const packages = Array.isArray(deal.packages)
+    ? deal.packages.filter((p): p is string => typeof p === "string" && p.length > 0)
+    : [];
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
@@ -212,11 +232,11 @@ export default async function DealDetailPage({
               <Detail label="Posted" value={relativeDatePosted(deal.datePosted)} />
             </dl>
 
-            {deal.packages.length > 0 && (
+            {packages.length > 0 && (
               <div className="mt-5">
                 <p className="text-sm font-semibold text-zinc-400">Packages</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {deal.packages.map((item) => (
+                  {packages.map((item) => (
                     <span key={item} className="rounded-full bg-white/10 px-3 py-1 text-sm">
                       {item}
                     </span>

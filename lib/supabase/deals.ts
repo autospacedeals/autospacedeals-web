@@ -84,9 +84,12 @@ export function mapRowToDeal(row: DealRow): Deal {
     dealType: row.deal_type as Deal["dealType"],
     msrp: row.msrp ?? 0,
     sellingPrice: row.selling_price,
-    payment: row.payment,
-    dueAtSigning: row.due_at_signing,
-    term: row.term,
+    // These are typed as required numbers, but nothing at the DB level
+    // actually guarantees a non-null value ends up here — coalesce so a
+    // stray null doesn't crash every formatCurrency() call downstream.
+    payment: row.payment ?? 0,
+    dueAtSigning: row.due_at_signing ?? 0,
+    term: row.term ?? 0,
     milesPerYear: row.miles_per_year,
     apr: row.apr,
     sellerType: row.seller_type as Deal["sellerType"],

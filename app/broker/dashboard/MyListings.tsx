@@ -77,10 +77,11 @@ const DEFAULT_WIDTHS: Record<ColKey, number> = COLUMNS.reduce(
 const MIN_COL_WIDTH = 56;
 const WIDTHS_STORAGE_KEY = "asd_my_listings_col_widths_v1";
 
-// Fixed-width utility columns (checkbox, photo, toggles, action buttons).
+// Fixed-width utility columns (checkbox, toggles, action buttons). No photo
+// thumbnail column — it never had room to show anything useful at this
+// density, so it's left out of this view (still editable via "More").
 const UTILITY_WIDTHS = {
   select: 40,
-  photo: 60,
   onePay: 64,
   inStock: 72,
   save: 88,
@@ -89,7 +90,7 @@ const UTILITY_WIDTHS = {
   delete: 48,
 };
 
-const COLUMN_COUNT = 8 + COLUMNS.length; // utility columns + resizable columns
+const COLUMN_COUNT = 7 + COLUMNS.length; // utility columns + resizable columns
 const th = "relative select-none px-2.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500";
 const td = "px-2.5 py-2 align-top overflow-hidden";
 
@@ -293,7 +294,6 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
         <table className="table-fixed border-separate text-sm [border-spacing:0_4px]">
           <colgroup>
             <col style={{ width: UTILITY_WIDTHS.select }} />
-            <col style={{ width: UTILITY_WIDTHS.photo }} />
             {COLUMNS.map((c) => (
               <col key={c.key} style={{ width: widths[c.key] }} />
             ))}
@@ -315,7 +315,6 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
                   aria-label="Select all listings"
                 />
               </th>
-              <th className={th}></th>
               {COLUMNS.map((c) => (
                 <th key={c.key} className={th}>
                   <span className="block truncate pr-2">{c.label}</span>
@@ -440,8 +439,6 @@ function ListingRow({
     }
   }
 
-  const image = deal.images[0];
-
   return (
     <>
       <tr>
@@ -453,9 +450,6 @@ function ListingRow({
             className="mt-1 rounded border-white/20 bg-white/5"
             aria-label={`Select ${draft.year} ${draft.make} ${draft.model}`}
           />
-        </td>
-        <td className={cell}>
-          <img src={image} alt="" className="h-9 w-12 rounded-md object-cover" />
         </td>
         <td className={cell}>
           <input
