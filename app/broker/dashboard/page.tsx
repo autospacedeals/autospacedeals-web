@@ -65,7 +65,7 @@ export default async function BrokerDashboardPage() {
   const publishedListings = publishedRows.map(mapRowToDeal);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <main className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold text-zinc-400">

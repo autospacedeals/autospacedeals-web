@@ -18,13 +18,17 @@ import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 // Borderless-until-touched inputs — the point is to read like an editable
 // list, not a literal spreadsheet grid of boxes. A cell only "lights up"
 // on hover/focus so the row stays visually calm until you interact with it.
+// Also strips the native up/down spinner arrows browsers add to
+// type="number" inputs — they clutter the tight cell layout here.
+const noSpinner =
+  "[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 const cellInputClass =
-  "w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none";
+  `w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
 const cellSelectClass = cellInputClass + " appearance-none cursor-pointer";
 const cellSubInputClass =
-  "mt-1 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none";
+  `mt-1 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
 const inputClass =
-  "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
+  `w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none ${noSpinner}`;
 const labelClass = "mb-1 block text-xs font-semibold text-zinc-400";
 const selectClass = inputClass + " appearance-none";
 
@@ -331,7 +335,7 @@ function ListingRow({
             type="number"
             value={draft.year}
             onChange={(e) => set("year", e.target.value)}
-            className={`${cellInputClass} w-16`}
+            className={`${cellInputClass} w-20`}
           />
         </td>
         <td className={cell}>
@@ -339,7 +343,7 @@ function ListingRow({
             type="text"
             value={draft.make}
             onChange={(e) => set("make", e.target.value)}
-            className={`${cellInputClass} w-24`}
+            className={`${cellInputClass} w-32`}
           />
         </td>
         <td className={cell}>
@@ -347,7 +351,7 @@ function ListingRow({
             type="text"
             value={draft.model}
             onChange={(e) => set("model", e.target.value)}
-            className={`${cellInputClass} w-28`}
+            className={`${cellInputClass} w-36`}
           />
         </td>
         <td className={cell}>
@@ -355,14 +359,14 @@ function ListingRow({
             type="text"
             value={draft.trim}
             onChange={(e) => set("trim", e.target.value)}
-            className={`${cellInputClass} w-24`}
+            className={`${cellInputClass} w-32`}
           />
         </td>
         <td className={cell}>
           <select
             value={draft.condition}
             onChange={(e) => set("condition", e.target.value)}
-            className={`${cellSelectClass} w-24`}
+            className={`${cellSelectClass} w-28`}
           >
             {CONDITIONS.map((c) => (
               <option key={c} value={c}>
@@ -375,7 +379,7 @@ function ListingRow({
           <select
             value={draft.dealType}
             onChange={(e) => set("dealType", e.target.value as "Lease" | "Finance")}
-            className={`${cellSelectClass} w-24`}
+            className={`${cellSelectClass} w-28`}
           >
             <option value="Lease">Lease</option>
             <option value="Finance">Finance</option>
@@ -386,7 +390,7 @@ function ListingRow({
             type="number"
             value={draft.msrp}
             onChange={(e) => set("msrp", e.target.value)}
-            className={`${cellInputClass} w-24`}
+            className={`${cellInputClass} w-28`}
           />
           <label className="mt-1 flex cursor-pointer items-center gap-1 text-[10px] text-zinc-600">
             <input
@@ -404,7 +408,7 @@ function ListingRow({
             disabled={draft.onePay}
             value={draft.payment}
             onChange={(e) => set("payment", e.target.value)}
-            className={`${cellInputClass} w-24 disabled:opacity-40`}
+            className={`${cellInputClass} w-28 disabled:opacity-40`}
           />
           {!draft.onePay && (
             <input
@@ -413,7 +417,7 @@ function ListingRow({
               value={draft.paymentTaxRate}
               onChange={(e) => set("paymentTaxRate", e.target.value)}
               placeholder="tax % incl."
-              className={`${cellSubInputClass} w-24`}
+              className={`${cellSubInputClass} w-28`}
             />
           )}
         </td>
@@ -422,7 +426,7 @@ function ListingRow({
             type="number"
             value={draft.dueAtSigning}
             onChange={(e) => set("dueAtSigning", e.target.value)}
-            className={`${cellInputClass} w-24`}
+            className={`${cellInputClass} w-28`}
           />
           <input
             type="number"
@@ -430,7 +434,7 @@ function ListingRow({
             value={draft.dueAtSigningTaxRate}
             onChange={(e) => set("dueAtSigningTaxRate", e.target.value)}
             placeholder="tax % assumed"
-            className={`${cellSubInputClass} w-24`}
+            className={`${cellSubInputClass} w-28`}
           />
         </td>
         <td className={cell}>
@@ -438,7 +442,7 @@ function ListingRow({
             type="number"
             value={draft.term}
             onChange={(e) => set("term", e.target.value)}
-            className={`${cellInputClass} w-16`}
+            className={`${cellInputClass} w-20`}
           />
         </td>
         <td className={cell}>
@@ -447,7 +451,7 @@ function ListingRow({
               type="number"
               value={draft.milesPerYear}
               onChange={(e) => set("milesPerYear", e.target.value)}
-              className={`${cellInputClass} w-20`}
+              className={`${cellInputClass} w-24`}
             />
           ) : (
             <span className="text-xs text-zinc-600">—</span>
