@@ -101,6 +101,12 @@ export default function SignupForm() {
         <p className="mt-1 text-xs text-zinc-600">At least 8 characters.</p>
       </div>
 
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3.5 py-3 text-xs leading-5 text-amber-200/90">
+        Every listing must show the full due-at-signing amount — if tax is assumed, disclose the
+        rate (e.g. &quot;based on 7.75% tax&quot;). Accounts with repeated false or misleading
+        advertising will be removed.
+      </div>
+
       {state.error && (
         <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
       )}

@@ -194,8 +194,8 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
           <div className="grid gap-5 md:grid-cols-3">
             <InfoCard
               icon={ShieldCheck}
-              title="Broker permission first"
-              text="Deals are cross-posted only from dealers and brokers who approve their listings being featured here."
+              title="Brokers post directly"
+              text="Dealers and brokers upload their own inventory and it's live immediately — no waiting on approval, so what you see is current."
             />
             <InfoCard
               icon={SlidersHorizontal}

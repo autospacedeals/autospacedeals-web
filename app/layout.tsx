@@ -6,6 +6,7 @@ import SiteFooter from "@/components/SiteFooter";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
+import { withTimeout } from "@/lib/supabase/with-timeout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,24 +39,37 @@ export const metadata: Metadata = {
   },
 };
 
+// Runs on every page load (root layout), so a hang here would freeze the
+// entire site's header — wrapped in a timeout + try/catch (same pattern as
+// the broker-profile hang fixed earlier) so a slow/failed lookup degrades to
+// "My Dashboard" instead of taking the whole page down or silently making
+// the header link unusable.
 async function getHeaderAccount(): Promise<HeaderAccount | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await withTimeout(supabase.auth.getUser(), 5000, "getUser");
+    if (!user) return null;
 
-  if (isAdminEmail(user.email)) {
-    return { label: "Admin", href: "/admin/submissions" };
+    if (isAdminEmail(user.email)) {
+      return { label: "Admin", href: "/admin/submissions" };
+    }
+
+    const { data: broker, error } = await withTimeout(
+      supabase.from("brokers").select("business_name").eq("id", user.id).single<{ business_name: string }>(),
+      5000,
+      "getHeaderAccount broker lookup"
+    );
+    if (error) {
+      console.error("getHeaderAccount broker lookup failed:", error.message);
+    }
+
+    return { label: broker?.business_name ?? "My Dashboard", href: "/broker/dashboard" };
+  } catch (err) {
+    console.error("getHeaderAccount threw:", err);
+    return null;
   }
-
-  const { data: broker } = await supabase
-    .from("brokers")
-    .select("business_name")
-    .eq("id", user.id)
-    .single<{ business_name: string }>();
-
-  return { label: broker?.business_name ?? "My Dashboard", href: "/broker/dashboard" };
 }
 
 export default async function RootLayout({

@@ -15,9 +15,14 @@ import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { updateDealAction, deleteDealAction, deleteDealsAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
+// Borderless-until-touched inputs — the point is to read like an editable
+// list, not a literal spreadsheet grid of boxes. A cell only "lights up"
+// on hover/focus so the row stays visually calm until you interact with it.
 const cellInputClass =
-  "w-full min-w-0 rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
-const cellSelectClass = cellInputClass + " appearance-none";
+  "w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none";
+const cellSelectClass = cellInputClass + " appearance-none cursor-pointer";
+const cellSubInputClass =
+  "mt-1 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none";
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
 const labelClass = "mb-1 block text-xs font-semibold text-zinc-400";
@@ -27,8 +32,9 @@ const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
 
-const th = "px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500 whitespace-nowrap";
-const td = "px-2.5 py-2 align-middle whitespace-nowrap";
+const COLUMN_COUNT = 20;
+const th = "px-2.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500 whitespace-nowrap";
+const td = "px-2.5 py-2 align-top whitespace-nowrap";
 
 interface RowDraft {
   year: string;
@@ -42,12 +48,14 @@ interface RowDraft {
   dealType: "Lease" | "Finance";
   onePay: boolean;
   payment: string;
+  paymentTaxRate: string;
   dueAtSigning: string;
   dueAtSigningTaxRate: string;
   term: string;
   milesPerYear: string;
   apr: string;
   msrp: string;
+  maskMsrp: boolean;
   sellingPrice: string;
   inStock: boolean;
   notes: string;
@@ -69,12 +77,14 @@ function deriveDraft(deal: Deal): RowDraft {
     dealType: deal.dealType,
     onePay: deal.onePay ?? false,
     payment: deal.onePay ? "" : String(deal.payment || ""),
+    paymentTaxRate: deal.paymentTaxRate != null ? String(deal.paymentTaxRate) : "",
     dueAtSigning: String(deal.dueAtSigning ?? ""),
     dueAtSigningTaxRate: deal.dueAtSigningTaxRate != null ? String(deal.dueAtSigningTaxRate) : "",
     term: String(deal.term ?? ""),
     milesPerYear: deal.milesPerYear != null ? String(deal.milesPerYear) : "",
     apr: deal.apr != null ? String(deal.apr) : "",
     msrp: String(deal.msrp ?? ""),
+    maskMsrp: deal.maskMsrp ?? false,
     sellingPrice: deal.sellingPrice != null ? String(deal.sellingPrice) : "",
     inStock: deal.inStock,
     notes: deal.notes ?? "",
@@ -143,8 +153,8 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-zinc-500">
-          Edit cells inline and hit save on a row, or select rows to bulk delete. Scroll right for
-          more fields, and expand a row (chevron) for the rest.
+          Click any field to edit it, then hit Save on that row. Scroll right for more columns, and
+          expand a row (chevron) for everything else.
         </p>
         <div className="flex items-center gap-2">
           {bulkError && <p className="text-xs text-red-400">{bulkError}</p>}
@@ -160,10 +170,10 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
-        <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] p-2">
+        <table className="w-full border-separate text-sm [border-spacing:0_4px]">
           <thead>
-            <tr className="border-b border-white/10 bg-white/[0.04]">
+            <tr>
               <th className={th}>
                 <input
                   type="checkbox"
@@ -183,7 +193,6 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
               <th className={th}>MSRP</th>
               <th className={th}>Payment</th>
               <th className={th}>Due at signing</th>
-              <th className={th}>Tax %</th>
               <th className={th}>Term</th>
               <th className={th}>Mi/yr</th>
               <th className={th}>1-pay</th>
@@ -227,6 +236,10 @@ function ListingRow({
   const [error, setError] = useState<string | null>(null);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
+  const rowBg = dirty ? "bg-amber-500/[0.07]" : "bg-white/[0.025]";
+  const firstCell = `${td} ${rowBg} rounded-l-xl`;
+  const cell = `${td} ${rowBg}`;
+  const lastCell = `${td} ${rowBg} rounded-r-xl`;
 
   function set<K extends keyof RowDraft>(key: K, value: RowDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -249,12 +262,14 @@ function ListingRow({
       fd.set("dealType", draft.dealType);
       if (draft.onePay) fd.set("onePay", "on");
       fd.set("payment", draft.payment);
+      if (draft.paymentTaxRate) fd.set("paymentTaxRate", draft.paymentTaxRate);
       fd.set("dueAtSigning", draft.dueAtSigning);
       if (draft.dueAtSigningTaxRate) fd.set("dueAtSigningTaxRate", draft.dueAtSigningTaxRate);
       fd.set("term", draft.term);
       if (draft.milesPerYear) fd.set("milesPerYear", draft.milesPerYear);
       if (draft.apr) fd.set("apr", draft.apr);
       fd.set("msrp", draft.msrp);
+      if (draft.maskMsrp) fd.set("maskMsrp", "on");
       if (draft.sellingPrice) fd.set("sellingPrice", draft.sellingPrice);
       if (draft.inStock) fd.set("inStock", "on");
       fd.set("notes", draft.notes);
@@ -298,20 +313,20 @@ function ListingRow({
 
   return (
     <>
-      <tr className={`border-b border-white/5 ${dirty ? "bg-amber-500/[0.04]" : ""}`}>
-        <td className={td}>
+      <tr>
+        <td className={firstCell}>
           <input
             type="checkbox"
             checked={selected}
             onChange={onToggleSelect}
-            className="rounded border-white/20 bg-white/5"
+            className="mt-1 rounded border-white/20 bg-white/5"
             aria-label={`Select ${draft.year} ${draft.make} ${draft.model}`}
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <img src={image} alt="" className="h-9 w-12 rounded-md object-cover" />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="number"
             value={draft.year}
@@ -319,7 +334,7 @@ function ListingRow({
             className={`${cellInputClass} w-16`}
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="text"
             value={draft.make}
@@ -327,7 +342,7 @@ function ListingRow({
             className={`${cellInputClass} w-24`}
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="text"
             value={draft.model}
@@ -335,7 +350,7 @@ function ListingRow({
             className={`${cellInputClass} w-28`}
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="text"
             value={draft.trim}
@@ -343,7 +358,7 @@ function ListingRow({
             className={`${cellInputClass} w-24`}
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <select
             value={draft.condition}
             onChange={(e) => set("condition", e.target.value)}
@@ -356,7 +371,7 @@ function ListingRow({
             ))}
           </select>
         </td>
-        <td className={td}>
+        <td className={cell}>
           <select
             value={draft.dealType}
             onChange={(e) => set("dealType", e.target.value as "Lease" | "Finance")}
@@ -366,15 +381,24 @@ function ListingRow({
             <option value="Finance">Finance</option>
           </select>
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="number"
             value={draft.msrp}
             onChange={(e) => set("msrp", e.target.value)}
             className={`${cellInputClass} w-24`}
           />
+          <label className="mt-1 flex cursor-pointer items-center gap-1 text-[10px] text-zinc-600">
+            <input
+              type="checkbox"
+              checked={draft.maskMsrp}
+              onChange={(e) => set("maskMsrp", e.target.checked)}
+              className="h-3 w-3 rounded border-white/20 bg-white/5"
+            />
+            Mask
+          </label>
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="number"
             disabled={draft.onePay}
@@ -382,26 +406,34 @@ function ListingRow({
             onChange={(e) => set("payment", e.target.value)}
             className={`${cellInputClass} w-24 disabled:opacity-40`}
           />
+          {!draft.onePay && (
+            <input
+              type="number"
+              step="0.01"
+              value={draft.paymentTaxRate}
+              onChange={(e) => set("paymentTaxRate", e.target.value)}
+              placeholder="tax % incl."
+              className={`${cellSubInputClass} w-24`}
+            />
+          )}
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="number"
             value={draft.dueAtSigning}
             onChange={(e) => set("dueAtSigning", e.target.value)}
             className={`${cellInputClass} w-24`}
           />
-        </td>
-        <td className={td}>
           <input
             type="number"
             step="0.01"
             value={draft.dueAtSigningTaxRate}
             onChange={(e) => set("dueAtSigningTaxRate", e.target.value)}
-            placeholder="—"
-            className={`${cellInputClass} w-16`}
+            placeholder="tax % assumed"
+            className={`${cellSubInputClass} w-24`}
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="number"
             value={draft.term}
@@ -409,7 +441,7 @@ function ListingRow({
             className={`${cellInputClass} w-16`}
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           {draft.dealType === "Lease" ? (
             <input
               type="number"
@@ -421,29 +453,29 @@ function ListingRow({
             <span className="text-xs text-zinc-600">—</span>
           )}
         </td>
-        <td className={td}>
+        <td className={cell}>
           {draft.dealType === "Lease" ? (
             <input
               type="checkbox"
               checked={draft.onePay}
               onChange={(e) => set("onePay", e.target.checked)}
-              className="rounded border-white/20 bg-white/5"
+              className="mt-1 rounded border-white/20 bg-white/5"
               aria-label="One-pay lease"
             />
           ) : (
             <span className="text-xs text-zinc-600">—</span>
           )}
         </td>
-        <td className={td}>
+        <td className={cell}>
           <input
             type="checkbox"
             checked={draft.inStock}
             onChange={(e) => set("inStock", e.target.checked)}
-            className="rounded border-white/20 bg-white/5"
+            className="mt-1 rounded border-white/20 bg-white/5"
             aria-label="In stock"
           />
         </td>
-        <td className={td}>
+        <td className={cell}>
           <button
             type="button"
             onClick={handleSave}
@@ -454,7 +486,7 @@ function ListingRow({
             Save
           </button>
         </td>
-        <td className={td}>
+        <td className={cell}>
           <Link
             href={`/deals/${deal.slug}`}
             target="_blank"
@@ -463,7 +495,7 @@ function ListingRow({
             See card <ExternalLink size={11} />
           </Link>
         </td>
-        <td className={td}>
+        <td className={cell}>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -473,7 +505,7 @@ function ListingRow({
             More
           </button>
         </td>
-        <td className={td}>
+        <td className={lastCell}>
           <button
             type="button"
             onClick={handleDelete}
@@ -487,16 +519,16 @@ function ListingRow({
       </tr>
 
       {error && (
-        <tr className="border-b border-white/5">
-          <td colSpan={20} className="px-2.5 py-2">
+        <tr>
+          <td colSpan={COLUMN_COUNT} className="px-2.5 py-1">
             <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p>
           </td>
         </tr>
       )}
 
       {expanded && (
-        <tr className="border-b border-white/5 bg-white/[0.02]">
-          <td colSpan={20} className="p-4 sm:p-5">
+        <tr>
+          <td colSpan={COLUMN_COUNT} className="rounded-xl bg-white/[0.03] p-4 sm:p-5">
             {/* Local <form> is not submitted directly — it just gives
                 IncentivesEditor's "Suggest with AI" button a form context to
                 read year/make/model/trim from, matching how it's used in the

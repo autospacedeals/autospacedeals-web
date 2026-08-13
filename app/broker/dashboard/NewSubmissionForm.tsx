@@ -35,7 +35,7 @@ const CATEGORIES = [
   {
     value: "link",
     label: "Link your inventory",
-    description: "Forum post, website, Google Sheet, or a file — then add the cars yourself",
+    description: "Forum post, website, Google Sheet, or a file — we'll pull the cars for you to review and confirm before they go live",
     icon: Link2,
   },
 ] as const;
@@ -346,6 +346,10 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             <div>
               <label className={labelClass}>MSRP</label>
               <input required type="number" name="msrp" placeholder="65000" className={inputClass} />
+              <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-zinc-500">
+                <input type="checkbox" name="maskMsrp" className="rounded border-white/20 bg-white/5" />
+                Mask last digits (e.g. $49,XXX)
+              </label>
             </div>
             <div>
               <label className={labelClass}>Selling price (optional)</label>
@@ -379,6 +383,15 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 placeholder={onePay ? "0 — see due at signing" : "799"}
                 className={inputClass}
               />
+              {!onePay && (
+                <input
+                  type="number"
+                  step="0.01"
+                  name="paymentTaxRate"
+                  placeholder="If tax is included, assumed tax % (optional)"
+                  className={`${inputClass} mt-1.5 text-xs`}
+                />
+              )}
             </div>
             <div>
               <label className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>

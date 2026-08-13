@@ -26,6 +26,11 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   const estimate = estimatePayment(deal, { dueAtSigning, incentivesTotal });
   const isDefault = dueAtSigning === deal.dueAtSigning && selected.size === 0;
 
+  // Slider range: 0 up to roughly double the advertised due-at-signing (with
+  // a sensible floor), rounded to a clean $500 increment so the thumb lands
+  // on tidy values.
+  const sliderMax = Math.max(5000, Math.ceil((deal.dueAtSigning * 2) / 500) * 500);
+
   function toggleIncentive(idx: number) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -62,17 +67,25 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
       </p>
 
       <div className="mt-4">
-        <label className="mb-1.5 block text-sm font-semibold text-zinc-300">
-          {deal.onePay ? "One-pay amount" : "Due at signing"}
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-semibold text-zinc-300">
+            {deal.onePay ? "One-pay amount" : "Due at signing"}
+          </label>
+          <span className="text-lg font-black text-white">{formatCurrency(dueAtSigning)}</span>
+        </div>
         <input
-          type="number"
+          type="range"
           min={0}
+          max={sliderMax}
           step={100}
-          value={dueAtSigningInput}
+          value={dueAtSigning}
           onChange={(e) => setDueAtSigningInput(e.target.value)}
-          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white focus:border-white/30 focus:outline-none sm:w-56"
+          className="mt-2 w-full accent-white"
         />
+        <div className="flex items-center justify-between text-[11px] text-zinc-600">
+          <span>$0</span>
+          <span>{formatCurrency(sliderMax)}</span>
+        </div>
         <p className="mt-1 text-xs text-zinc-600">
           Advertised as {formatCurrency(deal.dueAtSigning)}. Putting more down lowers your{" "}
           {deal.onePay ? "total" : "monthly payment"}; putting less down raises it.

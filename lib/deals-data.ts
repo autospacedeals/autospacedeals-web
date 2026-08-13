@@ -96,6 +96,16 @@ export interface Deal {
   // means no assumption was stated.
   dueAtSigningTaxRate?: number | null;
 
+  // Same idea as dueAtSigningTaxRate, but for the advertised monthly
+  // payment — set when a broker discloses that the payment shown already
+  // has an assumed tax rate baked in (rather than being pre-tax).
+  paymentTaxRate?: number | null;
+
+  // When true, the public MSRP display masks the last few digits (e.g.
+  // "$49,XXX") instead of showing the exact figure — a broker-controlled
+  // display preference, purely cosmetic.
+  maskMsrp?: boolean;
+
   // Set when the seller is a dealership salesperson (sellerType
   // "Salesperson") rather than an independent broker — the dealership
   // they work at, shown alongside their own name wherever the seller is

@@ -211,6 +211,15 @@ function DraftRow({
           <div>
             <label className={labelClass}>MSRP</label>
             <input required type="number" name="msrp" defaultValue={deal.msrp || ""} className={inputClass} />
+            <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-zinc-500">
+              <input
+                type="checkbox"
+                name="maskMsrp"
+                defaultChecked={deal.maskMsrp ?? false}
+                className="rounded border-white/20 bg-white/5"
+              />
+              Mask last digits (e.g. $49,XXX)
+            </label>
           </div>
           <div>
             <label className={labelClass}>Selling price (optional)</label>
@@ -244,6 +253,16 @@ function DraftRow({
               defaultValue={deal.payment || ""}
               className={inputClass}
             />
+            {!onePay && (
+              <input
+                type="number"
+                step="0.01"
+                name="paymentTaxRate"
+                defaultValue={deal.paymentTaxRate ?? ""}
+                placeholder="If tax is included, assumed tax % (optional)"
+                className={`${inputClass} mt-1.5 text-xs`}
+              />
+            )}
           </div>
           <div>
             <label className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>

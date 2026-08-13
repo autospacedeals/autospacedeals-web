@@ -12,6 +12,7 @@ import PaymentEstimator from "@/components/PaymentEstimator";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import {
   dealTitle,
+  displayMsrp,
   effectiveMonthly,
   formatCurrency,
   getSimilarDealsFrom,
@@ -146,7 +147,14 @@ export default async function DealDetailPage({
               <Stat
                 label={deal.onePay ? "One-pay lease total" : deal.dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
                 value={
-                  deal.onePay ? formatCurrency(deal.dueAtSigning) : `${formatCurrency(deal.payment)}/mo + tax`
+                  deal.onePay
+                    ? formatCurrency(deal.dueAtSigning)
+                    : `${formatCurrency(deal.payment)}/mo${deal.paymentTaxRate ? "" : " + tax"}`
+                }
+                note={
+                  !deal.onePay && deal.paymentTaxRate
+                    ? `Includes ~${deal.paymentTaxRate}% tax`
+                    : undefined
                 }
                 big
               />
@@ -161,13 +169,17 @@ export default async function DealDetailPage({
                 big
               />
               <Stat label="Term" value={`${deal.term} months`} big />
-              <Stat label="MSRP" value={formatCurrency(deal.msrp)} />
+              <Stat label="MSRP" value={displayMsrp(deal)} />
               {deal.sellingPrice != null && (
                 <Stat label="Selling price" value={formatCurrency(deal.sellingPrice)} />
               )}
               {discount > 0 && <Stat label="Discount off MSRP" value={`${discount.toFixed(1)}%`} />}
               {deal.milesPerYear ? (
-                <Stat label="Mileage allowance" value={`${deal.milesPerYear.toLocaleString()}/yr`} />
+                <Stat
+                  label="Mileage allowance"
+                  value={`${deal.milesPerYear.toLocaleString()}/yr`}
+                  note={`Contact ${deal.sellerName} for more/less mileage`}
+                />
               ) : (
                 <Stat label="Mileage allowance" value="N/A (finance)" />
               )}
@@ -222,14 +234,12 @@ export default async function DealDetailPage({
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5 text-sm leading-6 text-amber-200/90">
             <CircleAlert size={18} className="mt-0.5 shrink-0" />
             <p>
-              This deal is subject to availability and credit approval. Unless a broker fee is
-              specifically called out in the notes above,{" "}
-              <span className="font-semibold">
-                the due-at-signing amount shown does not include one
-              </span>{" "}
-              — and advertised payment/due-at-signing amounts may not include tax, title,
-              registration, and documentation fees either unless stated above. Always confirm
-              the full, out-the-door total directly with {deal.sellerName} before signing.
+              This deal is subject to availability and credit approval. The broker fee is
+              separate from the due-at-signing amount shown. Advertised payment amounts
+              usually do not include tax. Title, registration, and documentation fees are
+              included in the due-at-signing amount, but that total may change based on the
+              actual tax rate applied. Always confirm the full, out-the-door total directly
+              with {deal.sellerName} before signing.
             </p>
           </div>
 

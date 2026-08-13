@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MapPin, Gauge, ArrowRight, Store } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { formatCurrency, msrpDiscountPercent, relativeDatePosted } from "@/lib/deal-utils";
+import { displayMsrp, formatCurrency, msrpDiscountPercent, relativeDatePosted } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
 
 const BADGE_STYLES: Record<string, string> = {
@@ -96,7 +96,11 @@ export default function DealCard({ deal }: { deal: Deal }) {
           </p>
           <p className="text-3xl font-black">
             {formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment)}
-            {!deal.onePay && <span className="text-sm font-medium text-zinc-500">/mo + tax</span>}
+            {!deal.onePay && (
+              <span className="text-sm font-medium text-zinc-500">
+                /mo{deal.paymentTaxRate ? ` (incl. ~${deal.paymentTaxRate}% tax)` : " + tax"}
+              </span>
+            )}
           </p>
         </div>
         {discount > 0 && (
@@ -121,7 +125,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
           label="Mileage"
           value={deal.milesPerYear ? `${(deal.milesPerYear / 1000).toFixed(1)}k/yr` : "N/A"}
         />
-        <Stat label="MSRP" value={formatCurrency(deal.msrp)} />
+        <Stat label="MSRP" value={displayMsrp(deal)} />
       </div>
 
       <div className="mt-4 space-y-1.5 border-t border-white/10 pt-4 text-sm text-zinc-400">

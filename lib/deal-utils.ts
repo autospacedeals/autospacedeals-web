@@ -12,6 +12,26 @@ export function dealTitle(deal: Deal): string {
   return [deal.year, deal.make, deal.model, deal.trim].filter(Boolean).join(" ");
 }
 
+// Some brokers prefer not to publish the exact MSRP — masks the last few
+// digits with X's (e.g. "$49,XXX") while keeping the formatted $ and comma
+// styling intact, so it still reads naturally next to a real dollar amount.
+export function maskedCurrency(amount: number, maskDigits: number = 3): string {
+  const chars = formatCurrency(amount).split("");
+  let remaining = maskDigits;
+  for (let i = chars.length - 1; i >= 0 && remaining > 0; i--) {
+    if (/\d/.test(chars[i])) {
+      chars[i] = "X";
+      remaining--;
+    }
+  }
+  return chars.join("");
+}
+
+// Renders MSRP respecting a listing's mask_msrp setting.
+export function displayMsrp(deal: Deal): string {
+  return deal.maskMsrp ? maskedCurrency(deal.msrp) : formatCurrency(deal.msrp);
+}
+
 // Effective monthly cost = spreads due-at-signing across the term so deals
 // with different upfront amounts can be compared fairly.
 export function effectiveMonthly(deal: Deal): number {
