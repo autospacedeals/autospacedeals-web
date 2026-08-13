@@ -45,26 +45,36 @@ export async function generateMetadata({
   const deal = await getDealBySlugDb(slug);
   if (!deal) return { title: "Deal not found" };
 
-  const title = `${dealTitle(deal)} — ${formatCurrency(deal.payment)}/mo`;
-  const description = `${dealTitle(deal)} in ${deal.city}, ${deal.state}: ${formatCurrency(
-    deal.payment
-  )}/mo, ${formatCurrency(deal.dueAtSigning)} due at signing, ${deal.term} month ${deal.dealType.toLowerCase()} from ${deal.sellerName}.`;
+  // generateMetadata runs as its own server function, separate from the page
+  // component below — a throw here isn't caught by any try/catch inside
+  // DealDetailPage, so it crashes the whole request on its own. Guard every
+  // field access defensively rather than relying on the page body's fixes.
+  try {
+    const dealTypeLabel = (deal.dealType ?? "Lease").toLowerCase();
+    const title = `${dealTitle(deal)} — ${formatCurrency(deal.payment)}/mo`;
+    const description = `${dealTitle(deal)} in ${deal.city}, ${deal.state}: ${formatCurrency(
+      deal.payment
+    )}/mo, ${formatCurrency(deal.dueAtSigning)} due at signing, ${deal.term} month ${dealTypeLabel} from ${deal.sellerName}.`;
 
-  return {
-    title,
-    description,
-    openGraph: {
+    return {
       title,
       description,
-      images: deal.images.length > 0 ? [{ url: deal.images[0] }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: deal.images.length > 0 ? [deal.images[0]] : undefined,
-    },
-  };
+      openGraph: {
+        title,
+        description,
+        images: deal.images && deal.images.length > 0 ? [{ url: deal.images[0] }] : undefined,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: deal.images && deal.images.length > 0 ? [deal.images[0]] : undefined,
+      },
+    };
+  } catch (err) {
+    console.error("generateMetadata failed for", deal.id, err);
+    return { title: dealTitle(deal) || "Deal details" };
+  }
 }
 
 export default async function DealDetailPage({

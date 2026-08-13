@@ -81,7 +81,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     fuel: (row.fuel as Deal["fuel"]) ?? null,
     exterior: row.exterior ?? "",
     interior: row.interior ?? "",
-    dealType: row.deal_type as Deal["dealType"],
+    dealType: (row.deal_type as Deal["dealType"]) ?? "Lease",
     msrp: row.msrp ?? 0,
     sellingPrice: row.selling_price,
     // These are typed as required numbers, but nothing at the DB level
