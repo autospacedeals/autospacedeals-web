@@ -50,7 +50,7 @@ export default async function BrokerDashboardPage() {
     "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
-    "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label";
+    "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee";
 
   const { data: myDealRows } = await supabase
     .from("deals")

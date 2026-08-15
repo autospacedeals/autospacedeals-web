@@ -423,7 +423,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             </div>
           </div>
 
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {dealType === "Lease" && (
               <div>
                 <label className={labelClass}>Miles per year</label>
@@ -436,6 +436,13 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 <input type="number" step="0.01" name="apr" placeholder="4.9" className={inputClass} />
               </div>
             )}
+            <div>
+              <label className={labelClass}>Broker fee (optional)</label>
+              <input type="number" step="0.01" name="brokerFee" placeholder="595" className={inputClass} />
+              <p className="mt-1.5 text-xs text-zinc-500">
+                Shown to shoppers as its own line item, separate from due at signing.
+              </p>
+            </div>
           </div>
         </div>
 

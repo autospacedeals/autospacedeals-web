@@ -101,6 +101,12 @@ export interface Deal {
   // has an assumed tax rate baked in (rather than being pre-tax).
   paymentTaxRate?: number | null;
 
+  // A broker/doc/service fee, disclosed as its own dollar amount and shown
+  // as a separate line item — replaces the old vague "may not include
+  // broker fee" disclaimer on due-at-signing. Null/undefined means not
+  // disclosed.
+  brokerFee?: number | null;
+
   // When true, the public MSRP display masks digits (e.g. "$49,XXX")
   // instead of showing the exact figure — set automatically when a broker
   // types x's into the MSRP field.

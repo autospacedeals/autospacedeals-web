@@ -191,14 +191,18 @@ export default async function DealDetailPage({
               <Stat
                 label="Due at signing"
                 value={formatCurrency(deal.dueAtSigning)}
-                note={
-                  deal.dueAtSigningTaxRate
-                    ? `Assumes ${deal.dueAtSigningTaxRate}% tax · may not include broker fee`
-                    : "May not include broker fee — see notes below"
-                }
+                note={deal.dueAtSigningTaxRate ? `Assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
                 big
               />
               <Stat label="Term" value={`${deal.term} months`} big />
+              {deal.brokerFee != null && (
+                <Stat
+                  label="Broker fee"
+                  value={formatCurrency(deal.brokerFee)}
+                  note="Separate from due at signing"
+                  big
+                />
+              )}
               <Stat label="MSRP" value={displayMsrp(deal)} />
               {deal.sellingPrice != null && (
                 <Stat label="Selling price" value={formatCurrency(deal.sellingPrice)} />
@@ -264,12 +268,14 @@ export default async function DealDetailPage({
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5 text-sm leading-6 text-amber-200/90">
             <CircleAlert size={18} className="mt-0.5 shrink-0" />
             <p>
-              This deal is subject to availability and credit approval. The broker fee is
-              separate from the due-at-signing amount shown. Advertised payment amounts
-              usually do not include tax. Title, registration, and documentation fees are
-              included in the due-at-signing amount, but that total may change based on the
-              actual tax rate applied. Always confirm the full, out-the-door total directly
-              with {deal.sellerName} before signing.
+              This deal is subject to availability and credit approval.{" "}
+              {deal.brokerFee != null
+                ? "The broker fee shown above is separate from the due-at-signing amount."
+                : "A broker fee may apply and isn't included in the due-at-signing amount shown."}{" "}
+              Advertised payment amounts usually do not include tax. Title, registration, and
+              documentation fees are included in the due-at-signing amount, but that total may
+              change based on the actual tax rate applied. Always confirm the full, out-the-door
+              total directly with {deal.sellerName} before signing.
             </p>
           </div>
 

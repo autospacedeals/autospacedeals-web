@@ -110,6 +110,7 @@ interface RowDraft {
   paymentTaxRate: string;
   dueAtSigning: string;
   dueAtSigningTaxRate: string;
+  brokerFee: string;
   term: string;
   milesPerYear: string;
   apr: string;
@@ -138,6 +139,7 @@ function deriveDraft(deal: Deal): RowDraft {
     paymentTaxRate: deal.paymentTaxRate != null ? String(deal.paymentTaxRate) : "",
     dueAtSigning: String(deal.dueAtSigning ?? ""),
     dueAtSigningTaxRate: deal.dueAtSigningTaxRate != null ? String(deal.dueAtSigningTaxRate) : "",
+    brokerFee: deal.brokerFee != null ? String(deal.brokerFee) : "",
     term: String(deal.term ?? ""),
     milesPerYear: deal.milesPerYear != null ? String(deal.milesPerYear) : "",
     apr: deal.apr != null ? String(deal.apr) : "",
@@ -394,6 +396,7 @@ function ListingRow({
       if (draft.paymentTaxRate) fd.set("paymentTaxRate", draft.paymentTaxRate);
       fd.set("dueAtSigning", draft.dueAtSigning);
       if (draft.dueAtSigningTaxRate) fd.set("dueAtSigningTaxRate", draft.dueAtSigningTaxRate);
+      if (draft.brokerFee) fd.set("brokerFee", draft.brokerFee);
       fd.set("term", draft.term);
       if (draft.milesPerYear) fd.set("milesPerYear", draft.milesPerYear);
       if (draft.apr) fd.set("apr", draft.apr);
@@ -549,6 +552,14 @@ function ListingRow({
             value={draft.dueAtSigningTaxRate}
             onChange={(e) => set("dueAtSigningTaxRate", e.target.value)}
             placeholder="tax % assumed"
+            className={cellSubInputClass}
+          />
+          <input
+            type="number"
+            step="0.01"
+            value={draft.brokerFee}
+            onChange={(e) => set("brokerFee", e.target.value)}
+            placeholder="broker fee $"
             className={cellSubInputClass}
           />
         </td>

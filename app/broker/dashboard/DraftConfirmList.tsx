@@ -284,8 +284,8 @@ function DraftRow({
           </div>
         </div>
 
-        {dealType === "Lease" && (
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {dealType === "Lease" && (
             <div>
               <label className={labelClass}>Miles per year</label>
               <input
@@ -296,16 +296,28 @@ function DraftRow({
                 className={inputClass}
               />
             </div>
-          </div>
-        )}
-        {dealType === "Finance" && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          )}
+          {dealType === "Finance" && (
             <div>
               <label className={labelClass}>APR (%, optional)</label>
               <input type="number" step="0.01" name="apr" defaultValue={deal.apr ?? ""} className={inputClass} />
             </div>
+          )}
+          <div>
+            <label className={labelClass}>Broker fee (optional)</label>
+            <input
+              type="number"
+              step="0.01"
+              name="brokerFee"
+              defaultValue={deal.brokerFee ?? ""}
+              placeholder="595"
+              className={inputClass}
+            />
+            <p className="mt-1.5 text-xs text-zinc-500">
+              Shown to shoppers as its own line item, separate from due at signing.
+            </p>
           </div>
-        )}
+        </div>
 
         <IncentivesEditor value={incentives} onChange={setIncentives} />
 

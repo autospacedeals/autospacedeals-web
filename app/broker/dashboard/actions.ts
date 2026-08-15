@@ -472,6 +472,8 @@ export async function createManualDealAction(
   const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const paymentTaxRateRaw = formData.get("paymentTaxRate");
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
+  const brokerFeeRaw = formData.get("brokerFee");
+  const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -541,6 +543,7 @@ export async function createManualDealAction(
     payment_tax_rate: paymentTaxRate,
     mask_msrp: maskMsrp,
     msrp_masked_label: msrpMaskedLabel,
+    broker_fee: brokerFee,
     term,
     miles_per_year: milesPerYear,
     apr,
@@ -599,6 +602,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const paymentTaxRateRaw = formData.get("paymentTaxRate");
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
+  const brokerFeeRaw = formData.get("brokerFee");
+  const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -667,6 +672,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       payment_tax_rate: paymentTaxRate,
       mask_msrp: maskMsrp,
       msrp_masked_label: msrpMaskedLabel,
+      broker_fee: brokerFee,
       term,
       miles_per_year: milesPerYear,
       apr,
@@ -812,6 +818,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const paymentTaxRateRaw = formData.get("paymentTaxRate");
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
+  const brokerFeeRaw = formData.get("brokerFee");
+  const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -879,6 +887,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       payment_tax_rate: paymentTaxRate,
       mask_msrp: maskMsrp,
       msrp_masked_label: msrpMaskedLabel,
+      broker_fee: brokerFee,
       term,
       miles_per_year: milesPerYear,
       apr,

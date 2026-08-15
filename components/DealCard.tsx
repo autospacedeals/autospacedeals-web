@@ -114,11 +114,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
         <Stat
           label="Due at signing"
           value={formatCurrency(deal.dueAtSigning)}
-          note={
-            deal.dueAtSigningTaxRate
-              ? `assumes ${deal.dueAtSigningTaxRate}% tax · may excl. broker fee`
-              : "may exclude broker fee"
-          }
+          note={deal.dueAtSigningTaxRate ? `assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
         />
         <Stat label="Term" value={`${deal.term} mo`} />
         <Stat
@@ -126,6 +122,9 @@ export default function DealCard({ deal }: { deal: Deal }) {
           value={deal.milesPerYear ? `${(deal.milesPerYear / 1000).toFixed(1)}k/yr` : "N/A"}
         />
         <Stat label="MSRP" value={displayMsrp(deal)} />
+        {deal.brokerFee != null && (
+          <Stat label="Broker fee" value={formatCurrency(deal.brokerFee)} note="separate from due at signing" />
+        )}
       </div>
 
       <div className="mt-4 space-y-1.5 border-t border-white/10 pt-4 text-sm text-zinc-400">

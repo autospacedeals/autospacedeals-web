@@ -68,6 +68,7 @@ export interface DealRow {
   payment_tax_rate: number | null;
   mask_msrp: boolean;
   msrp_masked_label: string | null;
+  broker_fee: number | null;
 }
 
 export function mapRowToDeal(row: DealRow): Deal {
@@ -119,6 +120,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     paymentTaxRate: row.payment_tax_rate ?? null,
     maskMsrp: row.mask_msrp ?? false,
     msrpMaskedLabel: row.msrp_masked_label ?? null,
+    brokerFee: row.broker_fee ?? null,
   };
 }
 
@@ -128,7 +130,7 @@ const DEAL_COLUMNS =
   "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
   "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
   "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
-  "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label";
+  "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee";
 
 // Maps each row independently so one malformed row (bad test data, a
 // future column-shape change, etc.) can't take down an entire listing page
