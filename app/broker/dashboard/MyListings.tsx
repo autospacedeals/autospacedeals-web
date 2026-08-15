@@ -27,10 +27,10 @@ import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 const noSpinner =
   "[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 const cellInputClass =
-  `block w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
+  `block w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
 const cellSelectClass = cellInputClass + " appearance-none cursor-pointer";
 const cellSubInputClass =
-  `mt-1 block w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
+  `mt-0.5 block w-full min-w-0 rounded border border-transparent bg-transparent px-1 py-0.5 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
 const inputClass =
   `w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none ${noSpinner}`;
 const labelClass = "mb-1 block text-xs font-semibold text-zinc-400";
@@ -92,8 +92,8 @@ const UTILITY_WIDTHS = {
 };
 
 const COLUMN_COUNT = 7 + COLUMNS.length; // utility columns + resizable columns
-const th = "relative select-none px-2.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500";
-const td = "px-2.5 py-2 align-top overflow-hidden";
+const th = "relative select-none px-2 py-1.5 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500";
+const td = "px-2 py-1.5 align-top overflow-hidden";
 
 interface RowDraft {
   year: string;
@@ -291,8 +291,8 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] p-2">
-        <table className="table-fixed border-separate text-sm [border-spacing:0_4px]">
+      <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02] p-1">
+        <table className="table-fixed border-separate text-sm [border-spacing:0_2px]">
           <colgroup>
             <col style={{ width: UTILITY_WIDTHS.select }} />
             {COLUMNS.map((c) => (
@@ -368,9 +368,9 @@ function ListingRow({
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const rowBg = dirty ? "bg-amber-500/[0.07]" : "bg-white/[0.025]";
-  const firstCell = `${td} ${rowBg} rounded-l-xl`;
+  const firstCell = `${td} ${rowBg} rounded-l-lg`;
   const cell = `${td} ${rowBg}`;
-  const lastCell = `${td} ${rowBg} rounded-r-xl`;
+  const lastCell = `${td} ${rowBg} rounded-r-lg`;
 
   function set<K extends keyof RowDraft>(key: K, value: RowDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
