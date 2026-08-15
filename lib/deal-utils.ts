@@ -34,9 +34,67 @@ export function maskedCurrency(amount: number, maskDigits: number = 3): string {
   return chars.join("");
 }
 
-// Renders MSRP respecting a listing's mask_msrp setting.
+// Renders MSRP respecting a listing's mask_msrp setting. Prefers the
+// broker's literal masked text (e.g. "$54,XXX") when present; falls back
+// to auto-masking the last 3 digits of the real number for older masked
+// listings saved before msrpMaskedLabel existed.
 export function displayMsrp(deal: Deal): string {
+  if (deal.maskMsrp && deal.msrpMaskedLabel) return deal.msrpMaskedLabel;
   return deal.maskMsrp ? maskedCurrency(deal.msrp) : formatCurrency(deal.msrp);
+}
+
+// Formats a leading-digits + trailing-X's combo into "$54,XXX" style,
+// matching formatCurrency's comma grouping so a masked MSRP lines up
+// visually with a real one.
+function formatMaskedDigits(leadingDigits: string, xCount: number): string {
+  const full = leadingDigits + "X".repeat(xCount);
+  let grouped = "";
+  let count = 0;
+  for (let i = full.length - 1; i >= 0; i--) {
+    grouped = full[i] + grouped;
+    count++;
+    if (count % 3 === 0 && i !== 0) grouped = "," + grouped;
+  }
+  return `$${grouped}`;
+}
+
+// Parses whatever a broker types into the MSRP field. Plain digits work
+// as before. Typing any x/X switches to "masked" mode: the exact number
+// is never computed or stored, only what was actually typed (e.g.
+// "54,xxx" -> a 54000 estimate for internal sorting/discount math, and
+// the literal label "$54,XXX" for display) — so there's no real MSRP
+// anywhere in the page's data for a sniper to read from devtools, unlike
+// the old approach of always storing the true number and masking only
+// at render time.
+export function parseMsrpInput(raw: string): {
+  msrp: number;
+  maskMsrp: boolean;
+  msrpMaskedLabel: string | null;
+} {
+  const trimmed = (raw ?? "").trim();
+  if (!/x/i.test(trimmed)) {
+    const num = Number(trimmed.replace(/[^0-9.]/g, ""));
+    return { msrp: Number.isFinite(num) ? num : 0, maskMsrp: false, msrpMaskedLabel: null };
+  }
+  const digitsAndX = trimmed.replace(/[^0-9xX]/g, "");
+  const leadingDigits = digitsAndX.match(/^\d*/)?.[0] ?? "";
+  const xCount = digitsAndX.length - leadingDigits.length;
+  const estimate = Number(leadingDigits + "0".repeat(xCount)) || 0;
+  return {
+    msrp: estimate,
+    maskMsrp: true,
+    msrpMaskedLabel: formatMaskedDigits(leadingDigits, xCount),
+  };
+}
+
+// What to pre-fill the MSRP input with when a broker reopens a listing
+// to edit it — masked listings show the masked text back (so saving
+// without touching MSRP doesn't silently reveal or drop the mask),
+// unmasked listings show the real number.
+export function msrpEditValue(deal: Deal): string {
+  if (!deal.maskMsrp) return deal.msrp ? String(deal.msrp) : "";
+  const label = deal.msrpMaskedLabel ?? maskedCurrency(deal.msrp);
+  return label.replace(/^\$/, "");
 }
 
 // Effective monthly cost = spreads due-at-signing across the term so deals

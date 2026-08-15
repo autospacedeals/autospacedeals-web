@@ -101,10 +101,16 @@ export interface Deal {
   // has an assumed tax rate baked in (rather than being pre-tax).
   paymentTaxRate?: number | null;
 
-  // When true, the public MSRP display masks the last few digits (e.g.
-  // "$49,XXX") instead of showing the exact figure — a broker-controlled
-  // display preference, purely cosmetic.
+  // When true, the public MSRP display masks digits (e.g. "$49,XXX")
+  // instead of showing the exact figure — set automatically when a broker
+  // types x's into the MSRP field.
   maskMsrp?: boolean;
+
+  // The literal masked MSRP text a broker typed (e.g. "$54,XXX"), used
+  // verbatim for display when maskMsrp is true. Null for unmasked
+  // listings, or for masked listings from before this field existed
+  // (those fall back to auto-masking the last 3 digits of `msrp`).
+  msrpMaskedLabel?: string | null;
 
   // Set when the seller is a dealership salesperson (sellerType
   // "Salesperson") rather than an independent broker — the dealership

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CheckSquare, Square, Pencil, X } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { dealTitle, formatCurrency } from "@/lib/deal-utils";
+import { dealTitle, formatCurrency, msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { confirmDraftsAction, updateDraftDealAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
@@ -210,16 +210,18 @@ function DraftRow({
           </div>
           <div>
             <label className={labelClass}>MSRP</label>
-            <input required type="number" name="msrp" defaultValue={deal.msrp || ""} className={inputClass} />
-            <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-zinc-500">
-              <input
-                type="checkbox"
-                name="maskMsrp"
-                defaultChecked={deal.maskMsrp ?? false}
-                className="rounded border-white/20 bg-white/5"
-              />
-              Mask last digits (e.g. $49,XXX)
-            </label>
+            <input
+              required
+              type="text"
+              inputMode="numeric"
+              name="msrp"
+              defaultValue={msrpEditValue(deal)}
+              className={inputClass}
+            />
+            <p className="mt-1.5 text-xs text-zinc-500">
+              Type x&apos;s for any digits to hide from shoppers (e.g. 54,xxx) — the exact number
+              won&apos;t be saved.
+            </p>
           </div>
           <div>
             <label className={labelClass}>Selling price (optional)</label>

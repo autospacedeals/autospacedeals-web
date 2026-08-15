@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/deal-utils";
+import { slugify, parseMsrpInput } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
 import { parseInventoryBuffer, parseInventoryCsv, type ParsedDeal } from "@/lib/parse-inventory";
 import {
@@ -472,13 +472,12 @@ export async function createManualDealAction(
   const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const paymentTaxRateRaw = formData.get("paymentTaxRate");
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
-  const maskMsrp = formData.get("maskMsrp") === "on";
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
   const aprRaw = formData.get("apr");
   const apr = aprRaw ? Number(aprRaw) : null;
-  const msrp = Number(formData.get("msrp"));
+  const { msrp, maskMsrp, msrpMaskedLabel } = parseMsrpInput(String(formData.get("msrp") || ""));
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const notes = String(formData.get("notes") || "").trim();
@@ -541,6 +540,7 @@ export async function createManualDealAction(
     due_at_signing_tax_rate: dueAtSigningTaxRate,
     payment_tax_rate: paymentTaxRate,
     mask_msrp: maskMsrp,
+    msrp_masked_label: msrpMaskedLabel,
     term,
     miles_per_year: milesPerYear,
     apr,
@@ -599,13 +599,12 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const paymentTaxRateRaw = formData.get("paymentTaxRate");
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
-  const maskMsrp = formData.get("maskMsrp") === "on";
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
   const aprRaw = formData.get("apr");
   const apr = aprRaw ? Number(aprRaw) : null;
-  const msrp = Number(formData.get("msrp"));
+  const { msrp, maskMsrp, msrpMaskedLabel } = parseMsrpInput(String(formData.get("msrp") || ""));
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const inStock = formData.get("inStock") === "on";
@@ -667,6 +666,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       due_at_signing_tax_rate: dueAtSigningTaxRate,
       payment_tax_rate: paymentTaxRate,
       mask_msrp: maskMsrp,
+      msrp_masked_label: msrpMaskedLabel,
       term,
       miles_per_year: milesPerYear,
       apr,
@@ -812,13 +812,12 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const dueAtSigningTaxRate = dueAtSigningTaxRateRaw ? Number(dueAtSigningTaxRateRaw) : null;
   const paymentTaxRateRaw = formData.get("paymentTaxRate");
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
-  const maskMsrp = formData.get("maskMsrp") === "on";
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
   const aprRaw = formData.get("apr");
   const apr = aprRaw ? Number(aprRaw) : null;
-  const msrp = Number(formData.get("msrp"));
+  const { msrp, maskMsrp, msrpMaskedLabel } = parseMsrpInput(String(formData.get("msrp") || ""));
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
   const notes = String(formData.get("notes") || "").trim();
@@ -879,6 +878,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       due_at_signing_tax_rate: dueAtSigningTaxRate,
       payment_tax_rate: paymentTaxRate,
       mask_msrp: maskMsrp,
+      msrp_masked_label: msrpMaskedLabel,
       term,
       miles_per_year: milesPerYear,
       apr,

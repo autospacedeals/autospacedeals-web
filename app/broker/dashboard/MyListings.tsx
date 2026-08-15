@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
+import { msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { updateDealAction, deleteDealAction, deleteDealsAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
@@ -113,7 +114,6 @@ interface RowDraft {
   milesPerYear: string;
   apr: string;
   msrp: string;
-  maskMsrp: boolean;
   sellingPrice: string;
   inStock: boolean;
   notes: string;
@@ -141,8 +141,7 @@ function deriveDraft(deal: Deal): RowDraft {
     term: String(deal.term ?? ""),
     milesPerYear: deal.milesPerYear != null ? String(deal.milesPerYear) : "",
     apr: deal.apr != null ? String(deal.apr) : "",
-    msrp: String(deal.msrp ?? ""),
-    maskMsrp: deal.maskMsrp ?? false,
+    msrp: msrpEditValue(deal),
     sellingPrice: deal.sellingPrice != null ? String(deal.sellingPrice) : "",
     inStock: deal.inStock,
     notes: deal.notes ?? "",
@@ -399,7 +398,6 @@ function ListingRow({
       if (draft.milesPerYear) fd.set("milesPerYear", draft.milesPerYear);
       if (draft.apr) fd.set("apr", draft.apr);
       fd.set("msrp", draft.msrp);
-      if (draft.maskMsrp) fd.set("maskMsrp", "on");
       if (draft.sellingPrice) fd.set("sellingPrice", draft.sellingPrice);
       if (draft.inStock) fd.set("inStock", "on");
       fd.set("notes", draft.notes);
@@ -508,20 +506,16 @@ function ListingRow({
         </td>
         <td className={cell}>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={draft.msrp}
             onChange={(e) => set("msrp", e.target.value)}
+            placeholder="65000 or 65,xxx"
             className={cellInputClass}
           />
-          <label className="mt-1 flex cursor-pointer items-center gap-1 text-[10px] text-zinc-600">
-            <input
-              type="checkbox"
-              checked={draft.maskMsrp}
-              onChange={(e) => set("maskMsrp", e.target.checked)}
-              className="h-3 w-3 shrink-0 rounded border-white/20 bg-white/5"
-            />
-            <span className="truncate">Mask</span>
-          </label>
+          <p className="mt-1 truncate text-[10px] text-zinc-600" title="Type x's to hide digits, e.g. 65,xxx">
+            x&apos;s = hidden
+          </p>
         </td>
         <td className={cell}>
           <input

@@ -345,11 +345,18 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             </div>
             <div>
               <label className={labelClass}>MSRP</label>
-              <input required type="number" name="msrp" placeholder="65000" className={inputClass} />
-              <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-zinc-500">
-                <input type="checkbox" name="maskMsrp" className="rounded border-white/20 bg-white/5" />
-                Mask last digits (e.g. $49,XXX)
-              </label>
+              <input
+                required
+                type="text"
+                inputMode="numeric"
+                name="msrp"
+                placeholder="65000, or 65,xxx to hide part of it"
+                className={inputClass}
+              />
+              <p className="mt-1.5 text-xs text-zinc-500">
+                Type x&apos;s for any digits to hide from shoppers (e.g. 54,xxx) — the exact number
+                won&apos;t be saved.
+              </p>
             </div>
             <div>
               <label className={labelClass}>Selling price (optional)</label>
