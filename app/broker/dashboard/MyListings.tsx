@@ -53,6 +53,7 @@ type ColKey =
   | "msrp"
   | "payment"
   | "dueAtSigning"
+  | "brokerFee"
   | "term"
   | "milesPerYear";
 
@@ -66,6 +67,7 @@ const COLUMNS: { key: ColKey; label: string; defaultWidth: number }[] = [
   { key: "msrp", label: "MSRP", defaultWidth: 120 },
   { key: "payment", label: "Payment", defaultWidth: 130 },
   { key: "dueAtSigning", label: "Due at signing", defaultWidth: 140 },
+  { key: "brokerFee", label: "Broker fee", defaultWidth: 110 },
   { key: "term", label: "Term", defaultWidth: 80 },
   { key: "milesPerYear", label: "Mi/yr", defaultWidth: 100 },
 ];
@@ -554,13 +556,15 @@ function ListingRow({
             placeholder="tax % assumed"
             className={cellSubInputClass}
           />
+        </td>
+        <td className={cell}>
           <input
             type="number"
             step="0.01"
             value={draft.brokerFee}
             onChange={(e) => set("brokerFee", e.target.value)}
-            placeholder="broker fee $"
-            className={cellSubInputClass}
+            placeholder="595"
+            className={cellInputClass}
           />
         </td>
         <td className={cell}>
