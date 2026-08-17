@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Car, Menu, X, UserCircle2 } from "lucide-react";
+import { Car, Menu, X, UserCircle2, LogOut } from "lucide-react";
+import { signOutAction } from "@/app/broker/actions";
 
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals" },
@@ -63,12 +64,23 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
               Broker Login
             </Link>
           )}
-          <Link
-            href="/broker/signup"
-            className="hidden rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 sm:inline-block"
-          >
-            Sign up
-          </Link>
+          {account ? (
+            <form action={signOutAction} className="hidden sm:block">
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-white/10 hover:text-white"
+              >
+                <LogOut size={15} /> Sign out
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/broker/signup"
+              className="hidden rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 sm:inline-block"
+            >
+              Sign up
+            </Link>
+          )}
 
           <button
             type="button"
@@ -112,13 +124,25 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
                 Broker Login
               </Link>
             )}
-            <Link
-              href="/broker/signup"
-              onClick={() => setOpen(false)}
-              className="mt-2 rounded-lg bg-white px-3 py-3 text-center font-semibold text-zinc-950"
-            >
-              Sign up
-            </Link>
+            {account ? (
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  onClick={() => setOpen(false)}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-3 text-center font-semibold text-zinc-300"
+                >
+                  <LogOut size={15} /> Sign out
+                </button>
+              </form>
+            ) : (
+              <Link
+                href="/broker/signup"
+                onClick={() => setOpen(false)}
+                className="mt-2 rounded-lg bg-white px-3 py-3 text-center font-semibold text-zinc-950"
+              >
+                Sign up
+              </Link>
+            )}
           </nav>
         </div>
       )}
