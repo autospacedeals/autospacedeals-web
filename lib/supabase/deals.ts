@@ -59,7 +59,7 @@ export interface DealRow {
   source_url: string | null;
   sample: boolean;
   one_pay: boolean;
-  status: "draft" | "published";
+  status: "draft" | "published" | "removed";
   submission_id: string | null;
   condition: string | null;
   incentives: { name: string; amount: number }[] | null;
@@ -69,6 +69,7 @@ export interface DealRow {
   mask_msrp: boolean;
   msrp_masked_label: string | null;
   broker_fee: number | null;
+  removed_at: string | null;
 }
 
 export function mapRowToDeal(row: DealRow): Deal {
@@ -121,6 +122,8 @@ export function mapRowToDeal(row: DealRow): Deal {
     maskMsrp: row.mask_msrp ?? false,
     msrpMaskedLabel: row.msrp_masked_label ?? null,
     brokerFee: row.broker_fee ?? null,
+    status: row.status,
+    removedAt: row.removed_at ?? null,
   };
 }
 
@@ -130,7 +133,7 @@ const DEAL_COLUMNS =
   "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
   "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
   "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
-  "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee";
+  "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at";
 
 // Maps each row independently so one malformed row (bad test data, a
 // future column-shape change, etc.) can't take down an entire listing page

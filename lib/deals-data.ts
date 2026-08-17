@@ -118,6 +118,13 @@ export interface Deal {
   // (those fall back to auto-masking the last 3 digits of `msrp`).
   msrpMaskedLabel?: string | null;
 
+  // Publishing lifecycle: "published" (live), "draft" (staged, awaiting
+  // the broker's confirmation), or "removed" (soft-deleted — kept around,
+  // with removedAt set, so the broker can see when it came down and
+  // restore it if needed, instead of the row just disappearing).
+  status?: "draft" | "published" | "removed";
+  removedAt?: string | null;
+
   // Set when the seller is a dealership salesperson (sellerType
   // "Salesperson") rather than an independent broker — the dealership
   // they work at, shown alongside their own name wherever the seller is

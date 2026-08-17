@@ -742,6 +742,10 @@ export async function deleteSubmissionAction(formData: FormData): Promise<{ erro
   return { error: null };
 }
 
+// Soft-delete: marks the listing 'removed' and stamps removed_at instead of
+// deleting the row outright, so it shows up in the broker's "Removed
+// listings" history (with when it went live and when it came down) and can
+// be restored if it was taken down by mistake.
 export async function deleteDealAction(formData: FormData): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
@@ -752,7 +756,11 @@ export async function deleteDealAction(formData: FormData): Promise<{ error: str
   const id = String(formData.get("id") || "");
   if (!id) return { error: "Missing deal id." };
 
-  const { error } = await supabase.from("deals").delete().eq("id", id).eq("broker_id", user.id);
+  const { error } = await supabase
+    .from("deals")
+    .update({ status: "removed", removed_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("broker_id", user.id);
   if (error) return { error: error.message };
 
   revalidatePath("/broker/dashboard");
@@ -774,9 +782,9 @@ export async function deleteDealsAction(ids: string[]): Promise<{ error: string 
   const cleanIds = ids.filter(Boolean);
   if (cleanIds.length === 0) return { error: "No listings selected.", deletedCount: 0 };
 
-  const { error, data: deletedRows } = await supabase
+  const { error, data: removedRows } = await supabase
     .from("deals")
-    .delete()
+    .update({ status: "removed", removed_at: new Date().toISOString() })
     .in("id", cleanIds)
     .eq("broker_id", user.id)
     .select("id");
@@ -784,7 +792,33 @@ export async function deleteDealsAction(ids: string[]): Promise<{ error: string 
 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
-  return { error: null, deletedCount: deletedRows?.length ?? 0 };
+  return { error: null, deletedCount: removedRows?.length ?? 0 };
+}
+
+// Un-does a removal — brings a listing back to "published" and clears
+// removed_at. Scoped to the caller's own rows and only fires on rows that
+// are actually currently removed, so it can't be used to resurrect
+// something else or double-publish a draft.
+export async function restoreDealAction(id: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  if (!id) return { error: "Missing deal id." };
+
+  const { error } = await supabase
+    .from("deals")
+    .update({ status: "published", removed_at: null })
+    .eq("id", id)
+    .eq("broker_id", user.id)
+    .eq("status", "removed");
+  if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  revalidatePath("/");
+  return { error: null };
 }
 
 // Broker fills in or fixes a draft's details before confirming it — e.g.

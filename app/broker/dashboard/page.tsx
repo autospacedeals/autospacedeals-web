@@ -7,6 +7,7 @@ import { signOutAction } from "../actions";
 import NewSubmissionForm from "./NewSubmissionForm";
 import DraftConfirmList from "./DraftConfirmList";
 import MyListings from "./MyListings";
+import RemovedListings from "./RemovedListings";
 import AboutEditor from "./AboutEditor";
 
 // Always fetch fresh so the broker's own edits (price changes, drafts
@@ -50,7 +51,7 @@ export default async function BrokerDashboardPage() {
     "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
-    "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee";
+    "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at";
 
   const { data: myDealRows } = await supabase
     .from("deals")
@@ -61,8 +62,12 @@ export default async function BrokerDashboardPage() {
 
   const draftRows = (myDealRows ?? []).filter((r) => r.status === "draft");
   const publishedRows = (myDealRows ?? []).filter((r) => r.status === "published");
+  const removedRows = (myDealRows ?? []).filter((r) => r.status === "removed");
   const pendingDrafts = draftRows.map(mapRowToDeal);
   const publishedListings = publishedRows.map(mapRowToDeal);
+  const removedListings = removedRows
+    .map(mapRowToDeal)
+    .sort((a, b) => (a.removedAt && b.removedAt ? (a.removedAt < b.removedAt ? 1 : -1) : 0));
 
   return (
     <main className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
@@ -102,6 +107,8 @@ export default async function BrokerDashboardPage() {
         <h2 className="mb-4 text-lg font-bold">Your live listings</h2>
         <MyListings deals={publishedListings} />
       </div>
+
+      <RemovedListings deals={removedListings} />
 
       <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
         <h2 className="text-lg font-bold">Add inventory</h2>

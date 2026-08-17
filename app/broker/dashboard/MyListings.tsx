@@ -250,7 +250,9 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
     if (
       typeof window !== "undefined" &&
       !window.confirm(
-        `Remove ${selected.size} listing${selected.size === 1 ? "" : "s"}? This can't be undone.`
+        `Remove ${selected.size} listing${selected.size === 1 ? "" : "s"}? You can restore ${
+          selected.size === 1 ? "it" : "them"
+        } later from Removed listings.`
       )
     ) {
       return;
@@ -425,7 +427,7 @@ function ListingRow({
   async function handleDelete() {
     if (
       typeof window !== "undefined" &&
-      !window.confirm("Remove this listing? This can't be undone.")
+      !window.confirm("Remove this listing? You can restore it later from Removed listings.")
     ) {
       return;
     }
