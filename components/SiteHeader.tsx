@@ -7,7 +7,7 @@ import { signOutAction } from "@/app/broker/actions";
 
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals" },
-  { href: "/#how", label: "How" },
+  { href: "/#how", label: "About" },
   { href: "/#brokers", label: "Brokers" },
   { href: "/leasing-guide", label: "Guide" },
 ];
