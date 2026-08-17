@@ -7,9 +7,9 @@ import { signOutAction } from "@/app/broker/actions";
 
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals" },
-  { href: "/#how", label: "How it works" },
-  { href: "/#brokers", label: "For Dealers & Brokers" },
-  { href: "/leasing-guide", label: "Leasing Guide" },
+  { href: "/#how", label: "How" },
+  { href: "/#brokers", label: "Brokers" },
+  { href: "/leasing-guide", label: "Guide" },
 ];
 
 // The signed-in label + destination in the header — a broker sees their
