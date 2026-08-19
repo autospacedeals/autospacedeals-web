@@ -88,7 +88,16 @@ export default function SiteFooter() {
             included. Always confirm final pricing and terms directly with the dealer or broker
             before signing.
           </p>
-          <p>© {new Date().getFullYear()} Drive. All rights reserved.</p>
+          <p className="flex flex-wrap items-center gap-x-3">
+            <span>© {new Date().getFullYear()} Drive. All rights reserved.</span>
+            <Link href="/privacy" className="hover:text-zinc-400">
+              Privacy Policy
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/terms" className="hover:text-zinc-400">
+              Terms of Service
+            </Link>
+          </p>
         </div>
       </div>
     </footer>
