@@ -241,7 +241,6 @@ function LinkForm() {
 
 function ManualForm({ submissionId }: { submissionId?: string }) {
   const [state, formAction, pending] = useActionState(createManualDealAction, initialState);
-  const [dealType, setDealType] = useState<"Lease" | "Finance">("Lease");
   const [onePay, setOnePay] = useState(false);
   const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
   // Bump the form's key on every successful publish so the fields clear —
@@ -332,18 +331,6 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Deal terms</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label className={labelClass}>Deal type</label>
-              <select
-                name="dealType"
-                value={dealType}
-                onChange={(e) => setDealType(e.target.value as "Lease" | "Finance")}
-                className={selectClass}
-              >
-                <option value="Lease">Lease</option>
-                <option value="Finance">Finance</option>
-              </select>
-            </div>
-            <div>
               <label className={labelClass}>MSRP</label>
               <input
                 required
@@ -364,24 +351,20 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             </div>
           </div>
 
-          {dealType === "Lease" && (
-            <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-zinc-400">
-              <input
-                type="checkbox"
-                name="onePay"
-                checked={onePay}
-                onChange={(e) => setOnePay(e.target.checked)}
-                className="rounded border-white/20 bg-white/5"
-              />
-              This is a one-pay lease (single upfront lump sum, no monthly bill)
-            </label>
-          )}
+          <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-zinc-400">
+            <input
+              type="checkbox"
+              name="onePay"
+              checked={onePay}
+              onChange={(e) => setOnePay(e.target.checked)}
+              className="rounded border-white/20 bg-white/5"
+            />
+            This is a one-pay lease (single upfront lump sum, no monthly bill)
+          </label>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
-              <label className={labelClass}>
-                {onePay ? "One-pay total" : dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
-              </label>
+              <label className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}</label>
               <input
                 required={!onePay}
                 disabled={onePay}
@@ -424,18 +407,10 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
           </div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            {dealType === "Lease" && (
-              <div>
-                <label className={labelClass}>Miles per year</label>
-                <input required type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
-              </div>
-            )}
-            {dealType === "Finance" && (
-              <div>
-                <label className={labelClass}>APR (%)</label>
-                <input type="number" step="0.01" name="apr" placeholder="4.9" className={inputClass} />
-              </div>
-            )}
+            <div>
+              <label className={labelClass}>Miles per year</label>
+              <input required type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
+            </div>
             <div>
               <label className={labelClass}>Broker fee (optional)</label>
               <input type="number" step="0.01" name="brokerFee" placeholder="595" className={inputClass} />

@@ -27,7 +27,6 @@ export default function StageDealForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(stageDealDraftAction, initialState);
-  const [dealType, setDealType] = useState<"Lease" | "Finance">("Lease");
   const [onePay, setOnePay] = useState(false);
   const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
 
@@ -124,18 +123,6 @@ export default function StageDealForm({
 
         <div className="grid gap-2 sm:grid-cols-3">
           <div>
-            <label className={labelClass}>Deal type</label>
-            <select
-              name="dealType"
-              value={dealType}
-              onChange={(e) => setDealType(e.target.value as "Lease" | "Finance")}
-              className={selectClass}
-            >
-              <option value="Lease">Lease</option>
-              <option value="Finance">Finance</option>
-            </select>
-          </div>
-          <div>
             <label className={labelClass}>MSRP</label>
             <input required type="number" name="msrp" placeholder="65000" className={inputClass} />
           </div>
@@ -145,18 +132,16 @@ export default function StageDealForm({
           </div>
         </div>
 
-        {dealType === "Lease" && (
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
-            <input
-              type="checkbox"
-              name="onePay"
-              checked={onePay}
-              onChange={(e) => setOnePay(e.target.checked)}
-              className="rounded border-white/20 bg-white/5"
-            />
-            One-pay lease
-          </label>
-        )}
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
+          <input
+            type="checkbox"
+            name="onePay"
+            checked={onePay}
+            onChange={(e) => setOnePay(e.target.checked)}
+            className="rounded border-white/20 bg-white/5"
+          />
+          One-pay lease
+        </label>
 
         <div className="grid gap-2 sm:grid-cols-3">
           <div>
@@ -181,18 +166,10 @@ export default function StageDealForm({
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
-          {dealType === "Lease" && (
-            <div>
-              <label className={labelClass}>Miles/year</label>
-              <input required type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
-            </div>
-          )}
-          {dealType === "Finance" && (
-            <div>
-              <label className={labelClass}>APR (%)</label>
-              <input type="number" step="0.01" name="apr" placeholder="4.9" className={inputClass} />
-            </div>
-          )}
+          <div>
+            <label className={labelClass}>Miles/year</label>
+            <input required type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
+          </div>
         </div>
 
         <IncentivesEditor value={incentives} onChange={setIncentives} />

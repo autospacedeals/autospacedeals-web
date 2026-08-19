@@ -49,7 +49,6 @@ type ColKey =
   | "model"
   | "trim"
   | "condition"
-  | "dealType"
   | "msrp"
   | "payment"
   | "dueAtSigning"
@@ -63,7 +62,6 @@ const COLUMNS: { key: ColKey; label: string; defaultWidth: number }[] = [
   { key: "model", label: "Model", defaultWidth: 150 },
   { key: "trim", label: "Trim", defaultWidth: 130 },
   { key: "condition", label: "Condition", defaultWidth: 110 },
-  { key: "dealType", label: "Deal type", defaultWidth: 110 },
   { key: "msrp", label: "MSRP", defaultWidth: 120 },
   { key: "payment", label: "Payment", defaultWidth: 130 },
   { key: "dueAtSigning", label: "Due at signing", defaultWidth: 140 },
@@ -502,16 +500,6 @@ function ListingRow({
           </select>
         </td>
         <td className={cell}>
-          <select
-            value={draft.dealType}
-            onChange={(e) => set("dealType", e.target.value as "Lease" | "Finance")}
-            className={cellSelectClass}
-          >
-            <option value="Lease">Lease</option>
-            <option value="Finance">Finance</option>
-          </select>
-        </td>
-        <td className={cell}>
           <input
             type="text"
             inputMode="numeric"
@@ -578,29 +566,21 @@ function ListingRow({
           />
         </td>
         <td className={cell}>
-          {draft.dealType === "Lease" ? (
-            <input
-              type="number"
-              value={draft.milesPerYear}
-              onChange={(e) => set("milesPerYear", e.target.value)}
-              className={cellInputClass}
-            />
-          ) : (
-            <span className="text-xs text-zinc-600">—</span>
-          )}
+          <input
+            type="number"
+            value={draft.milesPerYear}
+            onChange={(e) => set("milesPerYear", e.target.value)}
+            className={cellInputClass}
+          />
         </td>
         <td className={cell}>
-          {draft.dealType === "Lease" ? (
-            <input
-              type="checkbox"
-              checked={draft.onePay}
-              onChange={(e) => set("onePay", e.target.checked)}
-              className="mt-1 rounded border-white/20 bg-white/5"
-              aria-label="One-pay lease"
-            />
-          ) : (
-            <span className="text-xs text-zinc-600">—</span>
-          )}
+          <input
+            type="checkbox"
+            checked={draft.onePay}
+            onChange={(e) => set("onePay", e.target.checked)}
+            className="mt-1 rounded border-white/20 bg-white/5"
+            aria-label="One-pay lease"
+          />
         </td>
         <td className={cell}>
           <input
@@ -736,18 +716,6 @@ function ListingRow({
                     className={inputClass}
                   />
                 </div>
-                {draft.dealType === "Finance" && (
-                  <div>
-                    <label className={labelClass}>APR (%, optional)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={draft.apr}
-                      onChange={(e) => set("apr", e.target.value)}
-                      className={inputClass}
-                    />
-                  </div>
-                )}
               </div>
 
               <IncentivesEditor

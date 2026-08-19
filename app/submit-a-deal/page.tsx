@@ -6,7 +6,7 @@ import SubmitDealForm from "@/components/SubmitDealForm";
 export const metadata: Metadata = {
   title: "Submit a Deal",
   description:
-    "Dealers and brokers: submit a lease or finance deal for review before it's posted on Drive.",
+    "Dealers and brokers: submit a lease deal for review before it's posted on Drive.",
 };
 
 export default function SubmitADealPage() {

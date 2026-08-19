@@ -19,14 +19,12 @@ type FormState = {
   trim: string;
   bodyStyle: string;
   fuel: string;
-  dealType: "Lease" | "Finance";
   msrp: string;
   sellingPrice: string;
   payment: string;
   dueAtSigning: string;
   term: string;
   milesPerYear: string;
-  apr: string;
   sourceUrl: string;
   notes: string;
 };
@@ -44,14 +42,12 @@ const EMPTY_FORM: FormState = {
   trim: "",
   bodyStyle: "SUV",
   fuel: "Gas",
-  dealType: "Lease",
   msrp: "",
   sellingPrice: "",
   payment: "",
   dueAtSigning: "",
   term: "",
   milesPerYear: "",
-  apr: "",
   sourceUrl: "",
   notes: "",
 };
@@ -71,14 +67,13 @@ function buildMailto(form: FormState): string {
     `Vehicle: ${form.year} ${form.make} ${form.model} ${form.trim}`.trim(),
     `Body style: ${form.bodyStyle}`,
     `Fuel type: ${form.fuel}`,
-    `Deal type: ${form.dealType}`,
     "",
     `MSRP: ${form.msrp}`,
     `Selling price: ${form.sellingPrice}`,
     `Monthly payment: ${form.payment}`,
     `Due at signing: ${form.dueAtSigning}`,
     `Term (months): ${form.term}`,
-    form.dealType === "Lease" ? `Miles per year: ${form.milesPerYear}` : `APR: ${form.apr}`,
+    `Miles per year: ${form.milesPerYear}`,
     "",
     form.sourceUrl ? `Source / posting link: ${form.sourceUrl}` : "",
     "",
@@ -257,17 +252,6 @@ export default function SubmitDealForm() {
         <h2 className="mb-4 text-lg font-bold">Deal terms</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Deal type</label>
-            <select
-              className={inputClass}
-              value={form.dealType}
-              onChange={(e) => update("dealType", e.target.value as FormState["dealType"])}
-            >
-              <option value="Lease">Lease</option>
-              <option value="Finance">Finance</option>
-            </select>
-          </div>
-          <div>
             <label className={labelClass}>Term (months)</label>
             <input
               required
@@ -320,29 +304,16 @@ export default function SubmitDealForm() {
               onChange={(e) => update("dueAtSigning", e.target.value)}
             />
           </div>
-          {form.dealType === "Lease" ? (
-            <div>
-              <label className={labelClass}>Miles per year</label>
-              <input
-                inputMode="numeric"
-                className={inputClass}
-                placeholder="10000"
-                value={form.milesPerYear}
-                onChange={(e) => update("milesPerYear", e.target.value)}
-              />
-            </div>
-          ) : (
-            <div>
-              <label className={labelClass}>APR (%)</label>
-              <input
-                inputMode="decimal"
-                className={inputClass}
-                placeholder="4.9"
-                value={form.apr}
-                onChange={(e) => update("apr", e.target.value)}
-              />
-            </div>
-          )}
+          <div>
+            <label className={labelClass}>Miles per year</label>
+            <input
+              inputMode="numeric"
+              className={inputClass}
+              placeholder="10000"
+              value={form.milesPerYear}
+              onChange={(e) => update("milesPerYear", e.target.value)}
+            />
+          </div>
           <div>
             <label className={labelClass}>Source / posting link (optional)</label>
             <input

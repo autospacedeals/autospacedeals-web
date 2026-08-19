@@ -9,7 +9,6 @@ const SORT_OPTIONS: SortOption[] = [
   "effectiveLow",
   "newest",
   "discountHigh",
-  "popular",
   "closest",
 ];
 

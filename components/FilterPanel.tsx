@@ -88,7 +88,7 @@ export default function FilterPanel({
           options={states}
         />
         <Select
-          label="Lease/finance term"
+          label="Lease term"
           value={filters.term}
           onChange={(v) => onChange({ term: v })}
           options={terms}

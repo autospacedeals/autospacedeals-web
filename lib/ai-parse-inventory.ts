@@ -143,7 +143,7 @@ export async function parseRowsWithAI(
       {
         role: "user",
         content:
-          `Extract every car lease/finance listing from this broker inventory sheet (pipe-delimited, first line is headers).\n\n` +
+          `Extract every car lease listing from this broker inventory sheet (pipe-delimited, first line is headers).\n\n` +
           `Columns vary by broker and cells are often combined (e.g. a "Model" column might read ` +
           `"2021 Taycan Turbo S (217k) CPO" meaning year 2021, make Porsche, model Taycan, trim ` +
           `"Turbo S", MSRP $217,000, condition CPO; a "Term" column might read "24 mo/ 7500 mi/ ` +
@@ -177,7 +177,7 @@ export async function parseFreeTextWithAI(text: string, brokerState: string): Pr
       {
         role: "user",
         content:
-          `A broker typed up one or more car lease/finance deals in plain language (not a spreadsheet). ` +
+          `A broker typed up one or more car lease deals in plain language (not a spreadsheet). ` +
           `Extract every distinct vehicle listing you can find. Use your knowledge of car makes/models ` +
           `to fill in make when only a model name is given. If a field genuinely isn't mentioned, use ` +
           `null for it rather than guessing — do not fabricate numbers.\n\n${text}`,
@@ -244,7 +244,7 @@ export async function parseImageWithAI(
             {
               type: "text",
               text:
-                `This is a screenshot of one or more car lease/finance deals (a text message, forum post, ` +
+                `This is a screenshot of one or more car lease deals (a text message, forum post, ` +
                 `spreadsheet, flyer, etc). Extract every distinct vehicle listing you can read. Use your ` +
                 `knowledge of car makes/models to fill in make when only a model name is given. If a field ` +
                 `genuinely isn't visible or determinable, use null for it rather than guessing — do not ` +

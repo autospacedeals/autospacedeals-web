@@ -33,7 +33,7 @@ export default function LeasingGuidePage() {
             </p>
             <p>
               At the end of the lease, you usually return the car, buy it out,
-              or lease/finance another vehicle.
+              or lease another vehicle.
             </p>
           </Section>
 

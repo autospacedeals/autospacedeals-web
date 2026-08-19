@@ -267,7 +267,6 @@ export type SortOption =
   | "effectiveLow"
   | "newest"
   | "discountHigh"
-  | "popular"
   | "closest";
 
 export const SORT_LABELS: Record<SortOption, string> = {
@@ -277,7 +276,6 @@ export const SORT_LABELS: Record<SortOption, string> = {
   effectiveLow: "Best effective monthly cost",
   newest: "Newest deals",
   discountHigh: "Highest MSRP discount",
-  popular: "Most popular",
   closest: "Closest to my location",
 };
 
@@ -351,8 +349,6 @@ export function sortDeals(deals: Deal[], sortBy: SortOption, referenceState: str
       return list.sort((a, b) => (a.datePosted < b.datePosted ? 1 : -1));
     case "discountHigh":
       return list.sort((a, b) => msrpDiscountPercent(b) - msrpDiscountPercent(a));
-    case "popular":
-      return list.sort((a, b) => b.popularity - a.popularity);
     case "closest":
       if (referenceState === "All") return list;
       return list.sort((a, b) => {

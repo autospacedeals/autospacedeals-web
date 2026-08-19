@@ -17,7 +17,7 @@ export default function SiteFooter() {
             />
             <p className="mt-3 text-sm leading-6 text-zinc-500">
               One place to browse, compare, and contact dealers and brokers for real
-              lease and finance offers.
+              lease offers.
             </p>
           </div>
 

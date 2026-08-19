@@ -79,7 +79,6 @@ function DraftRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dealType, setDealType] = useState<"Lease" | "Finance">(deal.dealType);
   const [onePay, setOnePay] = useState(deal.onePay);
   const [incentives, setIncentives] = useState<IncentiveRow[]>(deal.incentives ?? []);
 
@@ -195,19 +194,8 @@ function DraftRow({
           </div>
         </div>
 
+        <input type="hidden" name="dealType" value={deal.dealType} />
         <div className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <label className={labelClass}>Deal type</label>
-            <select
-              name="dealType"
-              value={dealType}
-              onChange={(e) => setDealType(e.target.value as "Lease" | "Finance")}
-              className={selectClass}
-            >
-              <option value="Lease">Lease</option>
-              <option value="Finance">Finance</option>
-            </select>
-          </div>
           <div>
             <label className={labelClass}>MSRP</label>
             <input
@@ -229,24 +217,20 @@ function DraftRow({
           </div>
         </div>
 
-        {dealType === "Lease" && (
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-400">
-            <input
-              type="checkbox"
-              name="onePay"
-              checked={onePay}
-              onChange={(e) => setOnePay(e.target.checked)}
-              className="rounded border-white/20 bg-white/5"
-            />
-            One-pay lease (single upfront lump sum, no monthly bill)
-          </label>
-        )}
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-400">
+          <input
+            type="checkbox"
+            name="onePay"
+            checked={onePay}
+            onChange={(e) => setOnePay(e.target.checked)}
+            className="rounded border-white/20 bg-white/5"
+          />
+          One-pay lease (single upfront lump sum, no monthly bill)
+        </label>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className={labelClass}>
-              {onePay ? "One-pay total" : dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
-            </label>
+            <label className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}</label>
             <input
               required={!onePay}
               disabled={onePay}
@@ -285,24 +269,16 @@ function DraftRow({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {dealType === "Lease" && (
-            <div>
-              <label className={labelClass}>Miles per year</label>
-              <input
-                required
-                type="number"
-                name="milesPerYear"
-                defaultValue={deal.milesPerYear ?? ""}
-                className={inputClass}
-              />
-            </div>
-          )}
-          {dealType === "Finance" && (
-            <div>
-              <label className={labelClass}>APR (%, optional)</label>
-              <input type="number" step="0.01" name="apr" defaultValue={deal.apr ?? ""} className={inputClass} />
-            </div>
-          )}
+          <div>
+            <label className={labelClass}>Miles per year</label>
+            <input
+              required
+              type="number"
+              name="milesPerYear"
+              defaultValue={deal.milesPerYear ?? ""}
+              className={inputClass}
+            />
+          </div>
           <div>
             <label className={labelClass}>Broker fee (optional)</label>
             <input

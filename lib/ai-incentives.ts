@@ -64,7 +64,7 @@ export async function suggestIncentives(params: {
           role: "user",
           content:
             `List up to 5 incentive programs commonly offered by manufacturers or dealers on a ` +
-            `${vehicle} lease or finance deal (e.g. loyalty, conquest, military, recent college ` +
+            `${vehicle} lease deal (e.g. loyalty, conquest, military, recent college ` +
             `grad, fleet, lease cash). Give a reasonable ballpark dollar amount for each based on ` +
             `typical programs for this make — these are starting suggestions only, the broker will ` +
             `verify exact current amounts before publishing, so approximate is fine. If you don't ` +

@@ -43,7 +43,7 @@ export default async function SignupChooserPage() {
           <Car size={28} className="text-zinc-400 transition group-hover:text-white" />
           <h2 className="mt-4 text-xl font-bold">I&apos;m a shopper</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Browse lease and finance deals from dealers and brokers, and save the ones you
+            Browse lease deals from dealers and brokers, and save the ones you
             like.
           </p>
           <span className="mt-6 flex items-center gap-1.5 text-sm font-semibold text-white">

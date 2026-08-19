@@ -175,7 +175,7 @@ export default async function DealDetailPage({
             <h2 className="text-lg font-bold">Payment Breakdown</h2>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Stat
-                label={deal.onePay ? "One-pay lease total" : deal.dealType === "Lease" ? "Monthly payment" : "Est. monthly"}
+                label={deal.onePay ? "One-pay lease total" : "Monthly payment"}
                 value={
                   deal.onePay
                     ? formatCurrency(deal.dueAtSigning)
@@ -215,7 +215,7 @@ export default async function DealDetailPage({
                   note={`Contact ${deal.sellerName} for more/less mileage`}
                 />
               ) : (
-                <Stat label="Mileage allowance" value="N/A (finance)" />
+                <Stat label="Mileage allowance" value="Not specified" />
               )}
               {deal.apr != null && <Stat label="APR" value={`${deal.apr}%`} />}
             </div>
@@ -242,7 +242,6 @@ export default async function DealDetailPage({
               {deal.interior && <Detail label="Interior" value={deal.interior} />}
               {deal.fuel && <Detail label="Fuel type" value={deal.fuel} />}
               {deal.bodyStyle && <Detail label="Body style" value={deal.bodyStyle} />}
-              <Detail label="Deal type" value={deal.dealType} />
               <Detail label="Posted" value={relativeDatePosted(deal.datePosted)} />
             </dl>
 

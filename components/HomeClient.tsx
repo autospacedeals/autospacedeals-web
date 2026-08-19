@@ -90,7 +90,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
             </div>
 
             <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
-              Compare real lease &amp; finance deals in one place.
+              Compare real lease deals in one place.
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg">
@@ -135,7 +135,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-zinc-500">
               Marketplace
             </p>
-            <h2 className="mt-2 text-3xl font-black sm:text-4xl">Featured Lease &amp; Finance Deals</h2>
+            <h2 className="mt-2 text-3xl font-black sm:text-4xl">Featured Lease Deals</h2>
           </div>
 
           <button
