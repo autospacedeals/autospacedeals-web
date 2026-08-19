@@ -42,6 +42,27 @@ export interface ParseResult {
   skipped: { row: number; reason: string }[];
 }
 
+// A best-effort identity for a parsed row, used to match a sheet row to an
+// existing listing across recurring sync runs (see lib/sheet-sync.ts) without
+// requiring brokers to add a VIN or stock number column. Two rows with the
+// same year/make/model/trim/payment/due-at-signing are treated as "the same
+// car" — good enough in practice, though a broker who lists several
+// identical units at the same price will see them treated as
+// interchangeable rather than individually tracked.
+export function computeMatchSignature(d: {
+  year: number;
+  make: string;
+  model: string;
+  trim: string | null;
+  payment: number;
+  dueAtSigning: number;
+}): string {
+  const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return [d.year, norm(d.make), norm(d.model), norm(d.trim), Math.round(d.payment), Math.round(d.dueAtSigning)].join(
+    "|"
+  );
+}
+
 // Known model name -> make, longest-key-first matching against the
 // "Model" cell. Covers what we've seen from brokers so far; easy to extend.
 const MODEL_MAKE: [string, string][] = [

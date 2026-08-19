@@ -9,6 +9,7 @@ import DraftConfirmList from "./DraftConfirmList";
 import MyListings from "./MyListings";
 import RemovedListings from "./RemovedListings";
 import AboutEditor from "./AboutEditor";
+import SheetSyncManager, { type SheetSync } from "./SheetSyncManager";
 
 // Always fetch fresh so the broker's own edits (price changes, drafts
 // confirmed, listings removed) show up immediately, not from a stale cache.
@@ -78,6 +79,35 @@ export default async function BrokerDashboardPage() {
     .map(mapRowToDeal)
     .sort((a, b) => (a.removedAt && b.removedAt ? (a.removedAt < b.removedAt ? 1 : -1) : 0));
 
+  const { data: sheetSyncRows } = await supabase
+    .from("sheet_syncs")
+    .select("id, sheet_url, auto_publish, active, last_synced_at, last_sync_added, last_sync_removed, last_sync_error")
+    .eq("broker_id", user.id)
+    .order("created_at", { ascending: false })
+    .returns<
+      {
+        id: string;
+        sheet_url: string;
+        auto_publish: boolean;
+        active: boolean;
+        last_synced_at: string | null;
+        last_sync_added: number;
+        last_sync_removed: number;
+        last_sync_error: string | null;
+      }[]
+    >();
+
+  const sheetSyncs: SheetSync[] = (sheetSyncRows ?? []).map((s) => ({
+    id: s.id,
+    sheetUrl: s.sheet_url,
+    autoPublish: s.auto_publish,
+    active: s.active,
+    lastSyncedAt: s.last_synced_at,
+    lastSyncAdded: s.last_sync_added,
+    lastSyncRemoved: s.last_sync_removed,
+    lastSyncError: s.last_sync_error,
+  }));
+
   return (
     <main className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -119,6 +149,8 @@ export default async function BrokerDashboardPage() {
           <DraftConfirmList drafts={pendingDrafts} />
         </div>
       )}
+
+      <SheetSyncManager syncs={sheetSyncs} />
 
       <div className="mt-8">
         <h2 className="mb-4 text-lg font-bold">Your live listings</h2>

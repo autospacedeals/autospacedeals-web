@@ -22,6 +22,17 @@ A single reference for every external tool/service this project depends on. Upda
 
 - **CarsXE** — vehicle image lookup API, used as the fallback stock photo when a broker doesn't upload their own. Console: carsxe.com. Credential: `CARSXE_API_KEY`.
 
+## Recurring Google Sheet sync
+
+A broker can opt a linked Google Sheet into recurring auto-sync (checked every ~30 minutes), which adds new cars it finds and soft-removes ones that disappear from the sheet. See `lib/sheet-sync.ts` and `app/api/cron/sync-sheets/route.ts`.
+
+- **Trigger**: a GitHub Actions workflow (`.github/workflows/sync-broker-sheets.yml`), not Vercel Cron — Vercel's free Hobby plan only allows once-a-day cron schedules, so GitHub's free scheduler is used instead regardless of which Vercel plan you're on.
+- **Setup required** (one-time): generate a random secret string, then add it in two places with the *same* value:
+  1. Vercel → Project → Settings → Environment Variables → add `CRON_SYNC_SECRET` (Production).
+  2. GitHub repo → Settings → Secrets and variables → Actions → New repository secret → name it `CRON_SYNC_SECRET`.
+  Without this secret configured in both places, the endpoint refuses every request (including the scheduled ones) rather than running unauthenticated.
+- The workflow calls `https://www.idriveus.com/api/cron/sync-sheets` — update that URL in the workflow file if the domain ever changes.
+
 ## Domain
 
 - **idriveus.com** — registrar: *(not sure — let me know where this is registered so I can fill this in)*. Formerly deployed at autospacedeals.com.

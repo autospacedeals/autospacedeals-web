@@ -92,6 +92,7 @@ function LinkForm() {
   const [sourceType, setSourceType] = useState<
     "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot"
   >("link");
+  const [keepSynced, setKeepSynced] = useState(false);
 
   // Jump straight to the new drafts instead of making the broker scroll up
   // to find them — the section only exists once there's at least one
@@ -122,6 +123,12 @@ function LinkForm() {
               <li key={i}>• {reason}</li>
             ))}
           </ul>
+        )}
+        {state.sheetSynced && (
+          <p className="mt-2 text-sm text-emerald-300/80">
+            This sheet is now set to check for updates automatically — manage it below under
+            &quot;Synced sheets.&quot;
+          </p>
         )}
         <p className="mt-2 text-sm text-zinc-400">
           {parsedCount > 0
@@ -226,9 +233,46 @@ function LinkForm() {
             className={inputClass}
           />
           {sourceType === "google_sheet" && (
-            <p className="mt-1 text-xs text-zinc-600">
-              Set sharing to &quot;Anyone with the link can view&quot; so we can read it.
-            </p>
+            <>
+              <p className="mt-1 text-xs text-zinc-600">
+                Set sharing to &quot;Anyone with the link can view&quot; so we can read it.
+              </p>
+              <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-300">
+                  <input
+                    type="checkbox"
+                    name="keepSynced"
+                    checked={keepSynced}
+                    onChange={(e) => setKeepSynced(e.target.checked)}
+                    className="mt-0.5 rounded border-white/20 bg-white/5"
+                  />
+                  <span>
+                    Keep this sheet synced automatically
+                    <span className="block text-xs text-zinc-500">
+                      We&apos;ll check it every ~30 minutes and remove listings that disappear from
+                      the sheet (recoverable from your removed list). This first check still lands
+                      as drafts for you either way.
+                    </span>
+                  </span>
+                </label>
+                {keepSynced && (
+                  <label className="flex cursor-pointer items-start gap-2 pl-6 text-sm text-zinc-300">
+                    <input
+                      type="checkbox"
+                      name="autoPublish"
+                      className="mt-0.5 rounded border-white/20 bg-white/5"
+                    />
+                    <span>
+                      Auto-publish new listings found during future checks
+                      <span className="block text-xs text-zinc-500">
+                        Off = new rows land as drafts for you to confirm, same as today. On = new
+                        rows go live immediately, no review.
+                      </span>
+                    </span>
+                  </label>
+                )}
+              </div>
+            </>
           )}
         </div>
       )}

@@ -1,0 +1,21 @@
+name: Sync broker Google Sheets
+
+# Hits the site's /api/cron/sync-sheets endpoint every ~30 minutes so it's
+# not gated by Vercel's own Cron Jobs (the free Hobby plan only allows
+# once-a-day schedules — this runs on GitHub's free scheduler instead,
+# regardless of Vercel plan). Also runnable manually from the Actions tab
+# for testing.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call sync-sheets endpoint
+        run: |
+          curl --fail --show-error --silent \
+            -H "Authorization: Bearer ${{ secrets.CRON_SYNC_SECRET }}" \
+            "https://www.idriveus.com/api/cron/sync-sheets"

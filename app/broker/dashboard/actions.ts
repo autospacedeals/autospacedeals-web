@@ -12,6 +12,8 @@ import {
   type SupportedImageType,
 } from "@/lib/ai-parse-inventory";
 import { suggestIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
+import { extractGoogleSheetId, fetchGoogleSheetCsv } from "@/lib/google-sheet";
+import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 
 // Supabase Storage rejects object keys containing spaces, colons, and other
 // punctuation — which is exactly what Mac/Windows screenshot and export
@@ -53,100 +55,9 @@ export type SubmissionState = {
   // of just a bare count — makes a specific parsing gap self-diagnosable
   // without digging through server logs.
   skipReasons?: string[];
+  // Whether this Google Sheet was set up for recurring auto-sync.
+  sheetSynced?: boolean;
 };
-
-interface BrokerProfile {
-  business_name: string;
-  seller_type: string;
-  dealership_name: string | null;
-  contact_phone: string;
-  city: string;
-  state: string;
-}
-
-// Turns each successfully-parsed row into a draft deal (status: "draft")
-// owned by the broker, tied back to the submission for reference. Drafts
-// show up in the broker's "ready for your confirmation" checklist — see
-// DraftConfirmList / confirmDraftsAction.
-async function stageParsedDeals(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  userEmail: string | undefined,
-  broker: BrokerProfile,
-  submissionId: string,
-  deals: ParsedDeal[]
-): Promise<{ staged: number; failed: number; lastError: string | null }> {
-  let staged = 0;
-  let failed = 0;
-  let lastError: string | null = null;
-
-  for (const d of deals) {
-    let images: string[] = [];
-    const photo = await fetchCarsxePhoto({
-      year: d.year,
-      make: d.make,
-      model: d.model,
-      trim: d.trim ?? undefined,
-    });
-    if (photo) images = [photo];
-
-    const slug = slugify([d.year, d.make, d.model, d.trim ?? "", broker.state]);
-
-    const { error } = await supabase.from("deals").insert({
-      slug,
-      broker_id: userId,
-      submission_id: submissionId,
-      year: d.year,
-      make: d.make,
-      model: d.model,
-      trim: d.trim,
-      body_style: null,
-      fuel: null,
-      exterior: d.exterior,
-      interior: d.interior,
-      deal_type: "Lease",
-      msrp: d.msrp,
-      selling_price: null,
-      payment: d.payment,
-      due_at_signing: d.dueAtSigning,
-      broker_fee: d.brokerFee,
-      term: d.term,
-      miles_per_year: d.milesPerYear,
-      apr: null,
-      seller_type: broker.seller_type,
-      seller_name: broker.business_name,
-      seller_dealership: broker.dealership_name,
-      seller_phone: broker.contact_phone,
-      seller_email: userEmail ?? "",
-      city: broker.city,
-      state: d.state ?? broker.state,
-      verified: true,
-      condition: null,
-      incentives: [],
-      photo_auto_sourced: true,
-      in_stock: true,
-      popularity: 50,
-      notes: d.notes,
-      images,
-      one_pay: d.onePay,
-      status: "draft",
-    });
-
-    if (error) {
-      failed++;
-      lastError = error.message;
-      console.error("Failed to save a parsed deal as a draft:", error.message, {
-        year: d.year,
-        make: d.make,
-        model: d.model,
-      });
-    } else {
-      staged++;
-    }
-  }
-
-  return { staged, failed, lastError };
-}
 
 // Broker edits the "about" text shown on their public profile page
 // (/brokers/[id]) — everything else there (business name, city/state,
@@ -207,11 +118,6 @@ function parseIncentivesField(
   } catch {
     return [];
   }
-}
-
-function extractGoogleSheetId(url: string): string | null {
-  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  return match ? match[1] : null;
 }
 
 // Link / Google Sheet / Excel file. For Excel files and Google Sheets, we
@@ -297,43 +203,13 @@ export async function createSubmissionAction(
         return { error: "Couldn't find your broker profile — try signing in again." };
       }
 
-      const sheetId = extractGoogleSheetId(sourceUrl);
-      if (!sheetId) {
-        return {
-          error:
-            "That doesn't look like a Google Sheets link — copy the URL from your browser's address bar while viewing the sheet.",
-        };
+      const fetched = await fetchGoogleSheetCsv(sourceUrl);
+      if (!fetched.ok) {
+        return { error: fetched.error };
       }
 
       try {
-        const res = await fetch(
-          `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`,
-          {
-            // Google's export endpoint sometimes behaves differently (or
-            // blocks) requests without a browser-like User-Agent.
-            headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
-          }
-        );
-
-        if (!res.ok) {
-          return {
-            error: `Couldn't open that Google Sheet (error ${res.status}). Make sure sharing is set to "Anyone with the link can view" and try again.`,
-          };
-        }
-
-        const csvText = await res.text();
-        // A private/unshared sheet's export URL redirects to a Google
-        // sign-in or "request access" HTML page instead of CSV — catch that
-        // instead of silently trying (and failing) to parse it as data.
-        const looksLikeHtml = /^\s*<(!doctype|html)/i.test(csvText);
-        if (looksLikeHtml) {
-          return {
-            error:
-              'That Google Sheet isn\'t publicly viewable yet. In Google Sheets, click "Share" → set to "Anyone with the link" → Viewer, then try again.',
-          };
-        }
-
-        const result = await parseInventoryCsv(csvText, broker.state);
+        const result = await parseInventoryCsv(fetched.csvText, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
         skipReasons = result.skipped.map((s) => s.reason);
@@ -346,7 +222,7 @@ export async function createSubmissionAction(
           };
         }
       } catch (err) {
-        console.error("Failed to fetch/parse Google Sheet:", err);
+        console.error("Failed to parse Google Sheet:", err);
         return {
           error: "Couldn't read that Google Sheet — double-check the link and sharing settings, or add cars manually below.",
         };
@@ -436,10 +312,32 @@ export async function createSubmissionAction(
     .single<{ id: string }>();
   if (error) return { error: error.message };
 
+  // Google Sheet links can opt into a recurring check (every ~30 min) that
+  // adds new rows and removes ones that disappear from the sheet — see
+  // app/api/cron/sync-sheets. This initial batch still lands as drafts for
+  // review either way; only rows the recurring job finds later honor the
+  // auto-publish choice.
+  let sheetSyncId: string | null = null;
+  if (sourceType === "google_sheet" && formData.get("keepSynced") === "on") {
+    const autoPublish = formData.get("autoPublish") === "on";
+    const { data: sync, error: syncError } = await supabase
+      .from("sheet_syncs")
+      .insert({ broker_id: user.id, sheet_url: sourceUrl, auto_publish: autoPublish })
+      .select("id")
+      .single<{ id: string }>();
+    if (syncError) {
+      console.error("Failed to create sheet sync:", syncError.message);
+    } else {
+      sheetSyncId = sync.id;
+    }
+  }
+
   let stageFailed = 0;
   let stageLastError: string | null = null;
   if (broker && parsedDeals.length > 0 && inserted) {
-    const staging = await stageParsedDeals(supabase, user.id, user.email, broker, inserted.id, parsedDeals);
+    const staging = await stageParsedDeals(supabase, user.id, user.email, broker, inserted.id, parsedDeals, {
+      sheetSyncId,
+    });
     stageFailed = staging.failed;
     stageLastError = staging.lastError;
   }
@@ -464,7 +362,70 @@ export async function createSubmissionAction(
     parsedCount: parsedDeals.length - stageFailed,
     skippedCount: skippedCount + stageFailed,
     skipReasons,
+    sheetSynced: sheetSyncId !== null,
   };
+}
+
+// Google Sheet auto-sync management — pause/resume, toggle auto-publish, or
+// unlink entirely. See app/api/cron/sync-sheets for the recurring job these
+// control.
+export async function toggleSheetSyncActiveAction(
+  id: string,
+  active: boolean
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+  if (!id) return { error: "Missing sync id." };
+
+  const { error } = await supabase.from("sheet_syncs").update({ active }).eq("id", id).eq("broker_id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  return { error: null };
+}
+
+export async function toggleSheetSyncAutoPublishAction(
+  id: string,
+  autoPublish: boolean
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+  if (!id) return { error: "Missing sync id." };
+
+  const { error } = await supabase
+    .from("sheet_syncs")
+    .update({ auto_publish: autoPublish })
+    .eq("id", id)
+    .eq("broker_id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  return { error: null };
+}
+
+// Unlinking stops future sync checks but doesn't touch any listings already
+// created from this sheet — they stay live/draft/removed exactly as they
+// are, just no longer tied to an active sync (the foreign key clears on its
+// own via ON DELETE SET NULL).
+export async function deleteSheetSyncAction(id: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+  if (!id) return { error: "Missing sync id." };
+
+  const { error } = await supabase.from("sheet_syncs").delete().eq("id", id).eq("broker_id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  return { error: null };
 }
 
 // "Add a car manually" — structured, trusted input from an authenticated
