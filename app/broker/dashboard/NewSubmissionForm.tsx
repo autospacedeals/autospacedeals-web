@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   Link as LinkIcon,
   Sheet,
@@ -93,6 +93,17 @@ function LinkForm() {
     "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot"
   >("link");
 
+  // Jump straight to the new drafts instead of making the broker scroll up
+  // to find them — the section only exists once there's at least one
+  // pending draft, and the server data backing it is already fresh by the
+  // time this effect runs (the action's revalidatePath resolves before
+  // useActionState hands back the success state).
+  useEffect(() => {
+    if (state.success && (state.parsedCount ?? 0) > 0) {
+      document.getElementById("pending-drafts")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [state]);
+
   if (state.success) {
     const parsedCount = state.parsedCount ?? 0;
     const skippedCount = state.skippedCount ?? 0;
@@ -100,7 +111,7 @@ function LinkForm() {
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4 sm:p-5">
         <p className="text-sm font-semibold text-emerald-300">
           {parsedCount > 0
-            ? `Source saved — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it. Scroll up to “Cars ready for your confirmation” to review and publish them.`
+            ? `Source saved — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it. Take a look above to review and publish them.`
             : "Source saved."}
           {skippedCount > 0 &&
             ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}

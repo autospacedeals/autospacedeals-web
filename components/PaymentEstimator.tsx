@@ -14,17 +14,37 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   // Tracked as a raw string so the field can be freely cleared/retyped
   // without snapping to $0 mid-edit; the parsed, clamped number below is
   // what actually drives the live calculation on every keystroke.
-  const [dueAtSigningInput, setDueAtSigningInput] = useState(String(deal.dueAtSigning));
-  const [selected, setSelected] = useState<Set<number>>(new Set());
   const incentives = deal.incentives ?? [];
-  const incentivesTotal = incentives.reduce(
-    (sum, inc, idx) => (selected.has(idx) ? sum + inc.amount : sum),
-    0
+  // Incentives already baked into the advertised numbers start checked
+  // (unchecking removes that built-in discount and raises the estimate);
+  // ones not yet reflected start unchecked (checking adds the discount and
+  // lowers the estimate) — see IncentiveRow.includedInPrice.
+  const defaultSelected = new Set(
+    incentives.reduce<number[]>((acc, inc, idx) => {
+      if (inc.includedInPrice) acc.push(idx);
+      return acc;
+    }, [])
   );
+
+  const [dueAtSigningInput, setDueAtSigningInput] = useState(String(deal.dueAtSigning));
+  const [selected, setSelected] = useState<Set<number>>(defaultSelected);
+  // Net change vs. the advertised numbers: an incentive only moves the
+  // estimate when its checked state differs from whether it was already
+  // priced in — toggling an included-by-default one off removes its
+  // discount (raises the estimate), toggling a not-yet-included one on
+  // adds it (lowers the estimate). Matching states cancel out to 0.
+  const incentivesTotal = incentives.reduce((sum, inc, idx) => {
+    const checked = selected.has(idx) ? inc.amount : 0;
+    const baseline = inc.includedInPrice ? inc.amount : 0;
+    return sum + (checked - baseline);
+  }, 0);
 
   const dueAtSigning = Math.max(0, Number(dueAtSigningInput) || 0);
   const estimate = estimatePayment(deal, { dueAtSigning, incentivesTotal });
-  const isDefault = dueAtSigning === deal.dueAtSigning && selected.size === 0;
+  const isDefault =
+    dueAtSigning === deal.dueAtSigning &&
+    selected.size === defaultSelected.size &&
+    [...selected].every((idx) => defaultSelected.has(idx));
 
   // Slider range: 0 up to roughly double the advertised due-at-signing (with
   // a sensible floor), rounded to a clean $500 increment so the thumb lands
@@ -42,7 +62,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
 
   function reset() {
     setDueAtSigningInput(String(deal.dueAtSigning));
-    setSelected(new Set());
+    setSelected(defaultSelected);
   }
 
   return (
@@ -97,26 +117,49 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
           <p className="mb-1.5 text-sm font-semibold text-zinc-300">
             Incentives you might qualify for
           </p>
+          <p className="mb-2 text-xs text-zinc-600">
+            Checked incentives already included in the advertised numbers below — uncheck any
+            you don&apos;t qualify for. Check any others you do qualify for to see the effect.
+          </p>
           <div className="space-y-1.5">
-            {incentives.map((inc, idx) => (
-              <label
-                key={idx}
-                className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(idx)}
-                    onChange={() => toggleIncentive(idx)}
-                    className="rounded border-white/20 bg-white/5"
-                  />
-                  {inc.name}
-                </span>
-                <span className="font-semibold text-emerald-400">
-                  -{formatCurrency(inc.amount)}
-                </span>
-              </label>
-            ))}
+            {incentives.map((inc, idx) => {
+              const checked = selected.has(idx);
+              const delta = (checked ? inc.amount : 0) - (inc.includedInPrice ? inc.amount : 0);
+              return (
+                <label
+                  key={idx}
+                  className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleIncentive(idx)}
+                      className="rounded border-white/20 bg-white/5"
+                    />
+                    {inc.name}
+                    {inc.includedInPrice && (
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-zinc-400">
+                        Included in price
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className={`font-semibold ${
+                      delta > 0
+                        ? "text-emerald-400"
+                        : delta < 0
+                          ? "text-amber-400"
+                          : "text-zinc-500"
+                    }`}
+                  >
+                    {delta === 0
+                      ? formatCurrency(inc.amount)
+                      : `${delta > 0 ? "-" : "+"}${formatCurrency(Math.abs(delta))}`}
+                  </span>
+                </label>
+              );
+            })}
           </div>
           <p className="mt-1.5 text-xs text-zinc-600">
             Not everyone qualifies for every program — confirm eligibility with{" "}

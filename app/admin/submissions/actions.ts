@@ -90,17 +90,19 @@ export async function reviewSubmissionAction(formData: FormData) {
 
 export type StageDealState = { error: string | null; success?: boolean };
 
-function parseIncentivesField(formData: FormData): { name: string; amount: number }[] {
+function parseIncentivesField(
+  formData: FormData
+): { name: string; amount: number; includedInPrice: boolean }[] {
   const raw = String(formData.get("incentives") || "[]");
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter(
-        (i): i is { name: string; amount: number } =>
+        (i): i is { name: string; amount: number; includedInPrice?: boolean } =>
           i && typeof i.name === "string" && i.name.trim().length > 0 && typeof i.amount === "number" && i.amount > 0
       )
-      .map((i) => ({ name: i.name.trim(), amount: i.amount }));
+      .map((i) => ({ name: i.name.trim(), amount: i.amount, includedInPrice: i.includedInPrice === true }));
   } catch {
     return [];
   }

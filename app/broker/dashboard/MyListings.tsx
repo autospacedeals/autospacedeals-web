@@ -149,7 +149,10 @@ function deriveDraft(deal: Deal): RowDraft {
     notes: deal.notes ?? "",
     condition: deal.condition ?? "New",
     images: (deal.images ?? []).filter((i) => i !== PLACEHOLDER_IMAGE).join("\n"),
-    incentives: deal.incentives ?? [],
+    incentives: (deal.incentives ?? []).map((inc) => ({
+      ...inc,
+      includedInPrice: inc.includedInPrice === true,
+    })),
   };
 }
 

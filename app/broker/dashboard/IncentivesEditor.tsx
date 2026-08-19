@@ -7,6 +7,13 @@ import { suggestIncentivesAction } from "./actions";
 export interface IncentiveRow {
   name: string;
   amount: number;
+  // Whether the advertised payment/due-at-signing already assumes this
+  // incentive is applied. Drives the default checked state of the
+  // matching toggle in the shopper-facing payment estimator: checked by
+  // default (unchecking removes it and raises the estimate) when true,
+  // unchecked by default (checking it applies it and lowers the estimate)
+  // when false. See PaymentEstimator.tsx.
+  includedInPrice: boolean;
 }
 
 const inputClass =
@@ -36,7 +43,7 @@ export default function IncentivesEditor({
     onChange(value.filter((_, i) => i !== idx));
   }
   function addRow() {
-    onChange([...value, { name: "", amount: 0 }]);
+    onChange([...value, { name: "", amount: 0, includedInPrice: false }]);
   }
 
   async function handleSuggest(e: React.MouseEvent<HTMLButtonElement>) {
@@ -61,7 +68,10 @@ export default function IncentivesEditor({
       } else if (result.incentives.length === 0) {
         setSuggestError("No suggestions found — add incentives manually below.");
       } else {
-        onChange([...value, ...result.incentives]);
+        onChange([
+          ...value,
+          ...result.incentives.map((inc) => ({ ...inc, includedInPrice: false })),
+        ]);
       }
     } catch {
       setSuggestError("Couldn't get suggestions right now — add incentives manually below.");
@@ -92,11 +102,29 @@ export default function IncentivesEditor({
 
       {value.length > 0 && (
         <div className="mb-2 space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            <span className="w-9 shrink-0 text-center">Incl.</span>
+            <span className="flex-1">Incentive name</span>
+            <span className="w-28 shrink-0">Amount</span>
+            <span className="w-4 shrink-0" />
+          </div>
           {value.map((row, idx) => (
             <div key={idx} className="flex items-center gap-2">
+              <span
+                className="flex w-9 shrink-0 justify-center"
+                title="Check this if the advertised payment/due-at-signing already assumes this incentive is applied"
+              >
+                <input
+                  type="checkbox"
+                  checked={row.includedInPrice}
+                  onChange={(e) => updateRow(idx, { includedInPrice: e.target.checked })}
+                  className="rounded border-white/20 bg-white/5"
+                  aria-label="Already included in advertised price"
+                />
+              </span>
               <input
                 type="text"
-                placeholder="Loyalty"
+                placeholder="e.g. Loyalty"
                 value={row.name}
                 onChange={(e) => updateRow(idx, { name: e.target.value })}
                 className={inputClass}
@@ -118,6 +146,11 @@ export default function IncentivesEditor({
               </button>
             </div>
           ))}
+          <p className="text-xs text-zinc-600">
+            Check &quot;Incl.&quot; if the payment/due-at-signing you entered above already
+            assumes this incentive applies. Leave it unchecked for a stackable incentive not yet
+            reflected in those numbers — shoppers can toggle it on the deal page either way.
+          </p>
         </div>
       )}
 

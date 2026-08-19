@@ -33,6 +33,10 @@ export type VehicleCondition = "New" | "Loaner" | "Demo" | "CPO" | "Used";
 export interface Incentive {
   name: string;
   amount: number;
+  // Whether the advertised payment/due-at-signing already assumes this
+  // incentive is applied. Missing/undefined on older rows saved before this
+  // field existed — treated as false (not already included) wherever read.
+  includedInPrice?: boolean;
 }
 
 export interface Deal {

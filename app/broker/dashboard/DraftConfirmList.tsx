@@ -80,7 +80,9 @@ function DraftRow({
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [onePay, setOnePay] = useState(deal.onePay);
-  const [incentives, setIncentives] = useState<IncentiveRow[]>(deal.incentives ?? []);
+  const [incentives, setIncentives] = useState<IncentiveRow[]>(
+    (deal.incentives ?? []).map((inc) => ({ ...inc, includedInPrice: inc.includedInPrice === true }))
+  );
 
   if (!editing) {
     return (

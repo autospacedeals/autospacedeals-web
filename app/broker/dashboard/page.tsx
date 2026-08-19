@@ -115,7 +115,7 @@ export default async function BrokerDashboardPage() {
       )}
 
       {pendingDrafts.length > 0 && (
-        <div className="mt-8">
+        <div id="pending-drafts" className="mt-8">
           <DraftConfirmList drafts={pendingDrafts} />
         </div>
       )}

@@ -62,7 +62,7 @@ export interface DealRow {
   status: "draft" | "published" | "removed";
   submission_id: string | null;
   condition: string | null;
-  incentives: { name: string; amount: number }[] | null;
+  incentives: { name: string; amount: number; includedInPrice?: boolean }[] | null;
   photo_auto_sourced: boolean;
   due_at_signing_tax_rate: number | null;
   payment_tax_rate: number | null;
