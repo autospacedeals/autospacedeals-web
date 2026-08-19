@@ -109,6 +109,7 @@ async function stageParsedDeals(
       selling_price: null,
       payment: d.payment,
       due_at_signing: d.dueAtSigning,
+      broker_fee: d.brokerFee,
       term: d.term,
       miles_per_year: d.milesPerYear,
       apr: null,

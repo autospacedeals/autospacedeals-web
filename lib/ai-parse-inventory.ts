@@ -53,6 +53,13 @@ const EXTRACT_TOOL = {
             },
             exterior: { type: ["string", "null"], description: "Exterior color" },
             interior: { type: ["string", "null"], description: "Interior color" },
+            brokerFee: {
+              type: ["number", "null"],
+              description:
+                "A broker/doc/service fee called out as its own dollar amount, e.g. \"$699 broker " +
+                "fee\" -> 699. null if none is mentioned. This is a separate field from " +
+                "dueAtSigning — don't fold it into that number, and don't just leave it in notes.",
+            },
             state: {
               type: ["string", "null"],
               description: "2-letter US state code, inferred from any region/city mentioned (e.g. \"Socal\" -> CA)",
@@ -60,7 +67,7 @@ const EXTRACT_TOOL = {
             notes: {
               type: "string",
               description:
-                "Anything else worth keeping — condition (CPO/loaner/demo), broker fee, or other details that didn't fit a field above. Empty string if nothing.",
+                "Anything else worth keeping — condition (CPO/loaner/demo), package/option names, or other details that didn't fit a field above. Empty string if nothing.",
             },
           },
           required: ["year", "make", "model", "notes"],
@@ -140,6 +147,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       dueAtSigning: oneTimeTotal!,
       exterior: typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null,
       interior: typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null,
+      brokerFee: typeof c.brokerFee === "number" ? c.brokerFee : null,
       state: typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState,
       notes: typeof c.notes === "string" ? c.notes.trim() : "",
       onePay,
@@ -175,11 +183,12 @@ export async function parseRowsWithAI(
           `$5000 drive off" meaning term 24 months, 7500 miles/year, $5,000 due at signing; a spec ` +
           `column like "Chalk x black" means exterior Chalk, interior black; a price cell like ` +
           `"$74,990 ONEPAY" means this is a one-pay lease — set onePay true, payment null, and put ` +
-          `$74,990 in dueAtSigning as the full one-pay total). Use your knowledge of ` +
-          `car makes/models to fill in make when only a model name is given. Tolerate typos. If a ` +
-          `field genuinely isn't determinable for a row, use null for it rather than guessing — do ` +
-          `not fabricate numbers. Skip rows that aren't actual vehicle listings (blank rows, totals, ` +
-          `headers repeated mid-sheet, etc).\n\n${table}`,
+          `$74,990 in dueAtSigning as the full one-pay total; a "Fees" column or a note like "$699 ` +
+          `broker fee" or "$999 doc fee" should go in the brokerFee field, not just left in notes). ` +
+          `Use your knowledge of car makes/models to fill in make when only a model name is given. ` +
+          `Tolerate typos. If a field genuinely isn't determinable for a row, use null for it ` +
+          `rather than guessing — do not fabricate numbers. Skip rows that aren't actual vehicle ` +
+          `listings (blank rows, totals, headers repeated mid-sheet, etc).\n\n${table}`,
       },
     ],
   });
@@ -208,7 +217,9 @@ export async function parseFreeTextWithAI(text: string, brokerState: string): Pr
           `Extract every distinct vehicle listing you can find. Use your knowledge of car makes/models ` +
           `to fill in make when only a model name is given. If a deal is a one-pay lease (a single ` +
           `upfront lump sum with no separate monthly bill, often flagged "ONEPAY"/"one-pay"), set ` +
-          `onePay true, payment null, and put the full one-pay total in dueAtSigning. If a field ` +
+          `onePay true, payment null, and put the full one-pay total in dueAtSigning. If a broker ` +
+          `fee, doc fee, or service fee is mentioned as its own dollar amount (e.g. "$699 broker ` +
+          `fee"), put it in the brokerFee field rather than just leaving it in notes. If a field ` +
           `genuinely isn't mentioned, use null for it rather than guessing — do not fabricate ` +
           `numbers.\n\n${text}`,
       },
@@ -279,8 +290,10 @@ export async function parseImageWithAI(
                 `knowledge of car makes/models to fill in make when only a model name is given. If a ` +
                 `deal is a one-pay lease (a single upfront lump sum with no separate monthly bill, ` +
                 `often flagged "ONEPAY"/"one-pay"), set onePay true, payment null, and put the full ` +
-                `one-pay total in dueAtSigning. If a field genuinely isn't visible or determinable, ` +
-                `use null for it rather than guessing — do not fabricate numbers.`,
+                `one-pay total in dueAtSigning. If a broker fee, doc fee, or service fee is called ` +
+                `out as its own dollar amount (e.g. "$699 broker fee"), put it in the brokerFee field ` +
+                `rather than just leaving it in notes. If a field genuinely isn't visible or ` +
+                `determinable, use null for it rather than guessing — do not fabricate numbers.`,
             },
           ],
         },

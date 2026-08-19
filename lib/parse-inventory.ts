@@ -28,6 +28,7 @@ export interface ParsedDeal {
   dueAtSigning: number;
   exterior: string | null;
   interior: string | null;
+  brokerFee: number | null;
   state: string | null;
   notes: string;
   // One-pay lease: a single upfront lump sum (stored in dueAtSigning) with
@@ -297,12 +298,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
       return;
     }
 
-    const notes = [
-      conditionNote,
-      fee ? `$${fee.toLocaleString()} broker fee — confirm whether it's included above.` : null,
-    ]
-      .filter(Boolean)
-      .join(" ");
+    const notes = [conditionNote].filter(Boolean).join(" ");
 
     parsed.push({
       year: year!,
@@ -316,6 +312,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
       dueAtSigning: dueAtSigning!,
       exterior,
       interior,
+      brokerFee: fee,
       state,
       notes,
       onePay,
