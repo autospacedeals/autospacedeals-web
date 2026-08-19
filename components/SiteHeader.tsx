@@ -59,10 +59,10 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
             </Link>
           ) : (
             <Link
-              href="/broker/login"
+              href="/login"
               className="hidden text-sm font-semibold text-zinc-300 transition hover:text-white sm:inline-block"
             >
-              Broker Login
+              Log in
             </Link>
           )}
           {account ? (
@@ -118,11 +118,11 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
               </Link>
             ) : (
               <Link
-                href="/broker/login"
+                href="/login"
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
               >
-                Broker Login
+                Log in
               </Link>
             )}
             {account ? (
