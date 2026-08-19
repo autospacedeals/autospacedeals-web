@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, ShieldCheck, Car, ArrowRight, SlidersHorizontal, Store, Users } from "lucide-react";
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
 import {
@@ -73,6 +74,17 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
 
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
           <div className="mx-auto max-w-3xl text-center">
+            <div className="mx-auto mb-8 max-w-lg overflow-hidden rounded-2xl">
+              <Image
+                src="/logo-hero.png"
+                alt="Drive"
+                width={1448}
+                height={625}
+                priority
+                className="h-auto w-full"
+              />
+            </div>
+
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-zinc-300 sm:text-sm">
               <ShieldCheck size={15} /> Broker &amp; dealer deals, verified and organized
             </div>

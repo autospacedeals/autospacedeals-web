@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Car, Menu, X, UserCircle2, LogOut } from "lucide-react";
+import Image from "next/image";
+import { Menu, X, UserCircle2, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/broker/actions";
 
 const NAV_LINKS = [
@@ -27,17 +28,17 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-zinc-950 sm:h-10 sm:w-10 sm:rounded-2xl">
-            <Car size={20} />
-          </div>
-          <div>
-            <p className="text-base font-bold leading-tight tracking-tight sm:text-lg">
-              Drive
-            </p>
-            <p className="hidden text-xs text-zinc-400 sm:block">
-              Curated dealer &amp; broker lease deals
-            </p>
-          </div>
+          <Image
+            src="/logo-wordmark.png"
+            alt="Drive"
+            width={940}
+            height={211}
+            priority
+            className="h-7 w-auto sm:h-9"
+          />
+          <p className="hidden text-xs text-zinc-400 sm:block">
+            Curated dealer &amp; broker lease deals
+          </p>
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm text-zinc-300 md:flex">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ShieldCheck } from "lucide-react";
 
 export default function SiteFooter() {
@@ -7,8 +8,14 @@ export default function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div>
-            <p className="text-lg font-bold tracking-tight text-white">Drive</p>
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
+            <Image
+              src="/logo-wordmark.png"
+              alt="Drive"
+              width={940}
+              height={211}
+              className="h-7 w-auto"
+            />
+            <p className="mt-3 text-sm leading-6 text-zinc-500">
               One place to browse, compare, and contact dealers and brokers for real
               lease and finance offers.
             </p>
