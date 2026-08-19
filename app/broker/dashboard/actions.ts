@@ -235,8 +235,9 @@ export async function createSubmissionAction(
         }
       } catch (err) {
         console.error("Failed to parse uploaded inventory file:", err);
+        const message = err instanceof Error ? err.message : null;
         return {
-          error: "Couldn't read that file — make sure it's a valid .xlsx, .xls, or .csv, or add cars manually below.",
+          error: `Couldn't read that file${message ? ` (${message})` : ""} — make sure it's a valid .xlsx, .xls, or .csv, or add cars manually below.`,
         };
       }
     }

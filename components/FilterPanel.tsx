@@ -131,16 +131,6 @@ export default function FilterPanel({
           onChange={(v) => onChange({ maxDueAtSigning: v })}
         />
       </div>
-
-      <label className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-sm text-zinc-300">
-        <input
-          type="checkbox"
-          checked={filters.inStockOnly}
-          onChange={(e) => onChange({ inStockOnly: e.target.checked })}
-          className="h-4 w-4 rounded border-white/20 bg-zinc-900 accent-white"
-        />
-        In-stock deals only
-      </label>
     </div>
   );
 }

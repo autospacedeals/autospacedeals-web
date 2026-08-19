@@ -53,12 +53,21 @@ export default async function BrokerDashboardPage() {
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
     "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at";
 
-  const { data: myDealRows } = await supabase
+  const { data: myDealRows, error: dealsError } = await supabase
     .from("deals")
     .select(DEAL_COLUMNS)
     .eq("broker_id", user.id)
     .order("created_at", { ascending: false })
     .returns<DealRow[]>();
+
+  // A failed query here (e.g. a database migration that hasn't been run
+  // yet, so a selected column doesn't exist) used to fail silently and
+  // just render as "no drafts/listings" — log it loudly so a schema
+  // mismatch shows up in the server logs instead of just looking like a
+  // broken upload with no clue why.
+  if (dealsError) {
+    console.error("Broker dashboard: failed to load deals for broker", user.id, dealsError.message);
+  }
 
   const draftRows = (myDealRows ?? []).filter((r) => r.status === "draft");
   const publishedRows = (myDealRows ?? []).filter((r) => r.status === "published");
@@ -96,6 +105,14 @@ export default async function BrokerDashboardPage() {
       </div>
 
       <AboutEditor about={broker?.about ?? null} brokerId={user.id} />
+
+      {dealsError && (
+        <div className="mt-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+          We couldn&apos;t load your listings right now — this looks like a backend issue, not
+          something wrong with what you uploaded. Try refreshing, and let Robert know if it keeps
+          happening.
+        </div>
+      )}
 
       {pendingDrafts.length > 0 && (
         <div className="mt-8">

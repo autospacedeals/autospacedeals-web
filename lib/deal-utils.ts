@@ -239,7 +239,6 @@ export interface DealFilters {
   state: string; // "All" or a state code (also used as "your location" for the closest sort)
   term: string; // "All" or term in months as string
   mileage: string; // "All" or miles/year as string
-  inStockOnly: boolean;
   maxPayment: number;
   maxDueAtSigning: number;
 }
@@ -257,7 +256,6 @@ export const DEFAULT_FILTERS: DealFilters = {
   state: "All",
   term: "All",
   mileage: "All",
-  inStockOnly: false,
   maxPayment: MAX_PAYMENT_CEILING,
   maxDueAtSigning: MAX_DAS_CEILING,
 };
@@ -296,7 +294,6 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
     const matchesTerm = filters.term === "All" || String(deal.term) === filters.term;
     const matchesMileage =
       filters.mileage === "All" || String(deal.milesPerYear ?? "") === filters.mileage;
-    const matchesStock = !filters.inStockOnly || deal.inStock;
     const matchesPayment = deal.payment <= filters.maxPayment;
     const matchesDueAtSigning = deal.dueAtSigning <= filters.maxDueAtSigning;
 
@@ -328,7 +325,6 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
       matchesState &&
       matchesTerm &&
       matchesMileage &&
-      matchesStock &&
       matchesPayment &&
       matchesDueAtSigning &&
       matchesQuery
