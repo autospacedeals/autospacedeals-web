@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import SiteHeader, { type HeaderAccount } from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter";
+import { type HeaderAccount } from "@/components/SiteHeader";
+import SiteChrome from "@/components/SiteChrome";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
@@ -99,9 +99,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full bg-black antialiased`}
     >
       <body className="flex min-h-full flex-col bg-black text-white">
-        <SiteHeader account={account} />
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+        <SiteChrome account={account}>{children}</SiteChrome>
       </body>
     </html>
   );

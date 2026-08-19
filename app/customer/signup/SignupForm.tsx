@@ -139,12 +139,6 @@ export default function SignupForm() {
           Sign in
         </Link>
       </p>
-      <p className="text-center text-xs text-zinc-600">
-        Listing deals instead?{" "}
-        <Link href="/broker/signup" className="font-semibold text-zinc-400 hover:underline">
-          Create a broker/dealer account
-        </Link>
-      </p>
     </form>
   );
 }
