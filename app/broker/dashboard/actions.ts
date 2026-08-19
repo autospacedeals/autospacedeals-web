@@ -24,6 +24,18 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
 }
 
+// Skip reasons only ever showed up as a bare count to the broker ("1 row
+// couldn't be read automatically") — logging the actual reason server-side
+// so a specific parsing gap (like the one-pay lease case) is diagnosable
+// from Vercel logs instead of a guessing game.
+function logSkippedRows(source: string, skipped: { row: number; reason: string }[]) {
+  if (skipped.length === 0) return;
+  console.warn(
+    `${source}: ${skipped.length} row(s) skipped —`,
+    skipped.map((s) => `row ${s.row}: ${s.reason}`).join("; ")
+  );
+}
+
 const SUPPORTED_IMAGE_TYPES: SupportedImageType[] = [
   "image/jpeg",
   "image/png",
@@ -37,6 +49,10 @@ export type SubmissionState = {
   submissionId?: string;
   parsedCount?: number;
   skippedCount?: number;
+  // Why each unread row was skipped, shown directly to the broker instead
+  // of just a bare count — makes a specific parsing gap self-diagnosable
+  // without digging through server logs.
+  skipReasons?: string[];
 };
 
 interface BrokerProfile {
@@ -224,6 +240,7 @@ export async function createSubmissionAction(
   let sourceUrl = "";
   let parsedDeals: ParsedDeal[] = [];
   let skippedCount = 0;
+  let skipReasons: string[] = [];
 
   if (sourceType === "excel_file") {
     const file = formData.get("file") as File | null;
@@ -240,6 +257,8 @@ export async function createSubmissionAction(
         const result = await parseInventoryBuffer(buffer, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
+        skipReasons = result.skipped.map((s) => s.reason);
+        logSkippedRows("excel_file", result.skipped);
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
             error:
@@ -316,6 +335,8 @@ export async function createSubmissionAction(
         const result = await parseInventoryCsv(csvText, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
+        skipReasons = result.skipped.map((s) => s.reason);
+        logSkippedRows("google_sheet", result.skipped);
 
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
@@ -342,6 +363,8 @@ export async function createSubmissionAction(
         const result = await parseFreeTextWithAI(dealText, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
+        skipReasons = result.skipped.map((s) => s.reason);
+        logSkippedRows("free_text", result.skipped);
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
             error:
@@ -376,6 +399,8 @@ export async function createSubmissionAction(
         const result = await parseImageWithAI(buffer, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
+        skipReasons = result.skipped.map((s) => s.reason);
+        logSkippedRows("screenshot", result.skipped);
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
             error:
@@ -437,6 +462,7 @@ export async function createSubmissionAction(
     submissionId: inserted?.id,
     parsedCount: parsedDeals.length - stageFailed,
     skippedCount: skippedCount + stageFailed,
+    skipReasons,
   };
 }
 

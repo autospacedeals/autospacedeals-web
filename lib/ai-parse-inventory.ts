@@ -101,10 +101,19 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const make = typeof c.make === "string" && c.make.trim() ? c.make.trim() : null;
     const model = typeof c.model === "string" && c.model.trim() ? c.model.trim() : null;
     const msrp = typeof c.msrp === "number" ? c.msrp : null;
-    const onePay = c.onePay === true;
+    // Some rows also mention "onepay"/"one-pay" in notes even when the
+    // model didn't set the boolean flag on the field itself — catch that
+    // too rather than depending entirely on the model populating onePay.
+    const onePay =
+      c.onePay === true || (typeof c.notes === "string" && /\bone[\s-]?pay\b/i.test(c.notes));
     const payment = typeof c.payment === "number" ? c.payment : null;
     const term = typeof c.term === "number" ? c.term : null;
     const dueAtSigning = typeof c.dueAtSigning === "number" ? c.dueAtSigning : null;
+    // A one-pay total might land in either field depending on how the model
+    // read the sheet (a "Price"-style column reads naturally as "payment"
+    // even though there's no actual monthly bill) — accept whichever one
+    // the model actually populated as the lump-sum total.
+    const oneTimeTotal = onePay ? dueAtSigning ?? payment : dueAtSigning;
 
     const missing: string[] = [];
     if (!year) missing.push("year");
@@ -112,7 +121,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     if (!msrp) missing.push("MSRP");
     if (!onePay && !payment) missing.push("payment");
     if (!term) missing.push("term");
-    if (!dueAtSigning) missing.push("due at signing");
+    if (!oneTimeTotal) missing.push("due at signing");
 
     if (missing.length > 0) {
       skipped.push({ row: idx + 1, reason: `Couldn't determine: ${missing.join(", ")}` });
@@ -128,7 +137,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       payment: onePay ? 0 : payment!,
       term: term!,
       milesPerYear: typeof c.milesPerYear === "number" ? c.milesPerYear : null,
-      dueAtSigning: dueAtSigning!,
+      dueAtSigning: oneTimeTotal!,
       exterior: typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null,
       interior: typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null,
       state: typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState,

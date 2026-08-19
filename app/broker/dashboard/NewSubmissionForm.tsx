@@ -116,6 +116,13 @@ function LinkForm() {
           {skippedCount > 0 &&
             ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}
         </p>
+        {state.skipReasons && state.skipReasons.length > 0 && (
+          <ul className="mt-2 space-y-0.5 text-xs text-amber-300/80">
+            {state.skipReasons.map((reason, i) => (
+              <li key={i}>• {reason}</li>
+            ))}
+          </ul>
+        )}
         <p className="mt-2 text-sm text-zinc-400">
           {parsedCount > 0
             ? "Need to add more? You can also enter cars one at a time below."
