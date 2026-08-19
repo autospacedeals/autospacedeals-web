@@ -33,10 +33,24 @@ const EXTRACT_TOOL = {
             model: { type: "string", description: "Model name, e.g. Taycan" },
             trim: { type: ["string", "null"], description: "Trim/spec if mentioned, else null" },
             msrp: { type: ["number", "null"], description: "MSRP in dollars, e.g. 217000 for \"217k\"" },
-            payment: { type: ["number", "null"], description: "Monthly payment in dollars" },
+            onePay: {
+              type: "boolean",
+              description:
+                "true if this is a one-pay lease — a single upfront lump sum with no separate " +
+                "monthly bill, often flagged with the word \"ONEPAY\"/\"one-pay\". When true, " +
+                "payment should be null and the full one-pay total goes in dueAtSigning instead.",
+            },
+            payment: {
+              type: ["number", "null"],
+              description: "Monthly payment in dollars — null if this is a one-pay lease (see onePay)",
+            },
             term: { type: ["number", "null"], description: "Lease term in months" },
             milesPerYear: { type: ["number", "null"], description: "Mileage allowance per year" },
-            dueAtSigning: { type: ["number", "null"], description: "Due at signing / drive-off in dollars" },
+            dueAtSigning: {
+              type: ["number", "null"],
+              description:
+                "Due at signing / drive-off in dollars — or the full one-pay total if onePay is true",
+            },
             exterior: { type: ["string", "null"], description: "Exterior color" },
             interior: { type: ["string", "null"], description: "Interior color" },
             state: {
@@ -87,6 +101,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const make = typeof c.make === "string" && c.make.trim() ? c.make.trim() : null;
     const model = typeof c.model === "string" && c.model.trim() ? c.model.trim() : null;
     const msrp = typeof c.msrp === "number" ? c.msrp : null;
+    const onePay = c.onePay === true;
     const payment = typeof c.payment === "number" ? c.payment : null;
     const term = typeof c.term === "number" ? c.term : null;
     const dueAtSigning = typeof c.dueAtSigning === "number" ? c.dueAtSigning : null;
@@ -95,7 +110,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     if (!year) missing.push("year");
     if (!make || !model) missing.push("make/model");
     if (!msrp) missing.push("MSRP");
-    if (!payment) missing.push("payment");
+    if (!onePay && !payment) missing.push("payment");
     if (!term) missing.push("term");
     if (!dueAtSigning) missing.push("due at signing");
 
@@ -110,7 +125,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       model: model!,
       trim: typeof c.trim === "string" && c.trim.trim() ? c.trim.trim() : null,
       msrp: msrp!,
-      payment: payment!,
+      payment: onePay ? 0 : payment!,
       term: term!,
       milesPerYear: typeof c.milesPerYear === "number" ? c.milesPerYear : null,
       dueAtSigning: dueAtSigning!,
@@ -118,6 +133,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       interior: typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null,
       state: typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState,
       notes: typeof c.notes === "string" ? c.notes.trim() : "",
+      onePay,
     });
   });
 
@@ -148,7 +164,9 @@ export async function parseRowsWithAI(
           `"2021 Taycan Turbo S (217k) CPO" meaning year 2021, make Porsche, model Taycan, trim ` +
           `"Turbo S", MSRP $217,000, condition CPO; a "Term" column might read "24 mo/ 7500 mi/ ` +
           `$5000 drive off" meaning term 24 months, 7500 miles/year, $5,000 due at signing; a spec ` +
-          `column like "Chalk x black" means exterior Chalk, interior black). Use your knowledge of ` +
+          `column like "Chalk x black" means exterior Chalk, interior black; a price cell like ` +
+          `"$74,990 ONEPAY" means this is a one-pay lease — set onePay true, payment null, and put ` +
+          `$74,990 in dueAtSigning as the full one-pay total). Use your knowledge of ` +
           `car makes/models to fill in make when only a model name is given. Tolerate typos. If a ` +
           `field genuinely isn't determinable for a row, use null for it rather than guessing — do ` +
           `not fabricate numbers. Skip rows that aren't actual vehicle listings (blank rows, totals, ` +
@@ -179,8 +197,11 @@ export async function parseFreeTextWithAI(text: string, brokerState: string): Pr
         content:
           `A broker typed up one or more car lease deals in plain language (not a spreadsheet). ` +
           `Extract every distinct vehicle listing you can find. Use your knowledge of car makes/models ` +
-          `to fill in make when only a model name is given. If a field genuinely isn't mentioned, use ` +
-          `null for it rather than guessing — do not fabricate numbers.\n\n${text}`,
+          `to fill in make when only a model name is given. If a deal is a one-pay lease (a single ` +
+          `upfront lump sum with no separate monthly bill, often flagged "ONEPAY"/"one-pay"), set ` +
+          `onePay true, payment null, and put the full one-pay total in dueAtSigning. If a field ` +
+          `genuinely isn't mentioned, use null for it rather than guessing — do not fabricate ` +
+          `numbers.\n\n${text}`,
       },
     ],
   });
@@ -246,9 +267,11 @@ export async function parseImageWithAI(
               text:
                 `This is a screenshot of one or more car lease deals (a text message, forum post, ` +
                 `spreadsheet, flyer, etc). Extract every distinct vehicle listing you can read. Use your ` +
-                `knowledge of car makes/models to fill in make when only a model name is given. If a field ` +
-                `genuinely isn't visible or determinable, use null for it rather than guessing — do not ` +
-                `fabricate numbers.`,
+                `knowledge of car makes/models to fill in make when only a model name is given. If a ` +
+                `deal is a one-pay lease (a single upfront lump sum with no separate monthly bill, ` +
+                `often flagged "ONEPAY"/"one-pay"), set onePay true, payment null, and put the full ` +
+                `one-pay total in dueAtSigning. If a field genuinely isn't visible or determinable, ` +
+                `use null for it rather than guessing — do not fabricate numbers.`,
             },
           ],
         },

@@ -111,7 +111,7 @@ async function stageParsedDeals(
       popularity: 50,
       notes: d.notes,
       images,
-      one_pay: false,
+      one_pay: d.onePay,
       status: "draft",
     });
 

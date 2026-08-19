@@ -30,6 +30,10 @@ export interface ParsedDeal {
   interior: string | null;
   state: string | null;
   notes: string;
+  // One-pay lease: a single upfront lump sum (stored in dueAtSigning) with
+  // no separate monthly bill. payment is 0 by convention when this is true,
+  // same as the manual "Add a car" forms.
+  onePay: boolean;
 }
 
 export interface ParseResult {
@@ -267,9 +271,15 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
 
     if (!modelText && !paymentText && !termText) return; // blank row, skip silently
 
+    // A one-pay lease has no monthly payment — the "payment" cell instead
+    // holds the single upfront total (often flagged with the word
+    // "ONEPAY"/"one-pay"), which becomes dueAtSigning below.
+    const onePay = /\bone[\s-]?pay\b/i.test(paymentText) || /\bone[\s-]?pay\b/i.test(termText);
+
     const { year, make, model, trim, msrp, conditionNote } = parseModelCell(modelText);
-    const payment = firstNumber(paymentText);
-    const { term, milesPerYear, dueAtSigning } = parseTermCell(termText);
+    const payment = onePay ? 0 : firstNumber(paymentText);
+    const { term, milesPerYear, dueAtSigning: dueFromTerm } = parseTermCell(termText);
+    const dueAtSigning = onePay ? firstNumber(paymentText) : dueFromTerm;
     const { exterior, interior } = parseSpecCell(specText);
     const state = locationText ? parseLocationCell(locationText, brokerState) : brokerState;
     const fee = feeText ? firstNumber(feeText) : null;
@@ -278,7 +288,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
     if (!year) missing.push("year");
     if (!make || !model) missing.push("make/model (unrecognized)");
     if (!msrp) missing.push("MSRP");
-    if (!payment) missing.push("payment");
+    if (!onePay && !payment) missing.push("payment");
     if (!term) missing.push("term");
     if (!dueAtSigning) missing.push("due at signing");
 
@@ -300,7 +310,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
       model: model!,
       trim,
       msrp: msrp!,
-      payment: payment!,
+      payment: payment ?? 0,
       term: term!,
       milesPerYear,
       dueAtSigning: dueAtSigning!,
@@ -308,6 +318,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
       interior,
       state,
       notes,
+      onePay,
     });
   });
 
