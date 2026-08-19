@@ -4,18 +4,15 @@ import type { Deal } from "@/lib/deals-data";
 import { displayMsrp, formatCurrency, msrpDiscountPercent, relativeDatePosted } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
 
-const BADGE_STYLES: Record<string, string> = {
-  HOT: "bg-orange-500 text-white",
+// HOT and VALUE badges were dropped per Robert — too cluttered for the
+// clean look he wants. Only badge types listed here render at all; a
+// legacy `badge: "HOT"` value on an old row just won't match and won't
+// show anything. Exported so the deal detail page's photo badge respects
+// the same allowlist.
+export const BADGE_STYLES: Record<string, string> = {
   NEW: "bg-blue-500 text-white",
-  VALUE: "bg-emerald-500 text-white",
   EV: "bg-teal-500 text-white",
 };
-
-// Deprioritized for now per Robert — keeping the styles/logic above intact
-// (and the underlying `badge` data untouched) in case we want these back;
-// this just stops them from rendering. Exported so the deal detail page's
-// photo badge respects the same list.
-export const HIDDEN_BADGES = new Set(["HOT", "VALUE"]);
 
 const CONDITION_STYLES: Record<string, string> = {
   New: "bg-blue-500 text-white",
@@ -41,11 +38,9 @@ export default function DealCard({ deal }: { deal: Deal }) {
           />
 
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-            {deal.badge && !HIDDEN_BADGES.has(deal.badge) && (
+            {deal.badge && BADGE_STYLES[deal.badge] && (
               <span
-                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                  BADGE_STYLES[deal.badge] ?? "bg-white text-zinc-950"
-                }`}
+                className={`rounded-full px-2.5 py-1 text-xs font-bold ${BADGE_STYLES[deal.badge]}`}
               >
                 {deal.badge}
               </span>
