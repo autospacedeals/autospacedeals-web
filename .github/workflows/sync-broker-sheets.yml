@@ -16,6 +16,6 @@ jobs:
     steps:
       - name: Call sync-sheets endpoint
         run: |
-          curl --fail --show-error --silent \
+          curl --fail-with-body --show-error --silent \
             -H "Authorization: Bearer ${{ secrets.CRON_SYNC_SECRET }}" \
             "https://www.idriveus.com/api/cron/sync-sheets"

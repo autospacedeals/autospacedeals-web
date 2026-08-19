@@ -21,9 +21,26 @@ function isAuthorized(request: NextRequest): boolean {
   return request.headers.get("authorization") === `Bearer ${secret}`;
 }
 
+// TEMPORARY: lengths/booleans only, never the actual secret — just enough
+// to tell a length/whitespace mismatch apart from a wrong value apart from
+// a missing env var, without leaking anything sensitive. Remove once the
+// 401 mismatch is sorted out.
+function authDebugInfo(request: NextRequest) {
+  const secret = process.env.CRON_SYNC_SECRET ?? null;
+  const header = request.headers.get("authorization");
+  return {
+    hasSecretEnv: secret !== null,
+    secretLength: secret?.length ?? null,
+    headerPresent: header !== null,
+    headerLength: header?.length ?? null,
+    headerStartsWithBearer: header?.startsWith("Bearer ") ?? null,
+    matches: secret !== null && header === `Bearer ${secret}`,
+  };
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized", debug: authDebugInfo(request) }, { status: 401 });
   }
 
   const supabase = createAdminClient();
