@@ -61,11 +61,25 @@ async function getHeaderAccount(): Promise<HeaderAccount | null> {
       5000,
       "getHeaderAccount broker lookup"
     );
+    if (broker) return { label: broker.business_name, href: "/broker/dashboard" };
     if (error) {
       console.error("getHeaderAccount broker lookup failed:", error.message);
     }
 
-    return { label: broker?.business_name ?? "My Dashboard", href: "/broker/dashboard" };
+    const { data: customer, error: customerError } = await withTimeout(
+      supabase
+        .from("customers")
+        .select("first_name")
+        .eq("id", user.id)
+        .single<{ first_name: string }>(),
+      5000,
+      "getHeaderAccount customer lookup"
+    );
+    if (customerError) {
+      console.error("getHeaderAccount customer lookup failed:", customerError.message);
+    }
+
+    return { label: customer?.first_name ?? "My Account", href: "/customer/dashboard" };
   } catch (err) {
     console.error("getHeaderAccount threw:", err);
     return null;

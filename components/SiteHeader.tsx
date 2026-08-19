@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X, UserCircle2, LogOut } from "lucide-react";
-import { signOutAction } from "@/app/broker/actions";
+import { headerSignOutAction } from "@/app/actions";
 
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals" },
@@ -66,7 +66,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
             </Link>
           )}
           {account ? (
-            <form action={signOutAction} className="hidden sm:block">
+            <form action={headerSignOutAction} className="hidden sm:block">
               <button
                 type="submit"
                 className="flex items-center gap-1.5 rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-white/10 hover:text-white"
@@ -76,7 +76,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
             </form>
           ) : (
             <Link
-              href="/broker/signup"
+              href="/customer/signup"
               className="hidden rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 sm:inline-block"
             >
               Sign up
@@ -126,7 +126,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
               </Link>
             )}
             {account ? (
-              <form action={signOutAction}>
+              <form action={headerSignOutAction}>
                 <button
                   type="submit"
                   onClick={() => setOpen(false)}
@@ -137,7 +137,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
               </form>
             ) : (
               <Link
-                href="/broker/signup"
+                href="/customer/signup"
                 onClick={() => setOpen(false)}
                 className="mt-2 rounded-lg bg-white px-3 py-3 text-center font-semibold text-zinc-950"
               >
