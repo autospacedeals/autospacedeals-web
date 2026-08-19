@@ -13,6 +13,17 @@ import {
 } from "@/lib/ai-parse-inventory";
 import { suggestIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
 
+// Supabase Storage rejects object keys containing spaces, colons, and other
+// punctuation — which is exactly what Mac/Windows screenshot and export
+// filenames are full of (e.g. "Screenshot 2026-08-17 at 3.20.24 PM.png").
+// That was silently breaking every screenshot/spreadsheet upload whose
+// original filename wasn't already storage-safe, surfacing as a raw
+// "Invalid key: ..." error. Strip it down to a safe, storage-key-friendly
+// name instead of trusting the original filename.
+function sanitizeFilename(name: string): string {
+  return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+}
+
 const SUPPORTED_IMAGE_TYPES: SupportedImageType[] = [
   "image/jpeg",
   "image/png",
@@ -242,7 +253,7 @@ export async function createSubmissionAction(
       }
     }
 
-    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const path = `${user.id}/${Date.now()}-${sanitizeFilename(file.name)}`;
     const { error: uploadError } = await supabase.storage
       .from("broker-uploads")
       .upload(path, file);
@@ -376,7 +387,7 @@ export async function createSubmissionAction(
       }
     }
 
-    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const path = `${user.id}/${Date.now()}-${sanitizeFilename(file.name)}`;
     const { error: uploadError } = await supabase.storage.from("broker-uploads").upload(path, file);
     if (uploadError) return { error: uploadError.message };
 
