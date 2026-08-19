@@ -7,7 +7,7 @@ export default function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div>
-            <p className="text-lg font-bold tracking-tight text-white">AutoSpace Deals</p>
+            <p className="text-lg font-bold tracking-tight text-white">Drive</p>
             <p className="mt-2 text-sm leading-6 text-zinc-500">
               One place to browse, compare, and contact dealers and brokers for real
               lease and finance offers.
@@ -45,7 +45,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <a
-                  href="mailto:mheryanrobert@gmail.com?subject=Question%20about%20AutoSpace%20Deals"
+                  href="mailto:rob@idriveus.com?subject=Question%20about%20Drive"
                   className="hover:text-white"
                 >
                   Contact support
@@ -63,7 +63,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <a
-                  href="mailto:mheryanrobert@gmail.com?subject=Report%20an%20issue"
+                  href="mailto:rob@idriveus.com?subject=Report%20an%20issue"
                   className="hover:text-white"
                 >
                   Report an issue
@@ -81,7 +81,7 @@ export default function SiteFooter() {
             Always confirm final pricing and terms directly with the dealer or broker before
             signing.
           </p>
-          <p>© {new Date().getFullYear()} AutoSpace Deals. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Drive. All rights reserved.</p>
         </div>
       </div>
     </footer>

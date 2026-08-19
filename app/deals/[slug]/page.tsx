@@ -335,7 +335,7 @@ export default async function DealDetailPage({
             </div>
 
             <p className="mt-4 text-xs leading-5 text-zinc-500">
-              Contacting the seller connects you directly — AutoSpace Deals does not process
+              Contacting the seller connects you directly — Drive does not process
               payments or negotiate on your behalf.
             </p>
           </div>

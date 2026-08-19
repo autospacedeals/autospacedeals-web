@@ -32,7 +32,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
           </div>
           <div>
             <p className="text-base font-bold leading-tight tracking-tight sm:text-lg">
-              AutoSpace Deals
+              Drive
             </p>
             <p className="hidden text-xs text-zinc-400 sm:block">
               Curated dealer &amp; broker lease deals

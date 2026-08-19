@@ -82,7 +82,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg">
-              Stop digging through dealer sites, broker posts, and forum threads. AutoSpace Deals
+              Stop digging through dealer sites, broker posts, and forum threads. Drive
               organizes offers from dealers and brokers into clean listings with real payments,
               due at signing, term, mileage, and direct contact info.
             </p>
@@ -224,7 +224,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
               Get your inventory in front of ready-to-buy shoppers.
             </h2>
             <p className="mt-3 max-w-2xl leading-7 text-zinc-300">
-              List your dealer or broker deals on AutoSpace Deals for free while we&apos;re in
+              List your dealer or broker deals on Drive for free while we&apos;re in
               early access. You keep every lead — shoppers contact you directly by phone, text,
               or email.
             </p>
@@ -241,7 +241,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
               Create a Broker Account <ArrowRight size={16} />
             </Link>
             <a
-              href="mailto:mheryanrobert@gmail.com?subject=I%20want%20to%20list%20deals%20on%20AutoSpace%20Deals"
+              href="mailto:rob@idriveus.com?subject=I%20want%20to%20list%20deals%20on%20Drive"
               className="text-center text-xs font-semibold text-zinc-500 hover:text-white"
             >
               or just email us

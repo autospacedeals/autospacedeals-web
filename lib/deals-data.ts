@@ -1,5 +1,5 @@
 // =============================================================================
-// AutoSpace Deals — Deal Inventory
+// Drive — Deal Inventory
 // =============================================================================
 // This file is the single source of truth for every deal shown on the site.
 // It is plain TypeScript data (no database yet), so adding or editing a deal
@@ -163,7 +163,7 @@ export const deals: Deal[] = [
   // ---------------------------------------------------------------------
   // Real deals below — sourced from Chrome Stallions' own public posts on
   // their Leasehackr marketplace thread. Chrome Stallions has given
-  // permission to be listed on AutoSpace Deals. Prices reflect what the
+  // permission to be listed on Drive. Prices reflect what the
   // broker posted; confirm current availability before publishing updates,
   // since brokers rotate these specials frequently (these were posted as
   // "May Specials" — reconfirm for the current month before launch).

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Mail } from "lucide-react";
 import { BODY_STYLES, FUEL_TYPES } from "@/lib/deals-data";
 
-const SUBMISSION_EMAIL = "mheryanrobert@gmail.com";
+const SUBMISSION_EMAIL = "rob@idriveus.com";
 
 type FormState = {
   sellerType: "Dealer" | "Broker";

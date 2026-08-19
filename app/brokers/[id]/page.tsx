@@ -19,7 +19,7 @@ export async function generateMetadata({
   if (!broker) return { title: "Broker not found" };
   return {
     title: broker.businessName,
-    description: `${broker.businessName} — ${broker.sellerType} in ${broker.city}, ${broker.state} on AutoSpace Deals.`,
+    description: `${broker.businessName} — ${broker.sellerType} in ${broker.city}, ${broker.state} on Drive.`,
   };
 }
 
@@ -76,7 +76,7 @@ export default async function BrokerProfilePage({
         )}
 
         <p className="mt-5 text-xs leading-5 text-zinc-500">
-          Contacting {broker.businessName} connects you directly — AutoSpace Deals does not
+          Contacting {broker.businessName} connects you directly — Drive does not
           process payments or negotiate on your behalf.
         </p>
       </div>

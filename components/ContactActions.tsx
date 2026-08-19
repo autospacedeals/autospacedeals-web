@@ -9,7 +9,7 @@ function matchMailto(deal: Deal): string {
   const body = encodeURIComponent(
     `Hi,\n\nI'd like to be matched with similar deals to this one:\n\n${dealTitle(deal)} — ${deal.state}\n\nMy budget / preferences:\n- Monthly payment around: $\n- Max due at signing: $\n- Body style: ${deal.bodyStyle ?? "Not specified"}\n- Fuel type: ${deal.fuel ?? "Not specified"}\n\nThanks!`
   );
-  return `mailto:mheryanrobert@gmail.com?subject=${subject}&body=${body}`;
+  return `mailto:rob@idriveus.com?subject=${subject}&body=${body}`;
 }
 
 function availabilityMailto(deal: Deal): string {

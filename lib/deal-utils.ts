@@ -176,7 +176,7 @@ export function phoneDigits(phone: string | null | undefined): string {
 export function dealMailtoHref(deal: Deal, subjectPrefix = "Interested in"): string {
   const subject = encodeURIComponent(`${subjectPrefix}: ${dealTitle(deal)}`);
   const body = encodeURIComponent(
-    `Hi ${deal.sellerName},\n\nI found this deal on AutoSpace Deals and would like more information:\n\n${dealTitle(
+    `Hi ${deal.sellerName},\n\nI found this deal on Drive and would like more information:\n\n${dealTitle(
       deal
     )}\n${formatCurrency(deal.payment)}/mo, ${formatCurrency(
       deal.dueAtSigning
@@ -190,7 +190,7 @@ export function reportIssueMailtoHref(deal: Deal): string {
   const body = encodeURIComponent(
     `Deal: ${dealTitle(deal)}\nListing URL: /deals/${deal.slug}\n\nWhat looks wrong?\n`
   );
-  return `mailto:mheryanrobert@gmail.com?subject=${subject}&body=${body}`;
+  return `mailto:rob@idriveus.com?subject=${subject}&body=${body}`;
 }
 
 // Builds a URL-friendly slug from a vehicle's year/make/model/trim/state,

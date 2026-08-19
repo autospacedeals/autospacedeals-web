@@ -1,5 +1,5 @@
 -- =============================================================================
--- AutoSpace Deals — Broker Portal Schema
+-- Drive — Broker Portal Schema
 -- =============================================================================
 -- Run this once in your Supabase project's SQL Editor (Project → SQL Editor →
 -- New query → paste this whole file → Run). It creates:

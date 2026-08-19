@@ -6,7 +6,7 @@ import SubmitDealForm from "@/components/SubmitDealForm";
 export const metadata: Metadata = {
   title: "Submit a Deal",
   description:
-    "Dealers and brokers: submit a lease or finance deal for review before it's posted on AutoSpace Deals.",
+    "Dealers and brokers: submit a lease or finance deal for review before it's posted on Drive.",
 };
 
 export default function SubmitADealPage() {
@@ -31,7 +31,7 @@ export default function SubmitADealPage() {
         <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald-400" />
         <p>
           Nothing is posted automatically. This just gets your deal in front of us fast — we
-          &apos;ll follow up by phone or email to verify it before it appears on AutoSpace Deals.
+          &apos;ll follow up by phone or email to verify it before it appears on Drive.
         </p>
       </div>
 

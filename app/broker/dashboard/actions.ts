@@ -277,7 +277,7 @@ export async function createSubmissionAction(
           {
             // Google's export endpoint sometimes behaves differently (or
             // blocks) requests without a browser-like User-Agent.
-            headers: { "User-Agent": "Mozilla/5.0 (compatible; AutoSpaceDealsBot/1.0)" },
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
           }
         );
 

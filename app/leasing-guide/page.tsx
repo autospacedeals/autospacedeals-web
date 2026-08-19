@@ -11,7 +11,7 @@ export default function LeasingGuidePage() {
     <main>
       <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
         <p className="mb-3 text-sm font-medium text-blue-400">
-          AutoSpaceDeals Guide
+          Drive Guide
         </p>
 
         <h1 className="mb-6 text-4xl font-bold tracking-tight">

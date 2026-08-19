@@ -7,7 +7,7 @@ import { isAdminEmail } from "@/lib/admin";
 
 export const metadata: Metadata = {
   title: "Broker/Dealer Login",
-  description: "Sign in to your AutoSpace Deals broker or dealer account.",
+  description: "Sign in to your Drive broker or dealer account.",
 };
 
 export default async function BrokerLoginPage() {
