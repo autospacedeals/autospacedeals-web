@@ -84,9 +84,9 @@ export default function SiteFooter() {
           <p>
             All deals are subject to availability and credit approval. Advertised payments,
             due-at-signing amounts, and terms are provided by the listing dealer or broker and
-            may not include tax, title, registration, and documentation fees unless stated.
-            Always confirm final pricing and terms directly with the dealer or broker before
-            signing.
+            may not include tax unless stated. Title, registration, and documentation fees are
+            included. Always confirm final pricing and terms directly with the dealer or broker
+            before signing.
           </p>
           <p>© {new Date().getFullYear()} Drive. All rights reserved.</p>
         </div>
