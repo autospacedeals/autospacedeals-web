@@ -36,9 +36,6 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
             priority
             className="h-7 w-auto sm:h-9"
           />
-          <p className="hidden text-xs text-zinc-400 sm:block">
-            Curated dealer &amp; broker lease deals
-          </p>
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm text-zinc-300 md:flex">
