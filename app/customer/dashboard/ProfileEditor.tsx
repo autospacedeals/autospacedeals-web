@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Car, IdCard, ShieldCheck, Pencil, X } from "lucide-react";
+import { MapPin, Car, IdCard, ShieldCheck, Pencil, X, ExternalLink } from "lucide-react";
 import { updateCustomerProfileAction } from "./actions";
 
 const inputClass =
@@ -11,17 +11,27 @@ const fileInputClass =
   "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-white/20";
 
 interface ProfileEditorProps {
+  firstName: string;
+  lastName: string;
+  zipCode: string;
   address: string | null;
   currentVehicle: string | null;
   hasLicense: boolean;
   hasInsurance: boolean;
+  licenseUrl: string | null;
+  insuranceUrl: string | null;
 }
 
 export default function ProfileEditor({
+  firstName,
+  lastName,
+  zipCode,
   address,
   currentVehicle,
   hasLicense,
   hasInsurance,
+  licenseUrl,
+  insuranceUrl,
 }: ProfileEditorProps) {
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
@@ -57,13 +67,37 @@ export default function ProfileEditor({
           <dt className="flex items-center gap-1.5 text-zinc-500">
             <IdCard size={13} /> Driver&apos;s license
           </dt>
-          <dd className="mt-0.5 text-zinc-300">{hasLicense ? "Uploaded" : "Not added"}</dd>
+          <dd className="mt-0.5 flex items-center gap-2 text-zinc-300">
+            {hasLicense ? "Uploaded" : "Not added"}
+            {licenseUrl && (
+              <a
+                href={licenseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-white underline decoration-dotted hover:decoration-solid"
+              >
+                View <ExternalLink size={11} />
+              </a>
+            )}
+          </dd>
         </div>
         <div>
           <dt className="flex items-center gap-1.5 text-zinc-500">
             <ShieldCheck size={13} /> Insurance / AAA card
           </dt>
-          <dd className="mt-0.5 text-zinc-300">{hasInsurance ? "Uploaded" : "Not added"}</dd>
+          <dd className="mt-0.5 flex items-center gap-2 text-zinc-300">
+            {hasInsurance ? "Uploaded" : "Not added"}
+            {insuranceUrl && (
+              <a
+                href={insuranceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-white underline decoration-dotted hover:decoration-solid"
+              >
+                View <ExternalLink size={11} />
+              </a>
+            )}
+          </dd>
         </div>
       </div>
     );
@@ -94,6 +128,38 @@ export default function ProfileEditor({
         }}
         className="mt-3 space-y-4"
       >
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>First name</label>
+            <input
+              name="firstName"
+              defaultValue={firstName}
+              required
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Last name</label>
+            <input
+              name="lastName"
+              defaultValue={lastName}
+              required
+              className={inputClass}
+            />
+          </div>
+        </div>
+        <div>
+          <label className={labelClass}>Zip code</label>
+          <input
+            name="zipCode"
+            defaultValue={zipCode}
+            required
+            inputMode="numeric"
+            pattern="\d{5}"
+            maxLength={5}
+            className={inputClass}
+          />
+        </div>
         <div>
           <label className={labelClass}>Address</label>
           <input

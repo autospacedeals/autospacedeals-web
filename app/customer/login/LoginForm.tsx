@@ -21,7 +21,15 @@ export default function LoginForm() {
         <input required type="email" name="email" autoComplete="email" className={inputClass} />
       </div>
       <div>
-        <label className={labelClass}>Password</label>
+        <div className="flex items-center justify-between">
+          <label className={labelClass}>Password</label>
+          <Link
+            href="/customer/forgot-password"
+            className="mb-1.5 text-xs font-semibold text-zinc-500 hover:text-white"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <input
           required
           type="password"

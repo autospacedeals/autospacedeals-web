@@ -2,10 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { SITE_URL } from "@/lib/site";
 
 export type AuthState = {
   error: string | null;
   needsConfirmation?: boolean;
+};
+
+export type ResetRequestState = {
+  error: string | null;
+  sent?: boolean;
 };
 
 export async function signInAction(
@@ -125,4 +131,47 @@ export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/customer/login");
+}
+
+export async function requestPasswordResetAction(
+  _prevState: ResetRequestState,
+  formData: FormData
+): Promise<ResetRequestState> {
+  const email = String(formData.get("email") || "").trim();
+  if (!email) {
+    return { error: "Enter your email address." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${SITE_URL}/auth/callback?next=/customer/reset-password`,
+  });
+
+  // Report success either way — confirming or denying that an email exists
+  // in the system is a minor account-enumeration leak we don't need.
+  if (error) console.error("requestPasswordResetAction failed:", error.message);
+  return { error: null, sent: true };
+}
+
+export async function resetPasswordAction(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const password = String(formData.get("password") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "");
+
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+  if (password !== confirmPassword) {
+    return { error: "Passwords don't match." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect("/customer/dashboard");
 }

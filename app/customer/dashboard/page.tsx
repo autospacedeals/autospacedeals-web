@@ -42,6 +42,24 @@ export default async function CustomerDashboardPage() {
   const firstName = customer?.first_name ?? "";
   const lastName = customer?.last_name ?? "";
 
+  // Short-lived signed URLs so the customer can view their own uploaded
+  // documents from the private bucket — generated fresh on every page load
+  // rather than stored, since they expire.
+  const [licenseUrl, insuranceUrl] = await Promise.all([
+    customer?.drivers_license_path
+      ? supabase.storage
+          .from("customer-uploads")
+          .createSignedUrl(customer.drivers_license_path, 300)
+          .then(({ data }) => data?.signedUrl ?? null)
+      : Promise.resolve(null),
+    customer?.insurance_card_path
+      ? supabase.storage
+          .from("customer-uploads")
+          .createSignedUrl(customer.insurance_card_path, 300)
+          .then(({ data }) => data?.signedUrl ?? null)
+      : Promise.resolve(null),
+  ]);
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -87,10 +105,15 @@ export default async function CustomerDashboardPage() {
           </dl>
 
           <ProfileEditor
+            firstName={firstName}
+            lastName={lastName}
+            zipCode={customer?.zip_code ?? ""}
             address={customer?.address ?? null}
             currentVehicle={customer?.current_vehicle ?? null}
             hasLicense={Boolean(customer?.drivers_license_path)}
             hasInsurance={Boolean(customer?.insurance_card_path)}
+            licenseUrl={licenseUrl}
+            insuranceUrl={insuranceUrl}
           />
         </div>
 

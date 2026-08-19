@@ -38,10 +38,20 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<P
   } = await supabase.auth.getUser();
   if (!user) redirect("/customer/login");
 
+  const firstName = String(formData.get("firstName") || "").trim();
+  const lastName = String(formData.get("lastName") || "").trim();
+  const zipCode = String(formData.get("zipCode") || "").trim();
   const address = String(formData.get("address") || "").trim() || null;
   const currentVehicle = String(formData.get("currentVehicle") || "").trim() || null;
   const licenseFile = formData.get("driversLicense") as File | null;
   const insuranceFile = formData.get("insuranceCard") as File | null;
+
+  if (!firstName || !lastName) {
+    return { error: "First and last name can't be blank." };
+  }
+  if (!/^\d{5}$/.test(zipCode)) {
+    return { error: "Enter a valid 5-digit zip code." };
+  }
 
   const [license, insurance] = await Promise.all([
     uploadDocument(supabase, user.id, licenseFile, "license"),
@@ -52,7 +62,13 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<P
 
   // Only overwrite the stored path if a new file actually came in — leave
   // whatever's already on file untouched otherwise.
-  const update: Record<string, string | null> = { address, current_vehicle: currentVehicle };
+  const update: Record<string, string | null> = {
+    first_name: firstName,
+    last_name: lastName,
+    zip_code: zipCode,
+    address,
+    current_vehicle: currentVehicle,
+  };
   if (license.path) update.drivers_license_path = license.path;
   if (insurance.path) update.insurance_card_path = insurance.path;
 
