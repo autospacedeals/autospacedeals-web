@@ -9,6 +9,7 @@ import {
   CircleAlert,
 } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
+import DealPhotoGallery from "@/components/DealPhotoGallery";
 import type { Deal } from "@/lib/deals-data";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import {
@@ -121,12 +122,7 @@ export default async function DealDetailPage({
       <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
         {/* Left column: photo + details */}
         <div>
-          <div className="relative overflow-hidden rounded-3xl bg-zinc-900">
-            <img
-              src={deal.images[0]}
-              alt={dealTitle(deal)}
-              className="aspect-[4/3] w-full object-contain"
-            />
+          <DealPhotoGallery images={deal.images} alt={dealTitle(deal)}>
             <div className="absolute left-4 top-4 flex flex-wrap gap-2">
               {deal.badge && BADGE_STYLES[deal.badge] && (
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-950">
@@ -159,7 +155,7 @@ export default async function DealDetailPage({
                 </span>
               )
             )}
-          </div>
+          </DealPhotoGallery>
 
           <div className="mt-6">
             <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
