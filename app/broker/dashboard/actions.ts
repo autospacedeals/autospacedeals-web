@@ -981,6 +981,34 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   return { error: null };
 }
 
+// Broker discards a single staged draft directly from the confirmation
+// list (a quicker path than unchecking it and hitting the bulk "Confirm &
+// publish" button just to get rid of one bad row). Drafts here were never
+// published, so this hard-deletes rather than soft-deleting — matching how
+// unchecked drafts are already discarded in confirmDraftsAction below. The
+// `status = draft` guard keeps this scoped to this exact list even if a
+// stale id somehow got reused.
+export async function deleteDraftAction(id: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  if (!id) return { error: "Missing deal id." };
+
+  const { error } = await supabase
+    .from("deals")
+    .delete()
+    .eq("id", id)
+    .eq("broker_id", user.id)
+    .eq("status", "draft");
+  if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  return { error: null };
+}
+
 // Broker confirms which staged drafts (added by admin from a submitted
 // link/sheet/file) should actually go live. Checked ids get published,
 // unchecked ones are discarded.

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CheckSquare, Square, Pencil, X } from "lucide-react";
+import { CheckSquare, Square, Pencil, X, Trash2, Loader2 } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency, msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
-import { confirmDraftsAction, updateDraftDealAction } from "./actions";
+import { confirmDraftsAction, updateDraftDealAction, deleteDraftAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
 const inputClass =
@@ -79,10 +79,30 @@ function DraftRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [onePay, setOnePay] = useState(deal.onePay);
   const [incentives, setIncentives] = useState<IncentiveRow[]>(
     (deal.incentives ?? []).map((inc) => ({ ...inc, includedInPrice: inc.includedInPrice === true }))
   );
+
+  async function handleDelete() {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`Discard this draft (${dealTitle(deal)})? This can't be undone.`)
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      const result = await deleteDraftAction(deal.id);
+      if (result?.error) setError(result.error);
+    } catch {
+      setError("Couldn't delete — try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   if (!editing) {
     return (
@@ -97,6 +117,7 @@ function DraftRow({
             {" · "}
             {formatCurrency(deal.dueAtSigning)} due at signing · {deal.term}mo
           </p>
+          {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
         </div>
         <button
           type="button"
@@ -104,6 +125,15 @@ function DraftRow({
           className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
         >
           <Pencil size={12} /> Edit
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          aria-label="Discard draft"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
+        >
+          {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
         </button>
       </div>
     );
