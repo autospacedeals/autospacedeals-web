@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Car, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Car } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { formatCurrency } from "@/lib/deal-utils";
+import DealCard from "@/components/DealCard";
 
 // A nod to the old iTunes/iPod "Cover Flow" browser — cars stand in for
 // albums, flip through them in 3D, center one is the one you're looking at.
 // An alternate way to browse the same `deals` list the grid shows, not a
 // replacement for it.
 
-const ITEM_WIDTH = 220;
-const SIDE_SPACING = 130;
+const ITEM_WIDTH = 240;
+const ITEM_HEIGHT = ITEM_WIDTH * 0.75; // 4:3 — matches typical car listing photos, so nothing gets cropped
+const SIDE_SPACING = 140;
 const VISIBLE_RANGE = 6;
 const SWIPE_THRESHOLD = 40;
 const CLICK_MOVE_TOLERANCE = 6;
@@ -122,47 +122,53 @@ export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
               style={{
                 width: ITEM_WIDTH,
                 marginLeft: -ITEM_WIDTH / 2,
-                marginTop: -ITEM_WIDTH / 2,
+                marginTop: -ITEM_HEIGHT / 2,
                 transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
                 zIndex: 100 - absOffset,
                 opacity,
                 transition: "transform 400ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms",
               }}
             >
-              <div className="overflow-hidden rounded-lg shadow-2xl shadow-black/60">
+              <div
+                className="overflow-hidden rounded-lg bg-zinc-900 shadow-2xl shadow-black/60"
+                style={{ height: ITEM_HEIGHT }}
+              >
                 {image ? (
                   <img
                     src={image}
                     alt={`${deal.year} ${deal.make} ${deal.model}`}
-                    className="aspect-square w-full object-cover"
+                    className="h-full w-full object-contain"
                     draggable={false}
                   />
                 ) : (
-                  <div className="flex aspect-square w-full items-center justify-center bg-zinc-800 text-zinc-600">
+                  <div className="flex h-full w-full items-center justify-center text-zinc-600">
                     <Car size={48} />
                   </div>
                 )}
               </div>
-              {/* Glossy floor reflection — the whole reason this exists */}
+              {/* Glossy floor reflection — mirrors the bottom half of the
+                  real photo above it, faded out, like a reflective floor.
+                  The image inside renders at full height and gets clipped by
+                  this shorter overflow-hidden wrapper; scaleY(-1) is what
+                  flips "bottom of the photo" up to sit right under it. */}
               <div
-                className="w-full overflow-hidden rounded-lg"
+                className="w-full overflow-hidden rounded-lg bg-zinc-900"
                 style={{
-                  height: ITEM_WIDTH * 0.5,
+                  height: ITEM_HEIGHT * 0.5,
                   transform: "scaleY(-1)",
                   maskImage: "linear-gradient(to bottom, rgba(255,255,255,0.28), transparent 70%)",
                   WebkitMaskImage: "linear-gradient(to bottom, rgba(255,255,255,0.28), transparent 70%)",
                 }}
               >
-                {image ? (
+                {image && (
                   <img
                     src={image}
                     alt=""
                     aria-hidden="true"
-                    className="aspect-square w-full object-cover"
+                    className="w-full object-contain"
+                    style={{ height: ITEM_HEIGHT }}
                     draggable={false}
                   />
-                ) : (
-                  <div className="flex aspect-square w-full items-center justify-center bg-zinc-800" />
                 )}
               </div>
             </div>
@@ -190,30 +196,16 @@ export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
       </div>
 
       {activeDeal && (
-        <div className="mt-6 flex flex-col items-center text-center">
+        <div className="mt-6 flex flex-col items-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {activeIndex + 1} of {deals.length}
+            {activeIndex + 1} of {deals.length} — drag, click a side car, or use the arrow keys to
+            flip through
           </p>
-          <h3 className="mt-1 text-2xl font-black">
-            {activeDeal.year} {activeDeal.make} {activeDeal.model}
-            {activeDeal.trim && <span className="text-zinc-400"> {activeDeal.trim}</span>}
-          </h3>
-          <p className="mt-1 text-lg font-bold text-white">
-            {formatCurrency(activeDeal.onePay ? activeDeal.dueAtSigning : activeDeal.payment)}
-            {!activeDeal.onePay && <span className="text-sm font-medium text-zinc-500">/mo</span>}
-            <span className="ml-2 text-sm font-medium text-zinc-500">
-              · {activeDeal.term} mo · {activeDeal.city}, {activeDeal.state}
-            </span>
-          </p>
-          <Link
-            href={`/deals/${activeDeal.slug}`}
-            className="mt-4 flex items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-          >
-            View Full Details <ArrowRight size={15} />
-          </Link>
-          <p className="mt-3 text-xs text-zinc-600">
-            Drag, click a side car, or use the arrow keys to flip through
-          </p>
+          {/* Same info as the grid view's mini deal card — just following
+              whichever car is centered in the Cover Flow above. */}
+          <div className="mt-4 w-full max-w-sm">
+            <DealCard key={activeDeal.id} deal={activeDeal} />
+          </div>
         </div>
       )}
     </div>
