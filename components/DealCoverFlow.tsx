@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Car } from "lucide-react";
+import { ChevronLeft, ChevronRight, Car, ArrowRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import DealCard from "@/components/DealCard";
+import { formatCurrency } from "@/lib/deal-utils";
 
 // A nod to the old iTunes/iPod "Cover Flow" browser — cars stand in for
 // albums, flip through them in 3D, center one is the one you're looking at.
@@ -196,16 +197,30 @@ export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
       </div>
 
       {activeDeal && (
-        <div className="mt-6 flex flex-col items-center">
+        <div className="mt-6 flex flex-col items-center text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {activeIndex + 1} of {deals.length} — drag, click a side car, or use the arrow keys to
-            flip through
+            {activeIndex + 1} of {deals.length}
           </p>
-          {/* Same info as the grid view's mini deal card — just following
-              whichever car is centered in the Cover Flow above. */}
-          <div className="mt-4 w-full max-w-sm">
-            <DealCard key={activeDeal.id} deal={activeDeal} />
-          </div>
+          <h3 className="mt-1 text-2xl font-black">
+            {activeDeal.year} {activeDeal.make} {activeDeal.model}
+            {activeDeal.trim && <span className="text-zinc-400"> {activeDeal.trim}</span>}
+          </h3>
+          <p className="mt-1 text-lg font-bold text-white">
+            {formatCurrency(activeDeal.onePay ? activeDeal.dueAtSigning : activeDeal.payment)}
+            {!activeDeal.onePay && <span className="text-sm font-medium text-zinc-500">/mo</span>}
+            <span className="ml-2 text-sm font-medium text-zinc-500">
+              · {activeDeal.term} mo · {activeDeal.city}, {activeDeal.state}
+            </span>
+          </p>
+          <Link
+            href={`/deals/${activeDeal.slug}`}
+            className="mt-4 flex items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+          >
+            View Full Details <ArrowRight size={15} />
+          </Link>
+          <p className="mt-3 text-xs text-zinc-600">
+            Drag, click a side car, or use the arrow keys to flip through
+          </p>
         </div>
       )}
     </div>
