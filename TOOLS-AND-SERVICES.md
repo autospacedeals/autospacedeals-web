@@ -22,6 +22,10 @@ A single reference for every external tool/service this project depends on. Upda
 
 - **CarsXE** — vehicle image lookup API, used as the fallback stock photo when a broker doesn't upload their own. Console: carsxe.com. Credential: `CARSXE_API_KEY`.
 
+## Incentive data
+
+- **MarketCheck** — OEM Incentive Search API, used by the "Suggest with AI" button in the broker dashboard to look up real, currently-active named manufacturer/dealer lease incentive programs (e.g. "BMW Loyalty Lease Credit") before falling back to a Claude ballpark guess. Sign up (free tier: 500 calls/mo) at developers.marketcheck.com/sign-up, paid tiers start at $299/mo. Credential: `MARKETCHECK_API_KEY`. If this key isn't set, the feature just falls back to the old AI-estimate-only behavior — nothing breaks.
+
 ## Recurring Google Sheet sync
 
 A broker can opt a linked Google Sheet into recurring auto-sync (checked every ~30 minutes), which adds new cars it finds and soft-removes ones that disappear from the sheet. See `lib/sheet-sync.ts` and `app/api/cron/sync-sheets/route.ts`.

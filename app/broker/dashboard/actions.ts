@@ -88,13 +88,16 @@ export async function suggestIncentivesAction(input: {
   make: string;
   model: string;
   trim?: string;
+  state?: string;
+  zip?: string;
 }): Promise<{ incentives: SuggestedIncentive[]; error: string | null }> {
   if (!input.year || !input.make.trim() || !input.model.trim()) {
     return { incentives: [], error: "Fill in year, make, and model first." };
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { incentives: [], error: "AI suggestions aren't configured yet — add incentives manually." };
-  }
+  // No longer gated on ANTHROPIC_API_KEY alone — MarketCheck (real incentive
+  // data) is tried first and doesn't need it. suggestIncentives() falls back
+  // to Claude only when MarketCheck has nothing, and that fallback quietly
+  // returns [] if ANTHROPIC_API_KEY isn't configured either.
   const incentives = await suggestIncentives(input);
   return { incentives, error: null };
 }

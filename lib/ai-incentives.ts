@@ -1,19 +1,31 @@
-// AI-suggested starting points for manufacturer/dealer incentives (loyalty,
-// conquest, military, fleet, etc.) on a given vehicle. This is explicitly a
-// *suggestion* tool per the broker's own request for AI-assisted incentive
-// lookup — Claude doesn't have live access to current OEM incentive
-// bulletins, so amounts are ballpark based on typical programs for that
-// make, not confirmed current offers. The broker always reviews, edits, or
+// Incentive suggestions for a broker's "Suggest with AI" button. As of this
+// version, real data comes first: we query MarketCheck's OEM Incentive
+// Search API (lib/marketcheck.ts) for currently-active, named programs on
+// the exact vehicle (e.g. "BMW Loyalty Lease Credit", "+$2,500") — the same
+// kind of grounded data sites like Autopia show. Claude only gets used as a
+// fallback when MarketCheck has no data for that specific year/make/model/
+// trim (common for long-tail trims or if MARKETCHECK_API_KEY isn't
+// configured yet), and that fallback is still explicitly a ballpark guess,
+// clearly tagged as "estimated" rather than "verified" in the returned data
+// so the UI can show the difference. The broker always reviews, edits, or
 // removes suggestions before anything is saved to a listing, and the public
-// deal page's payment estimator treats every incentive as optional/unverified
-// with a clear disclaimer.
+// deal page's payment estimator treats every incentive as optional/
+// unverified with a clear disclaimer regardless of source.
 import Anthropic from "@anthropic-ai/sdk";
+import { fetchMarketCheckIncentives } from "@/lib/marketcheck";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
 export interface SuggestedIncentive {
   name: string;
   amount: number;
+  // "verified" = real, currently-active program pulled from MarketCheck.
+  // "estimated" = Claude's ballpark guess, used only when no verified data
+  // was found for this vehicle.
+  source: "verified" | "estimated";
+  // Short eligibility/description text, when available — e.g. a target
+  // group ("Military personnel") or the program's own offer text.
+  note?: string;
 }
 
 const SUGGEST_TOOL = {
@@ -41,17 +53,11 @@ const SUGGEST_TOOL = {
   },
 };
 
-export async function suggestIncentives(params: {
-  year: number;
-  make: string;
-  model: string;
-  trim?: string;
-}): Promise<SuggestedIncentive[]> {
+async function suggestFromAI(vehicle: string): Promise<SuggestedIncentive[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return [];
 
   const client = new Anthropic({ apiKey });
-  const vehicle = `${params.year} ${params.make} ${params.model}${params.trim ? ` ${params.trim}` : ""}`;
 
   try {
     const response = await client.messages.create({
@@ -88,9 +94,37 @@ export async function suggestIncentives(params: {
           typeof i.name === "string" && i.name.trim().length > 0 && typeof i.amount === "number" && i.amount > 0
       )
       .slice(0, 5)
-      .map((i) => ({ name: i.name.trim(), amount: Math.round(i.amount) }));
+      .map((i) => ({ name: i.name.trim(), amount: Math.round(i.amount), source: "estimated" as const }));
   } catch (err) {
     console.error("AI incentive suggestion failed:", err);
     return [];
   }
+}
+
+export async function suggestIncentives(params: {
+  year: number;
+  make: string;
+  model: string;
+  trim?: string;
+  state?: string;
+  zip?: string;
+}): Promise<SuggestedIncentive[]> {
+  // 1. Real data first.
+  const { offers } = await fetchMarketCheckIncentives(params);
+  const verified: SuggestedIncentive[] = offers
+    .filter((o) => o.amount !== null && o.amount > 0)
+    .slice(0, 5)
+    .map((o) => ({
+      name: o.programName,
+      amount: Math.round(o.amount as number),
+      source: "verified" as const,
+      note: o.targetGroup || o.description || undefined,
+    }));
+
+  if (verified.length > 0) return verified;
+
+  // 2. Fall back to Claude's ballpark only when MarketCheck has nothing for
+  // this exact vehicle.
+  const vehicle = `${params.year} ${params.make} ${params.model}${params.trim ? ` ${params.trim}` : ""}`;
+  return suggestFromAI(vehicle);
 }
