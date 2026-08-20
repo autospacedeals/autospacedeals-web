@@ -292,8 +292,17 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
     const matchesTerm = filters.term === "All" || String(deal.term) === filters.term;
     const matchesMileage =
       filters.mileage === "All" || String(deal.milesPerYear ?? "") === filters.mileage;
-    const matchesPayment = deal.payment <= filters.maxPayment;
-    const matchesDueAtSigning = deal.dueAtSigning <= filters.maxDueAtSigning;
+    // The sliders' max position is meant to mean "no limit" (shown as "Any"
+    // in the UI — see FilterPanel), but a literal <= comparison against that
+    // ceiling was quietly excluding anything priced above it even when the
+    // filter was never touched — most visibly a one-pay lease, whose
+    // dueAtSigning holds the entire lump sum (easily $100k+ for an exotic),
+    // but this could just as easily hide any deal with a genuinely high
+    // payment or due-at-signing.
+    const matchesPayment =
+      filters.maxPayment >= MAX_PAYMENT_CEILING || deal.payment <= filters.maxPayment;
+    const matchesDueAtSigning =
+      filters.maxDueAtSigning >= MAX_DAS_CEILING || deal.dueAtSigning <= filters.maxDueAtSigning;
 
     const searchableText = [
       deal.year,
