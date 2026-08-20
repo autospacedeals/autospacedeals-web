@@ -3,7 +3,17 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShieldCheck, Car, ArrowRight, SlidersHorizontal, Store, Users } from "lucide-react";
+import {
+  Search,
+  ShieldCheck,
+  Car,
+  ArrowRight,
+  SlidersHorizontal,
+  Store,
+  Users,
+  LayoutGrid,
+  GalleryHorizontal,
+} from "lucide-react";
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
 import {
   DEFAULT_FILTERS,
@@ -13,6 +23,7 @@ import {
   type SortOption,
 } from "@/lib/deal-utils";
 import DealCard from "@/components/DealCard";
+import DealCoverFlow from "@/components/DealCoverFlow";
 import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
 
@@ -24,6 +35,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "coverflow">("grid");
 
   const sellerCount = useMemo(() => new Set(deals.map((d) => d.sellerName)).size, [deals]);
   const stateCount = useMemo(() => new Set(deals.map((d) => d.state)).size, [deals]);
@@ -164,14 +176,45 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
           </aside>
 
           <div className="min-h-[70vh]">
-            <SortBar sortBy={sortBy} onSortChange={setSortBy} resultCount={results.length} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <SortBar sortBy={sortBy} onSortChange={setSortBy} resultCount={results.length} />
+
+              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  aria-pressed={viewMode === "grid"}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    viewMode === "grid" ? "bg-white text-zinc-950" : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <LayoutGrid size={14} /> Grid
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("coverflow")}
+                  aria-pressed={viewMode === "coverflow"}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    viewMode === "coverflow" ? "bg-white text-zinc-950" : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <GalleryHorizontal size={14} /> Cover Flow
+                </button>
+              </div>
+            </div>
 
             {results.length > 0 ? (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {results.map((deal) => (
-                  <DealCard key={deal.id} deal={deal} />
-                ))}
-              </div>
+              viewMode === "coverflow" ? (
+                <div className="mt-6">
+                  <DealCoverFlow deals={results} />
+                </div>
+              ) : (
+                <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {results.map((deal) => (
+                    <DealCard key={deal.id} deal={deal} />
+                  ))}
+                </div>
+              )
             ) : (
               <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-10 text-center">
                 <p className="text-2xl font-black">No deals found</p>
