@@ -34,7 +34,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
           <img
             src={image}
             alt={`${deal.year} ${deal.make} ${deal.model}`}
-            className="h-44 w-full object-cover transition duration-300 group-hover:scale-105 sm:h-48"
+            className="aspect-[4/3] w-full object-contain transition duration-300 group-hover:scale-105"
           />
 
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">

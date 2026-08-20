@@ -777,7 +777,7 @@ function ListingRow({
                   <img
                     src={draft.images.split("\n")[0].trim()}
                     alt="Current primary photo"
-                    className="mb-2 h-24 w-full max-w-[160px] rounded-lg border border-white/10 object-cover"
+                    className="mb-2 aspect-[4/3] w-full max-w-[160px] rounded-lg border border-white/10 bg-zinc-900 object-contain"
                   />
                 )}
                 <textarea

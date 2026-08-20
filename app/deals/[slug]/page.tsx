@@ -125,7 +125,7 @@ export default async function DealDetailPage({
             <img
               src={deal.images[0]}
               alt={dealTitle(deal)}
-              className="h-64 w-full object-cover sm:h-80 md:h-96"
+              className="aspect-[4/3] w-full object-contain"
             />
             <div className="absolute left-4 top-4 flex flex-wrap gap-2">
               {deal.badge && BADGE_STYLES[deal.badge] && (
