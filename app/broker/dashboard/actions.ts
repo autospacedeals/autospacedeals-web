@@ -99,6 +99,40 @@ export async function suggestIncentivesAction(input: {
   return { incentives, error: null };
 }
 
+// Called from the "Re-pull photo" button in MyListings when a listing's
+// auto-sourced photo doesn't show the whole car (a close-up, interior, or
+// engine-bay shot). Just looks up a fresh CarsXE photo and hands the URL
+// back — it doesn't touch the deal row itself, the broker still reviews it
+// and hits Save like any other edit, same as pasting in a URL by hand.
+export async function repullPhotoAction(input: {
+  year: number;
+  make: string;
+  model: string;
+  trim?: string;
+}): Promise<{ imageUrl: string | null; error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  if (!input.year || !input.make.trim() || !input.model.trim()) {
+    return { imageUrl: null, error: "Fill in year, make, and model first." };
+  }
+
+  const imageUrl = await fetchCarsxePhoto({
+    year: input.year,
+    make: input.make,
+    model: input.model,
+    trim: input.trim,
+  });
+
+  if (!imageUrl) {
+    return { imageUrl: null, error: "Couldn't find a photo for this exact year/make/model/trim." };
+  }
+  return { imageUrl, error: null };
+}
+
 // Parses the hidden `incentives` field (JSON string written by
 // IncentivesEditor) that every deal-editing form submits, tolerating a
 // missing/invalid value rather than throwing.

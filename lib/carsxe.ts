@@ -18,6 +18,12 @@ export async function fetchCarsxePhoto(params: {
     model: params.model,
     year: String(params.year),
     license: "ShareCommercially",
+    // Without this, CarsXE's result set is a grab-bag that can include
+    // interior and engine-bay close-ups — which is why some auto-sourced
+    // photos didn't actually show the whole car. Restricting to exterior
+    // shots is the fix; there's no per-image angle/type field in the
+    // response to filter on afterward, only this request-side filter.
+    photoType: "exterior",
   });
   if (params.trim) query.set("trim", params.trim);
 

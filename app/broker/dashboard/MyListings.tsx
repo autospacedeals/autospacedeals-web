@@ -7,13 +7,14 @@ import {
   ChevronRight,
   ExternalLink,
   Loader2,
+  RefreshCw,
   Save,
   Trash2,
 } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
-import { updateDealAction, deleteDealAction, deleteDealsAction } from "./actions";
+import { updateDealAction, deleteDealAction, deleteDealsAction, repullPhotoAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
 // Borderless-until-touched inputs — the point is to read like an editable
@@ -369,6 +370,7 @@ function ListingRow({
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [repulling, setRepulling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
@@ -422,6 +424,34 @@ function ListingRow({
       setError("Couldn't save — try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleRepullPhoto() {
+    setError(null);
+    setRepulling(true);
+    try {
+      const result = await repullPhotoAction({
+        year: Number(draft.year),
+        make: draft.make,
+        model: draft.model,
+        trim: draft.trim || undefined,
+      });
+      if (result.error) {
+        setError(result.error);
+      } else if (result.imageUrl) {
+        // New photo goes first, so it becomes the primary/cover image —
+        // any other URLs already in the field stay below it as extras.
+        const rest = draft.images
+          .split("\n")
+          .map((s) => s.trim())
+          .filter((s) => s && s !== result.imageUrl);
+        set("images", [result.imageUrl, ...rest].join("\n"));
+      }
+    } catch {
+      setError("Couldn't fetch a new photo — try again.");
+    } finally {
+      setRepulling(false);
     }
   }
 
@@ -727,13 +757,39 @@ function ListingRow({
               />
 
               <div>
-                <label className={labelClass}>Photo URLs (one per line, optional)</label>
+                <div className="flex items-center justify-between gap-2">
+                  <label className={labelClass}>Photo URLs (one per line, optional)</label>
+                  <button
+                    type="button"
+                    onClick={handleRepullPhoto}
+                    disabled={repulling || !draft.year || !draft.make.trim() || !draft.model.trim()}
+                    className="mb-1 flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-white/10 px-2.5 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {repulling ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={12} />
+                    )}
+                    Re-pull photo
+                  </button>
+                </div>
+                {draft.images.split("\n")[0]?.trim() && (
+                  <img
+                    src={draft.images.split("\n")[0].trim()}
+                    alt="Current primary photo"
+                    className="mb-2 h-24 w-full max-w-[160px] rounded-lg border border-white/10 object-cover"
+                  />
+                )}
                 <textarea
                   value={draft.images}
                   onChange={(e) => set("images", e.target.value)}
                   placeholder="https://example.com/photo1.jpg"
                   className={`${inputClass} min-h-16 resize-y font-mono text-xs`}
                 />
+                <p className="mt-1 text-[11px] text-zinc-600">
+                  &quot;Re-pull photo&quot; looks up a fresh stock photo for this exact
+                  year/make/model/trim and puts it first — review it, then hit Save to keep it.
+                </p>
               </div>
 
               <div>
