@@ -208,9 +208,13 @@ export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
           <p className="mt-1 text-lg font-bold text-white">
             {formatCurrency(activeDeal.onePay ? activeDeal.dueAtSigning : activeDeal.payment)}
             {!activeDeal.onePay && <span className="text-sm font-medium text-zinc-500">/mo</span>}
-            <span className="ml-2 text-sm font-medium text-zinc-500">
-              · {activeDeal.term} mo · {activeDeal.city}, {activeDeal.state}
-            </span>
+          </p>
+          <p className="mt-1 text-sm font-medium text-zinc-500">
+            {!activeDeal.onePay && <>Due at signing {formatCurrency(activeDeal.dueAtSigning)} · </>}
+            {activeDeal.term} mo · {activeDeal.city}, {activeDeal.state}
+            {activeDeal.brokerFee != null && (
+              <> · Broker fee {formatCurrency(activeDeal.brokerFee)}</>
+            )}
           </p>
           <Link
             href={`/deals/${activeDeal.slug}`}
