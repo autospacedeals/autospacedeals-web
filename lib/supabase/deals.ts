@@ -4,6 +4,7 @@
 // removals) show up on the live site immediately.
 import type { Deal } from "@/lib/deals-data";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
+import { createClient as createAuthedClient } from "./server";
 import { withTimeout } from "./with-timeout";
 
 // Shown when a broker hasn't uploaded a photo and the CarsXE auto-lookup
@@ -199,6 +200,40 @@ export async function getPublishedDealsByBroker(brokerId: string): Promise<Deal[
   } catch (err) {
     console.error("getPublishedDealsByBroker threw:", err);
     return [];
+  }
+}
+
+// Lets a broker preview one of their own deals — draft or published — before
+// it's confirmed and live. Unlike the functions above, this uses the
+// session-authenticated client (not the public anon client) and scopes to
+// broker_id so a broker can only ever preview their own listings, published
+// or not; RLS on the `deals` table is the actual enforcement, this is just
+// the query that stays inside that boundary.
+export async function getDealByIdForBroker(id: string, brokerId: string): Promise<Deal | undefined> {
+  try {
+    const supabase = await createAuthedClient();
+    const { data, error } = await supabase
+      .from("deals")
+      .select(DEAL_COLUMNS)
+      .eq("id", id)
+      .eq("broker_id", brokerId)
+      .maybeSingle<DealRow>();
+
+    if (error) {
+      console.error("getDealByIdForBroker failed:", error.message);
+      return undefined;
+    }
+    if (!data) return undefined;
+
+    try {
+      return mapRowToDeal(data);
+    } catch (err) {
+      console.error("mapRowToDeal failed for deal", data.id, err);
+      return undefined;
+    }
+  } catch (err) {
+    console.error("getDealByIdForBroker threw:", err);
+    return undefined;
   }
 }
 

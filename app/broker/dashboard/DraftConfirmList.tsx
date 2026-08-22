@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CheckSquare, Square, Pencil, X, Trash2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { CheckSquare, Square, Pencil, X, Trash2, Loader2, Eye } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency, msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
@@ -119,6 +120,13 @@ function DraftRow({
           </p>
           {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
         </div>
+        <Link
+          href={`/broker/preview/${deal.id}`}
+          target="_blank"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
+        >
+          <Eye size={12} /> View card
+        </Link>
         <button
           type="button"
           onClick={() => setEditing(true)}
