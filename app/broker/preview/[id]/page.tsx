@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { CircleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getDealByIdForBroker } from "@/lib/supabase/deals";
+import { getDealByIdForBroker } from "@/lib/supabase/broker-preview";
 import DealDetailView from "@/components/DealDetailView";
 
 // Lets a broker see exactly what shoppers will see for one of their own
