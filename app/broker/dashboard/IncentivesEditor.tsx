@@ -125,7 +125,7 @@ export default function IncentivesEditor({
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
             <span className="w-9 shrink-0 text-center">Incl.</span>
             <span className="flex-1">Incentive name</span>
-            <span className="w-28 shrink-0">Amount</span>
+            <span className="flex-1">Amount</span>
             <span className="w-4 shrink-0" />
           </div>
           {value.map((row, idx) => (
@@ -155,7 +155,7 @@ export default function IncentivesEditor({
                   placeholder="500"
                   value={row.amount || ""}
                   onChange={(e) => updateRow(idx, { amount: Number(e.target.value) || 0 })}
-                  className={`${inputClass} w-28 shrink-0`}
+                  className={`${inputClass} flex-1`}
                 />
                 <button
                   type="button"
