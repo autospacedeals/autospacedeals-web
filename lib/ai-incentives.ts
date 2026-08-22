@@ -110,7 +110,7 @@ export async function suggestIncentives(params: {
   zip?: string;
 }): Promise<SuggestedIncentive[]> {
   // 1. Real data first.
-  const { offers } = await fetchMarketCheckIncentives(params);
+  const { offers, error } = await fetchMarketCheckIncentives(params);
   const verified: SuggestedIncentive[] = offers
     .filter((o) => o.amount !== null && o.amount > 0)
     .slice(0, 5)
@@ -123,8 +123,18 @@ export async function suggestIncentives(params: {
 
   if (verified.length > 0) return verified;
 
+  // Falling through to the AI estimate is silent from the broker's point of
+  // view — log why so a Vercel function log can tell "not configured" /
+  // "API error" apart from "configured fine, just no coverage for this
+  // vehicle" without needing to add a debugger.
+  const vehicle = `${params.year} ${params.make} ${params.model}${params.trim ? ` ${params.trim}` : ""}`;
+  console.log(
+    `MarketCheck: no verified incentives for "${vehicle}" (reason: ${
+      error ?? "no matching offers"
+    }) — falling back to AI estimate.`
+  );
+
   // 2. Fall back to Claude's ballpark only when MarketCheck has nothing for
   // this exact vehicle.
-  const vehicle = `${params.year} ${params.make} ${params.model}${params.trim ? ` ${params.trim}` : ""}`;
   return suggestFromAI(vehicle);
 }

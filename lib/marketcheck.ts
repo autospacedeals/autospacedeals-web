@@ -68,13 +68,11 @@ function programName(offer: any): string {
   return "Manufacturer Offer";
 }
 
-export async function fetchMarketCheckIncentives(
-  params: MarketCheckLookupParams
+async function runQuery(
+  apiKey: string,
+  params: MarketCheckLookupParams,
+  includeTrim: boolean
 ): Promise<MarketCheckLookupResult> {
-  const apiKey = process.env.MARKETCHECK_API_KEY;
-  if (!apiKey) return { offers: [], error: "not_configured" };
-  if (!params.make.trim() || !params.year) return { offers: [], error: "invalid_params" };
-
   const query = new URLSearchParams({
     api_key: apiKey,
     make: params.make.trim(),
@@ -82,7 +80,7 @@ export async function fetchMarketCheckIncentives(
     rows: "10",
   });
   if (params.model?.trim()) query.set("model", params.model.trim());
-  if (params.trim?.trim()) query.set("trim", params.trim.trim());
+  if (includeTrim && params.trim?.trim()) query.set("trim", params.trim.trim());
   if (params.state?.trim()) query.set("state", params.state.trim());
   if (params.zip?.trim()) query.set("zip", params.zip.trim());
 
@@ -136,4 +134,26 @@ export async function fetchMarketCheckIncentives(
     console.error("MarketCheck incentive lookup failed:", err);
     return { offers: [], error: "network_error" };
   }
+}
+
+export async function fetchMarketCheckIncentives(
+  params: MarketCheckLookupParams
+): Promise<MarketCheckLookupResult> {
+  const apiKey = process.env.MARKETCHECK_API_KEY;
+  if (!apiKey) return { offers: [], error: "not_configured" };
+  if (!params.make.trim() || !params.year) return { offers: [], error: "invalid_params" };
+
+  const withTrim = await runQuery(apiKey, params, true);
+  if (withTrim.offers.length > 0 || !params.trim?.trim()) return withTrim;
+
+  // OEM incentive programs (loyalty, conquest, lease cash, etc.) are almost
+  // always defined at the model level, not per exact trim string — and
+  // MarketCheck's own trim label for a scraped offer frequently won't match
+  // a broker's trim text character-for-character (e.g. "300 4MATIC" vs
+  // "4MATIC"). Filtering on trim as a hard requirement was silently zeroing
+  // out real matches and pushing everything to the AI-estimate fallback, so
+  // if the trim-scoped search comes back empty, widen to make+model+year
+  // before giving up on real data.
+  const withoutTrim = await runQuery(apiKey, params, false);
+  return withoutTrim.error ? withTrim : withoutTrim;
 }
