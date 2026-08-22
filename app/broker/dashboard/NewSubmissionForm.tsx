@@ -55,6 +55,11 @@ const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
 export default function NewSubmissionForm() {
   const [category, setCategory] = useState<"manual" | "link" | null>(null);
+  // Bumped to force-remount LinkForm when a broker wants to try the same
+  // (or a different) source again after some rows came back unreadable —
+  // useActionState's success state otherwise sticks around forever with no
+  // way back to the upload picker short of a full page reload.
+  const [linkFormKey, setLinkFormKey] = useState(0);
 
   return (
     <div className="space-y-4">
@@ -82,13 +87,15 @@ export default function NewSubmissionForm() {
         </div>
       </div>
 
-      {category === "link" && <LinkForm />}
+      {category === "link" && (
+        <LinkForm key={linkFormKey} onStartOver={() => setLinkFormKey((k) => k + 1)} />
+      )}
       {category === "manual" && <ManualForm />}
     </div>
   );
 }
 
-function LinkForm() {
+function LinkForm({ onStartOver }: { onStartOver: () => void }) {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
   const [sourceType, setSourceType] = useState<
     "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot"
@@ -132,6 +139,19 @@ function LinkForm() {
 
         {state.skippedDeals && state.skippedDeals.length > 0 ? (
           <div className="mt-4 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-3.5 py-2.5">
+              <p className="text-xs text-zinc-400">
+                Rather retry the source itself than fix these by hand? A re-upload sometimes reads
+                a row correctly the second time.
+              </p>
+              <button
+                type="button"
+                onClick={onStartOver}
+                className="shrink-0 whitespace-nowrap rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
+              >
+                Try uploading again
+              </button>
+            </div>
             {state.skippedDeals.map((partial, i) => (
               <div key={i} className="space-y-2">
                 <p className="text-xs font-semibold text-amber-300/90">

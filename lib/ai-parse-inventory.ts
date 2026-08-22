@@ -88,14 +88,17 @@ const EXTRACT_TOOL = {
 const COMBINED_CELL_GUIDANCE =
   `Columns/cells are frequently combined rather than one-field-per-column. For example: a vehicle ` +
   `name like "2021 Taycan Turbo S (217k) CPO" means year 2021, make Porsche, model Taycan, trim ` +
-  `"Turbo S", MSRP $217,000, condition CPO — a parenthetical number right after the model name ` +
+  `"Turbo S", MSRP $217,000, condition CPO — a parenthetical number right after the model/trim name ` +
   `followed by "k" is MSRP in thousands (217k -> 217000), NOT mileage, even when the vehicle is new; ` +
-  `mileage allowance is always given separately (e.g. "7500 mi"). A term/lease-terms cell like ` +
-  `"36 mo / 7500 mi / $3500 driveoff" means term 36 months, 7500 miles/year, $3,500 due at signing. ` +
-  `A spec cell like "Chalk x black" or "Black x Black" means exterior Chalk, interior black. A price ` +
-  `cell like "$74,990 ONEPAY" means this is a one-pay lease — set onePay true, payment null, and put ` +
-  `$74,990 in dueAtSigning as the full one-pay total. A "Fees" column or a note like "$699 broker ` +
-  `fee" or "$999 doc fee" belongs in the brokerFee field, not just left in notes.`;
+  `mileage allowance is always given separately (e.g. "7500 mi"). That parenthetical MSRP marker is ` +
+  `never part of the trim itself — pull the number out into the msrp field and leave it out of trim ` +
+  `entirely (e.g. "eDrive40 (59k)" is trim "eDrive40" + msrp 59000, never trim "eDrive40 (59k)"). A ` +
+  `term/lease-terms cell like "36 mo / 7500 mi / $3500 driveoff" means term 36 months, 7500 ` +
+  `miles/year, $3,500 due at signing. A spec cell like "Chalk x black" or "Black x Black" means ` +
+  `exterior Chalk, interior black. A price cell like "$74,990 ONEPAY" means this is a one-pay lease ` +
+  `— set onePay true, payment null, and put $74,990 in dueAtSigning as the full one-pay total. A ` +
+  `"Fees" column or a note like "$699 broker fee" or "$999 doc fee" belongs in the brokerFee field, ` +
+  `not just left in notes.`;
 
 function rowsToTable(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
