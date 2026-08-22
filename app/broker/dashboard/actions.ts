@@ -55,6 +55,11 @@ export type SubmissionState = {
   // of just a bare count — makes a specific parsing gap self-diagnosable
   // without digging through server logs.
   skipReasons?: string[];
+  // Whatever fields the parser DID manage to read for each skipped row
+  // (same order as skipReasons), so the fallback manual-entry form can come
+  // pre-filled with everything except the one thing it couldn't determine,
+  // instead of asking the broker to retype a row that was mostly readable.
+  skippedDeals?: Partial<ParsedDeal>[];
   // Whether this Google Sheet was set up for recurring auto-sync.
   sheetSynced?: boolean;
 };
@@ -185,6 +190,7 @@ export async function createSubmissionAction(
   let parsedDeals: ParsedDeal[] = [];
   let skippedCount = 0;
   let skipReasons: string[] = [];
+  let skippedDeals: Partial<ParsedDeal>[] = [];
 
   if (sourceType === "excel_file") {
     const file = formData.get("file") as File | null;
@@ -202,6 +208,7 @@ export async function createSubmissionAction(
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
         skipReasons = result.skipped.map((s) => s.reason);
+        skippedDeals = result.skipped.map((s) => s.partial);
         logSkippedRows("excel_file", result.skipped);
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
@@ -250,6 +257,7 @@ export async function createSubmissionAction(
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
         skipReasons = result.skipped.map((s) => s.reason);
+        skippedDeals = result.skipped.map((s) => s.partial);
         logSkippedRows("google_sheet", result.skipped);
 
         if (parsedDeals.length === 0 && skippedCount === 0) {
@@ -278,6 +286,7 @@ export async function createSubmissionAction(
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
         skipReasons = result.skipped.map((s) => s.reason);
+        skippedDeals = result.skipped.map((s) => s.partial);
         logSkippedRows("free_text", result.skipped);
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
@@ -314,6 +323,7 @@ export async function createSubmissionAction(
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
         skipReasons = result.skipped.map((s) => s.reason);
+        skippedDeals = result.skipped.map((s) => s.partial);
         logSkippedRows("screenshot", result.skipped);
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
@@ -399,6 +409,7 @@ export async function createSubmissionAction(
     parsedCount: parsedDeals.length - stageFailed,
     skippedCount: skippedCount + stageFailed,
     skipReasons,
+    skippedDeals,
     sheetSynced: sheetSyncId !== null,
   };
 }

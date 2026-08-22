@@ -16,6 +16,7 @@ import {
   createManualDealAction,
   type SubmissionState,
 } from "./actions";
+import type { ParsedDeal } from "@/lib/parse-inventory";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
 const initialState: SubmissionState = { error: null };
@@ -117,13 +118,6 @@ function LinkForm() {
           {skippedCount > 0 &&
             ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}
         </p>
-        {state.skipReasons && state.skipReasons.length > 0 && (
-          <ul className="mt-2 space-y-0.5 text-xs text-amber-300/80">
-            {state.skipReasons.map((reason, i) => (
-              <li key={i}>• {reason}</li>
-            ))}
-          </ul>
-        )}
         {state.sheetSynced && (
           <p className="mt-2 text-sm text-emerald-300/80">
             This sheet is now set to check for updates automatically — manage it below under
@@ -135,9 +129,28 @@ function LinkForm() {
             ? "Need to add more? You can also enter cars one at a time below."
             : "Now add the car(s) from it below — each one publishes as soon as you submit it, and you can add as many as you need."}
         </p>
-        <div className="mt-4">
-          <ManualForm submissionId={state.submissionId} />
-        </div>
+
+        {state.skippedDeals && state.skippedDeals.length > 0 ? (
+          <div className="mt-4 space-y-6">
+            {state.skippedDeals.map((partial, i) => (
+              <div key={i} className="space-y-2">
+                <p className="text-xs font-semibold text-amber-300/90">
+                  {state.skipReasons?.[i] ?? "Couldn't fully read this row"} — everything else we
+                  could read is already filled in below, just fix what&apos;s missing.
+                </p>
+                <ManualForm submissionId={state.submissionId} initialValues={partial} />
+              </div>
+            ))}
+            <div className="border-t border-white/10 pt-5">
+              <p className="mb-2 text-sm text-zinc-400">Add another car from this source:</p>
+              <ManualForm submissionId={state.submissionId} />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <ManualForm submissionId={state.submissionId} />
+          </div>
+        )}
       </div>
     );
   }
@@ -301,25 +314,40 @@ function LinkForm() {
   );
 }
 
-function ManualForm({ submissionId }: { submissionId?: string }) {
+function ManualForm({
+  submissionId,
+  initialValues,
+}: {
+  submissionId?: string;
+  // Pre-fills whatever a parser (heuristic or AI) already managed to read
+  // for a row it couldn't fully process (e.g. everything but MSRP) — see
+  // SubmissionState.skippedDeals. Left undefined for a plain blank "add a
+  // car" form.
+  initialValues?: Partial<ParsedDeal>;
+}) {
   const [state, formAction, pending] = useActionState(createManualDealAction, initialState);
-  const [onePay, setOnePay] = useState(false);
+  const [onePay, setOnePay] = useState(initialValues?.onePay ?? false);
   const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
   // Bump the form's key on every successful publish so the fields clear —
   // needed here (unlike a one-shot form) because a broker submitting a
   // link may come back and publish several cars in a row from this same
   // form without the page reloading in between. Adjusted during render
   // (React's recommended pattern) rather than in an effect, so there's no
-  // extra render pass.
+  // extra render pass. Skipped when this form came pre-filled from a parsed
+  // row (initialValues set) — remounting would just re-show the exact same
+  // pre-filled values with no way to tell they'd already been published,
+  // inviting an accidental duplicate. The submit button below is disabled
+  // instead once that kind of form succeeds.
   const [prevState, setPrevState] = useState(state);
   const [resetCount, setResetCount] = useState(0);
   if (state !== prevState) {
     setPrevState(state);
-    if (state.success) {
+    if (state.success && !initialValues) {
       setResetCount((n) => n + 1);
       setIncentives([]);
     }
   }
+  const publishedAndLocked = Boolean(initialValues) && state.success;
 
   return (
     <form action={formAction} className="space-y-4" key={resetCount}>
@@ -330,19 +358,46 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
           <div className="grid gap-3 sm:grid-cols-4">
             <div className="sm:col-span-1">
               <label className={labelClass}>Year</label>
-              <input required type="number" name="year" placeholder="2026" className={inputClass} />
+              <input
+                required
+                type="number"
+                name="year"
+                defaultValue={initialValues?.year}
+                placeholder="2026"
+                className={inputClass}
+              />
             </div>
             <div className="sm:col-span-1">
               <label className={labelClass}>Make</label>
-              <input required type="text" name="make" placeholder="BMW" className={inputClass} />
+              <input
+                required
+                type="text"
+                name="make"
+                defaultValue={initialValues?.make}
+                placeholder="BMW"
+                className={inputClass}
+              />
             </div>
             <div className="sm:col-span-1">
               <label className={labelClass}>Model</label>
-              <input required type="text" name="model" placeholder="X5" className={inputClass} />
+              <input
+                required
+                type="text"
+                name="model"
+                defaultValue={initialValues?.model}
+                placeholder="X5"
+                className={inputClass}
+              />
             </div>
             <div className="sm:col-span-1">
               <label className={labelClass}>Trim (optional)</label>
-              <input type="text" name="trim" placeholder="xDrive40i" className={inputClass} />
+              <input
+                type="text"
+                name="trim"
+                defaultValue={initialValues?.trim ?? undefined}
+                placeholder="xDrive40i"
+                className={inputClass}
+              />
             </div>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -380,11 +435,23 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             </div>
             <div>
               <label className={labelClass}>Exterior color (optional)</label>
-              <input type="text" name="exterior" placeholder="Alpine White" className={inputClass} />
+              <input
+                type="text"
+                name="exterior"
+                defaultValue={initialValues?.exterior ?? undefined}
+                placeholder="Alpine White"
+                className={inputClass}
+              />
             </div>
             <div>
               <label className={labelClass}>Interior color (optional)</label>
-              <input type="text" name="interior" placeholder="Black" className={inputClass} />
+              <input
+                type="text"
+                name="interior"
+                defaultValue={initialValues?.interior ?? undefined}
+                placeholder="Black"
+                className={inputClass}
+              />
             </div>
           </div>
         </div>
@@ -399,6 +466,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 type="text"
                 inputMode="numeric"
                 name="msrp"
+                defaultValue={initialValues?.msrp ?? undefined}
                 placeholder="65000, or 65,xxx to hide part of it"
                 className={inputClass}
               />
@@ -432,6 +500,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 disabled={onePay}
                 type="number"
                 name="payment"
+                defaultValue={initialValues?.payment ?? undefined}
                 placeholder={onePay ? "0 — see due at signing" : "799"}
                 className={inputClass}
               />
@@ -451,6 +520,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
                 required
                 type="number"
                 name="dueAtSigning"
+                defaultValue={initialValues?.dueAtSigning ?? undefined}
                 placeholder={onePay ? "55999" : "4999"}
                 className={inputClass}
               />
@@ -464,18 +534,39 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
             </div>
             <div>
               <label className={labelClass}>Term (months)</label>
-              <input required type="number" name="term" placeholder="36" className={inputClass} />
+              <input
+                required
+                type="number"
+                name="term"
+                defaultValue={initialValues?.term}
+                placeholder="36"
+                className={inputClass}
+              />
             </div>
           </div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
               <label className={labelClass}>Miles per year</label>
-              <input required type="number" name="milesPerYear" placeholder="10000" className={inputClass} />
+              <input
+                required
+                type="number"
+                name="milesPerYear"
+                defaultValue={initialValues?.milesPerYear ?? undefined}
+                placeholder="10000"
+                className={inputClass}
+              />
             </div>
             <div>
               <label className={labelClass}>Broker fee (optional)</label>
-              <input type="number" step="0.01" name="brokerFee" placeholder="595" className={inputClass} />
+              <input
+                type="number"
+                step="0.01"
+                name="brokerFee"
+                defaultValue={initialValues?.brokerFee ?? undefined}
+                placeholder="595"
+                className={inputClass}
+              />
               <p className="mt-1.5 text-xs text-zinc-500">
                 Shown to shoppers as its own line item, separate from due at signing.
               </p>
@@ -511,6 +602,7 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
         <label className={labelClass}>Notes</label>
         <textarea
           name="notes"
+          defaultValue={initialValues?.notes ?? undefined}
           placeholder="Any packages/features, current specials, or anything else worth knowing."
           className={`${inputClass} min-h-24 resize-y`}
         />
@@ -530,10 +622,11 @@ function ManualForm({ submissionId }: { submissionId?: string }) {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || publishedAndLocked}
         className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
       >
-        <Upload size={16} /> {pending ? "Publishing..." : "Publish this car"}
+        <Upload size={16} />
+        {pending ? "Publishing..." : publishedAndLocked ? "Published" : "Publish this car"}
       </button>
     </form>
   );

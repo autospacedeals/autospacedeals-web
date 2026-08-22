@@ -37,9 +37,19 @@ export interface ParsedDeal {
   onePay: boolean;
 }
 
+export interface SkippedRow {
+  row: number;
+  reason: string;
+  // Whatever fields the parser DID manage to read before hitting one it
+  // couldn't determine (e.g. everything but MSRP) — carried through so the
+  // manual fallback form can pre-fill these instead of coming up entirely
+  // blank and making the broker retype a row that was 90% readable.
+  partial: Partial<ParsedDeal>;
+}
+
 export interface ParseResult {
   parsed: ParsedDeal[];
-  skipped: { row: number; reason: string }[];
+  skipped: SkippedRow[];
 }
 
 // A best-effort identity for a parsed row, used to match a sheet row to an
@@ -281,7 +291,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
   const feeCol = findColumn(headers, ["fee"]);
 
   const parsed: ParsedDeal[] = [];
-  const skipped: { row: number; reason: string }[] = [];
+  const skipped: SkippedRow[] = [];
 
   rows.forEach((row, idx) => {
     const modelText = modelCol ? String(row[modelCol] ?? "").trim() : "";
@@ -314,12 +324,27 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
     if (!term) missing.push("term");
     if (!dueAtSigning) missing.push("due at signing");
 
+    const notes = [conditionNote].filter(Boolean).join(" ");
+
     if (missing.length > 0) {
-      skipped.push({ row: idx + 2, reason: `Couldn't determine: ${missing.join(", ")}` });
+      const partial: Partial<ParsedDeal> = { onePay };
+      if (year) partial.year = year;
+      if (make) partial.make = make;
+      if (model) partial.model = model;
+      if (trim) partial.trim = trim;
+      if (msrp) partial.msrp = msrp;
+      if (!onePay && payment) partial.payment = payment;
+      if (term) partial.term = term;
+      if (milesPerYear) partial.milesPerYear = milesPerYear;
+      if (dueAtSigning) partial.dueAtSigning = dueAtSigning;
+      if (exterior) partial.exterior = exterior;
+      if (interior) partial.interior = interior;
+      if (fee) partial.brokerFee = fee;
+      if (state) partial.state = state;
+      if (notes) partial.notes = notes;
+      skipped.push({ row: idx + 2, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
       return;
     }
-
-    const notes = [conditionNote].filter(Boolean).join(" ");
 
     parsed.push({
       year: year!,

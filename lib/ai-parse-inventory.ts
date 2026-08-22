@@ -13,7 +13,7 @@
 // listing going live.
 import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
-import type { ParsedDeal, ParseResult } from "./parse-inventory";
+import type { ParsedDeal, ParseResult, SkippedRow } from "./parse-inventory";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
@@ -78,6 +78,25 @@ const EXTRACT_TOOL = {
   },
 };
 
+// Shared across all three extraction entry points (table, free text, image)
+// so the combined-cell conventions these sheets/screenshots use are
+// recognized consistently everywhere — this used to live only in the table
+// prompt, which meant the vision path (screenshots) had no idea "(59k)"
+// right after a model name means MSRP $59,000, not mileage, and would
+// rather return null than guess. That silently dropped MSRP on otherwise
+// perfectly legible screenshots.
+const COMBINED_CELL_GUIDANCE =
+  `Columns/cells are frequently combined rather than one-field-per-column. For example: a vehicle ` +
+  `name like "2021 Taycan Turbo S (217k) CPO" means year 2021, make Porsche, model Taycan, trim ` +
+  `"Turbo S", MSRP $217,000, condition CPO — a parenthetical number right after the model name ` +
+  `followed by "k" is MSRP in thousands (217k -> 217000), NOT mileage, even when the vehicle is new; ` +
+  `mileage allowance is always given separately (e.g. "7500 mi"). A term/lease-terms cell like ` +
+  `"36 mo / 7500 mi / $3500 driveoff" means term 36 months, 7500 miles/year, $3,500 due at signing. ` +
+  `A spec cell like "Chalk x black" or "Black x Black" means exterior Chalk, interior black. A price ` +
+  `cell like "$74,990 ONEPAY" means this is a one-pay lease — set onePay true, payment null, and put ` +
+  `$74,990 in dueAtSigning as the full one-pay total. A "Fees" column or a note like "$699 broker ` +
+  `fee" or "$999 doc fee" belongs in the brokerFee field, not just left in notes.`;
+
 function rowsToTable(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
   const headers = Object.keys(rows[0]);
@@ -101,7 +120,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
   const candidates = Array.isArray(raw.deals) ? raw.deals : [];
 
   const parsed: ParsedDeal[] = [];
-  const skipped: { row: number; reason: string }[] = [];
+  const skipped: SkippedRow[] = [];
 
   candidates.forEach((c, idx) => {
     const year = typeof c.year === "number" ? c.year : null;
@@ -121,6 +140,13 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     // even though there's no actual monthly bill) — accept whichever one
     // the model actually populated as the lump-sum total.
     const oneTimeTotal = onePay ? dueAtSigning ?? payment : dueAtSigning;
+    const trim = typeof c.trim === "string" && c.trim.trim() ? c.trim.trim() : null;
+    const exterior = typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null;
+    const interior = typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null;
+    const brokerFee = typeof c.brokerFee === "number" ? c.brokerFee : null;
+    const state = typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState;
+    const notes = typeof c.notes === "string" ? c.notes.trim() : "";
+    const milesPerYear = typeof c.milesPerYear === "number" ? c.milesPerYear : null;
 
     const missing: string[] = [];
     if (!year) missing.push("year");
@@ -131,7 +157,25 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     if (!oneTimeTotal) missing.push("due at signing");
 
     if (missing.length > 0) {
-      skipped.push({ row: idx + 1, reason: `Couldn't determine: ${missing.join(", ")}` });
+      // Carry through whatever WAS read (often everything but one field,
+      // like MSRP) so the broker's fallback form comes pre-filled instead
+      // of blank — they only need to fix the one thing the AI couldn't get.
+      const partial: Partial<ParsedDeal> = { onePay };
+      if (year) partial.year = year;
+      if (make) partial.make = make;
+      if (model) partial.model = model;
+      if (trim) partial.trim = trim;
+      if (msrp) partial.msrp = msrp;
+      if (!onePay && payment) partial.payment = payment;
+      if (term) partial.term = term;
+      if (milesPerYear) partial.milesPerYear = milesPerYear;
+      if (oneTimeTotal) partial.dueAtSigning = oneTimeTotal;
+      if (exterior) partial.exterior = exterior;
+      if (interior) partial.interior = interior;
+      if (brokerFee) partial.brokerFee = brokerFee;
+      if (state) partial.state = state;
+      if (notes) partial.notes = notes;
+      skipped.push({ row: idx + 1, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
       return;
     }
 
@@ -139,17 +183,17 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       year: year!,
       make: make!,
       model: model!,
-      trim: typeof c.trim === "string" && c.trim.trim() ? c.trim.trim() : null,
+      trim,
       msrp: msrp!,
       payment: onePay ? 0 : payment!,
       term: term!,
-      milesPerYear: typeof c.milesPerYear === "number" ? c.milesPerYear : null,
+      milesPerYear,
       dueAtSigning: oneTimeTotal!,
-      exterior: typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null,
-      interior: typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null,
-      brokerFee: typeof c.brokerFee === "number" ? c.brokerFee : null,
-      state: typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState,
-      notes: typeof c.notes === "string" ? c.notes.trim() : "",
+      exterior,
+      interior,
+      brokerFee,
+      state,
+      notes,
       onePay,
     });
   });
@@ -177,14 +221,7 @@ export async function parseRowsWithAI(
         role: "user",
         content:
           `Extract every car lease listing from this broker inventory sheet (pipe-delimited, first line is headers).\n\n` +
-          `Columns vary by broker and cells are often combined (e.g. a "Model" column might read ` +
-          `"2021 Taycan Turbo S (217k) CPO" meaning year 2021, make Porsche, model Taycan, trim ` +
-          `"Turbo S", MSRP $217,000, condition CPO; a "Term" column might read "24 mo/ 7500 mi/ ` +
-          `$5000 drive off" meaning term 24 months, 7500 miles/year, $5,000 due at signing; a spec ` +
-          `column like "Chalk x black" means exterior Chalk, interior black; a price cell like ` +
-          `"$74,990 ONEPAY" means this is a one-pay lease — set onePay true, payment null, and put ` +
-          `$74,990 in dueAtSigning as the full one-pay total; a "Fees" column or a note like "$699 ` +
-          `broker fee" or "$999 doc fee" should go in the brokerFee field, not just left in notes). ` +
+          `Columns vary by broker. ${COMBINED_CELL_GUIDANCE} ` +
           `Use your knowledge of car makes/models to fill in make when only a model name is given. ` +
           `Tolerate typos. If a field genuinely isn't determinable for a row, use null for it ` +
           `rather than guessing — do not fabricate numbers. Skip rows that aren't actual vehicle ` +
@@ -214,14 +251,10 @@ export async function parseFreeTextWithAI(text: string, brokerState: string): Pr
         role: "user",
         content:
           `A broker typed up one or more car lease deals in plain language (not a spreadsheet). ` +
-          `Extract every distinct vehicle listing you can find. Use your knowledge of car makes/models ` +
-          `to fill in make when only a model name is given. If a deal is a one-pay lease (a single ` +
-          `upfront lump sum with no separate monthly bill, often flagged "ONEPAY"/"one-pay"), set ` +
-          `onePay true, payment null, and put the full one-pay total in dueAtSigning. If a broker ` +
-          `fee, doc fee, or service fee is mentioned as its own dollar amount (e.g. "$699 broker ` +
-          `fee"), put it in the brokerFee field rather than just leaving it in notes. If a field ` +
-          `genuinely isn't mentioned, use null for it rather than guessing — do not fabricate ` +
-          `numbers.\n\n${text}`,
+          `Extract every distinct vehicle listing you can find. ${COMBINED_CELL_GUIDANCE} ` +
+          `Use your knowledge of car makes/models to fill in make when only a model name is given. ` +
+          `If a field genuinely isn't mentioned, use null for it rather than guessing — do not ` +
+          `fabricate numbers.\n\n${text}`,
       },
     ],
   });
@@ -286,13 +319,9 @@ export async function parseImageWithAI(
               type: "text",
               text:
                 `This is a screenshot of one or more car lease deals (a text message, forum post, ` +
-                `spreadsheet, flyer, etc). Extract every distinct vehicle listing you can read. Use your ` +
-                `knowledge of car makes/models to fill in make when only a model name is given. If a ` +
-                `deal is a one-pay lease (a single upfront lump sum with no separate monthly bill, ` +
-                `often flagged "ONEPAY"/"one-pay"), set onePay true, payment null, and put the full ` +
-                `one-pay total in dueAtSigning. If a broker fee, doc fee, or service fee is called ` +
-                `out as its own dollar amount (e.g. "$699 broker fee"), put it in the brokerFee field ` +
-                `rather than just leaving it in notes. If a field genuinely isn't visible or ` +
+                `spreadsheet, flyer, etc). Extract every distinct vehicle listing you can read. ` +
+                `${COMBINED_CELL_GUIDANCE} Use your knowledge of car makes/models to fill in make ` +
+                `when only a model name is given. If a field genuinely isn't visible or ` +
                 `determinable, use null for it rather than guessing — do not fabricate numbers.`,
             },
           ],
