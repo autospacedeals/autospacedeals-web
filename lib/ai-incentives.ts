@@ -118,7 +118,12 @@ export async function suggestIncentives(params: {
       name: o.programName,
       amount: Math.round(o.amount as number),
       source: "verified" as const,
-      note: o.targetGroup || o.description || undefined,
+      // Only the structured target-group field (e.g. "Military personnel")
+      // is worth surfacing here. `description` is MarketCheck's raw scraped
+      // ad copy for the offer ("Well equipped with features such as...") —
+      // marketing fluff, not eligibility info, so it doesn't belong next to
+      // "Verified current offer."
+      note: o.targetGroup || undefined,
     }));
 
   if (verified.length > 0) return verified;
