@@ -148,14 +148,14 @@ export default function IncentivesEditor({
                   placeholder="e.g. Loyalty"
                   value={row.name}
                   onChange={(e) => updateRow(idx, { name: e.target.value })}
-                  className={inputClass}
+                  className={`${inputClass} flex-1 min-w-0`}
                 />
                 <input
                   type="number"
                   placeholder="500"
                   value={row.amount || ""}
                   onChange={(e) => updateRow(idx, { amount: Number(e.target.value) || 0 })}
-                  className={`${inputClass} flex-1`}
+                  className={`${inputClass} flex-1 min-w-0`}
                 />
                 <button
                   type="button"
