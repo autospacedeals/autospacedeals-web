@@ -239,6 +239,7 @@ export interface DealFilters {
   state: string; // "All" or a state code (also used as "your location" for the closest sort)
   term: string; // "All" or term in months as string
   mileage: string; // "All" or miles/year as string
+  paymentType: string; // "All" | "Monthly" | "One-pay"
   maxPayment: number;
   maxDueAtSigning: number;
 }
@@ -256,6 +257,7 @@ export const DEFAULT_FILTERS: DealFilters = {
   state: "All",
   term: "All",
   mileage: "All",
+  paymentType: "All",
   maxPayment: MAX_PAYMENT_CEILING,
   maxDueAtSigning: MAX_DAS_CEILING,
 };
@@ -292,6 +294,9 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
     const matchesTerm = filters.term === "All" || String(deal.term) === filters.term;
     const matchesMileage =
       filters.mileage === "All" || String(deal.milesPerYear ?? "") === filters.mileage;
+    const matchesPaymentType =
+      filters.paymentType === "All" ||
+      (filters.paymentType === "One-pay" ? deal.onePay : !deal.onePay);
     // The sliders' max position is meant to mean "no limit" (shown as "Any"
     // in the UI — see FilterPanel), but a literal <= comparison against that
     // ceiling was quietly excluding anything priced above it even when the
@@ -332,6 +337,7 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
       matchesState &&
       matchesTerm &&
       matchesMileage &&
+      matchesPaymentType &&
       matchesPayment &&
       matchesDueAtSigning &&
       matchesQuery

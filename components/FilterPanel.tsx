@@ -101,6 +101,12 @@ export default function FilterPanel({
           options={mileageOptions}
           suffix="/yr"
         />
+        <Select
+          label="Lease type"
+          value={filters.paymentType}
+          onChange={(v) => onChange({ paymentType: v })}
+          options={["All", "Monthly", "One-pay"]}
+        />
       </div>
 
       <div className="mt-4 space-y-4 border-t border-white/10 pt-4">
