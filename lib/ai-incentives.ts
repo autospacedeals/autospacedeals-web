@@ -109,22 +109,34 @@ export async function suggestIncentives(params: {
   state?: string;
   zip?: string;
 }): Promise<SuggestedIncentive[]> {
-  // 1. Real data first.
+  // 1. Real data first. MarketCheck often returns the same effective
+  // program multiple times (scraped from several dealer pages, sometimes
+  // with different marketing copy attached) — dedupe by name+amount rather
+  // than slicing raw results, so a broker doesn't see "Lease Offer $3,750"
+  // repeated five times instead of five distinct programs.
   const { offers, error } = await fetchMarketCheckIncentives(params);
-  const verified: SuggestedIncentive[] = offers
-    .filter((o) => o.amount !== null && o.amount > 0)
-    .slice(0, 5)
-    .map((o) => ({
-      name: o.programName,
-      amount: Math.round(o.amount as number),
-      source: "verified" as const,
+  const seen = new Set<string>();
+  const verified: SuggestedIncentive[] = [];
+  for (const o of offers) {
+    if (o.amount === null || o.amount <= 0) continue;
+    const name = o.programName;
+    const amount = Math.round(o.amount);
+    const key = `${name.toLowerCase()}|${amount}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    verified.push({
+      name,
+      amount,
+      source: "verified",
       // Only the structured target-group field (e.g. "Military personnel")
       // is worth surfacing here. `description` is MarketCheck's raw scraped
       // ad copy for the offer ("Well equipped with features such as...") —
       // marketing fluff, not eligibility info, so it doesn't belong next to
       // "Verified current offer."
       note: o.targetGroup || undefined,
-    }));
+    });
+    if (verified.length >= 5) break;
+  }
 
   if (verified.length > 0) return verified;
 

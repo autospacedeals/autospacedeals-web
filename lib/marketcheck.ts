@@ -55,9 +55,13 @@ function programName(offer: any): string {
   if (typeof offer.oem_program_name === "string" && offer.oem_program_name.trim()) {
     return offer.oem_program_name.trim();
   }
-  if (Array.isArray(offer.titles) && typeof offer.titles[0] === "string" && offer.titles[0].trim()) {
-    return offer.titles[0].trim();
-  }
+  // Deliberately NOT falling back to `titles[0]` here — despite the docs
+  // calling it "program titles and headlines," in practice it's frequently
+  // raw ad-copy scraped off the OEM's vehicle page (e.g. "Un4gettable:
+  // Designed to Catch Your Eye.") rather than an actual program name, and
+  // showing that next to "✓ Verified current offer" undermines the whole
+  // point of flagging it as verified, real data. A generic-but-accurate
+  // label beats a slick-but-meaningless one.
   if (typeof offer.cashback_target_group === "string" && offer.cashback_target_group.trim()) {
     return `${offer.cashback_target_group.trim()} Offer`;
   }
