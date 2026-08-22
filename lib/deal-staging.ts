@@ -92,7 +92,7 @@ export async function stageParsedDeals(
       state: d.state ?? broker.state,
       verified: true,
       condition: null,
-      incentives: [],
+      incentives: d.incentives ?? [],
       photo_auto_sourced: true,
       in_stock: true,
       popularity: 50,

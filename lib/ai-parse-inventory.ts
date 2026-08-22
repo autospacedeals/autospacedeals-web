@@ -64,6 +64,19 @@ const EXTRACT_TOOL = {
               type: ["string", "null"],
               description: "2-letter US state code, inferred from any region/city mentioned (e.g. \"Socal\" -> CA)",
             },
+            incentiveHints: {
+              type: "array" as const,
+              items: { type: "string" },
+              description:
+                "Names of specific named incentive/rebate programs (e.g. \"Conquest\", \"Fleet\", " +
+                "\"Loyalty\", \"Military\") that the ad says are REQUIRED to qualify for the " +
+                "advertised price, when the ad names the program but doesn't give its dollar value " +
+                "(e.g. \"CONQUEST AND FLEET (AAA/SAMS/EMPLOYER required)\" -> [\"Conquest\", " +
+                "\"Fleet\"]). These get looked up separately to find the real dollar amount — just " +
+                "list the program name(s) here, don't guess a number. Empty array if the ad doesn't " +
+                "name a specific required program (a generic \"tax and fees extra\" disclaimer " +
+                "doesn't count).",
+            },
             notes: {
               type: "string",
               description:
@@ -98,7 +111,11 @@ const COMBINED_CELL_GUIDANCE =
   `exterior Chalk, interior black. A price cell like "$74,990 ONEPAY" means this is a one-pay lease ` +
   `— set onePay true, payment null, and put $74,990 in dueAtSigning as the full one-pay total. A ` +
   `"Fees" column or a note like "$699 broker fee" or "$999 doc fee" belongs in the brokerFee field, ` +
-  `not just left in notes.`;
+  `not just left in notes. When the ad names a specific incentive/rebate program as a REQUIRED ` +
+  `condition for the advertised price without stating its dollar value (e.g. "CONQUEST AND FLEET ` +
+  `(AAA/SAMS/EMPLOYER required)"), put the program name(s) in incentiveHints (e.g. ["Conquest", ` +
+  `"Fleet"]) rather than just leaving it in notes — the actual dollar amount gets looked up ` +
+  `separately, so just capture the name here, don't guess a number for it yourself.`;
 
 function rowsToTable(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
@@ -150,6 +167,9 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const state = typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState;
     const notes = typeof c.notes === "string" ? c.notes.trim() : "";
     const milesPerYear = typeof c.milesPerYear === "number" ? c.milesPerYear : null;
+    const incentiveHints = Array.isArray(c.incentiveHints)
+      ? c.incentiveHints.filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+      : [];
 
     const missing: string[] = [];
     if (!year) missing.push("year");
@@ -178,6 +198,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (brokerFee) partial.brokerFee = brokerFee;
       if (state) partial.state = state;
       if (notes) partial.notes = notes;
+      if (incentiveHints.length > 0) partial.incentiveHints = incentiveHints;
       skipped.push({ row: idx + 1, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
       return;
     }
@@ -198,6 +219,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       state,
       notes,
       onePay,
+      incentiveHints,
     });
   });
 

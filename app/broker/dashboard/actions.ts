@@ -11,7 +11,7 @@ import {
   parseImageWithAI,
   type SupportedImageType,
 } from "@/lib/ai-parse-inventory";
-import { suggestIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
+import { suggestIncentives, resolveNamedIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
 import { extractGoogleSheetId, fetchGoogleSheetCsv } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 
@@ -377,6 +377,40 @@ export async function createSubmissionAction(
     } else {
       sheetSyncId = sync.id;
     }
+  }
+
+  // A source that names a specific required incentive program (e.g.
+  // "CONQUEST AND FLEET (AAA/SAMS/EMPLOYER required)") without stating its
+  // dollar value gets that figure resolved here — real MarketCheck data
+  // when available, otherwise a targeted AI estimate for that exact program
+  // — before staging, so it lands as a proper (already-included-in-price)
+  // incentive row on the draft instead of being lost in a notes paragraph.
+  // Only touches rows that actually came back with hints to resolve.
+  if (parsedDeals.some((d) => d.incentiveHints && d.incentiveHints.length > 0)) {
+    parsedDeals = await Promise.all(
+      parsedDeals.map(async (d) => {
+        if (!d.incentiveHints || d.incentiveHints.length === 0) return d;
+        try {
+          const resolved = await resolveNamedIncentives(
+            { year: d.year, make: d.make, model: d.model, trim: d.trim ?? undefined },
+            d.incentiveHints
+          );
+          if (resolved.length === 0) return d;
+          return {
+            ...d,
+            incentives: resolved.map((r) => ({ name: r.name, amount: r.amount, includedInPrice: true })),
+          };
+        } catch (err) {
+          console.error("Failed to resolve named incentives for a parsed deal:", err, {
+            year: d.year,
+            make: d.make,
+            model: d.model,
+            incentiveHints: d.incentiveHints,
+          });
+          return d;
+        }
+      })
+    );
   }
 
   let stageFailed = 0;
