@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ExternalLink,
   Loader2,
+  Minimize2,
   RefreshCw,
   Save,
   Trash2,
@@ -810,6 +811,15 @@ function ListingRow({
                 >
                   {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                   Save changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
+                  title="Collapse this row's edit panel — any unsaved changes stick around until you reopen it"
+                >
+                  <Minimize2 size={13} />
+                  Minimize
                 </button>
                 <span className="text-xs text-zinc-600">Goes live immediately</span>
               </div>
