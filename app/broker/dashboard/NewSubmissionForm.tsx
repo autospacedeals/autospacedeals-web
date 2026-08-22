@@ -308,7 +308,7 @@ function LinkForm() {
         disabled={pending}
         className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
       >
-        <Upload size={16} /> {pending ? "Saving..." : "Save source"}
+        <Upload size={16} /> {pending ? "Importing..." : "Import cars"}
       </button>
     </form>
   );
