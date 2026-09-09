@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -30,12 +30,41 @@ import SortBar from "@/components/SortBar";
 const ALL_BODY_STYLES: BodyStyle[] = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const ALL_FUEL_TYPES: FuelType[] = ["Gas", "Hybrid", "PHEV", "EV"];
 
+// Clicking into a deal card and using "Back to all deals" is a full page
+// navigation back to "/", which remounts HomeClient from scratch — so
+// viewMode's default ("grid") was winning every time even if the shopper
+// had switched to coverflow, regardless of how they navigated back.
+// localStorage survives that remount and follows the same pattern used for
+// MyListings' column widths (see app/broker/dashboard/MyListings.tsx).
+const VIEW_MODE_STORAGE_KEY = "asd_home_view_mode_v1";
+
 export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
   const deals = initialDeals;
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "coverflow">("grid");
+  const [viewMode, setViewModeState] = useState<"grid" | "coverflow">("grid");
+
+  // Load any saved view mode once the page is hydrated (avoids an SSR
+  // hydration mismatch, since the server always renders the "grid" default).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved === "grid" || saved === "coverflow") setViewModeState(saved);
+    } catch {
+      // Ignore — just fall back to the default.
+    }
+  }, []);
+
+  function setViewMode(mode: "grid" | "coverflow") {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+    } catch {
+      // Ignore storage failures — the toggle still works for this visit.
+    }
+  }
 
   const sellerCount = useMemo(() => new Set(deals.map((d) => d.sellerName)).size, [deals]);
   const stateCount = useMemo(() => new Set(deals.map((d) => d.state)).size, [deals]);
