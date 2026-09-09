@@ -26,6 +26,7 @@ import DealCard from "@/components/DealCard";
 import DealCoverFlow from "@/components/DealCoverFlow";
 import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
+import { nearestState } from "@/lib/us-geo";
 
 const ALL_BODY_STYLES: BodyStyle[] = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const ALL_FUEL_TYPES: FuelType[] = ["Gas", "Hybrid", "PHEV", "EV"];
@@ -66,6 +67,37 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
     }
   }
 
+  // "Closest to my location" used to never actually ask for the shopper's
+  // location at all — picking it with the Location filter left on "All"
+  // just silently left the list in its existing order, while the label
+  // implied it already knew where they were. Request it lazily, only once
+  // this sort is actually selected, and surface honestly what happened
+  // either way instead of a mysterious no-op.
+  const [detectedState, setDetectedState] = useState<string | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "pending" | "granted" | "denied" | "unavailable">(
+    "idle"
+  );
+
+  useEffect(() => {
+    if (sortBy !== "closest" || geoStatus !== "idle") return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGeoStatus("unavailable");
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGeoStatus("pending");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const state = nearestState(pos.coords.latitude, pos.coords.longitude);
+        setDetectedState(state);
+        setGeoStatus(state ? "granted" : "unavailable");
+      },
+      () => setGeoStatus("denied"),
+      { maximumAge: 10 * 60 * 1000, timeout: 8000 }
+    );
+  }, [sortBy, geoStatus]);
+
   const sellerCount = useMemo(() => new Set(deals.map((d) => d.sellerName)).size, [deals]);
   const stateCount = useMemo(() => new Set(deals.map((d) => d.state)).size, [deals]);
 
@@ -102,8 +134,11 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
 
   const results = useMemo(() => {
     const filtered = filterDeals(deals, filters);
-    return sortDeals(filtered, sortBy, filters.state);
-  }, [deals, filters, sortBy]);
+    // The manual "Location" filter still wins if the shopper set one —
+    // auto-detected location only fills in when they've left it on "All".
+    const referenceState = filters.state !== "All" ? filters.state : detectedState ?? "All";
+    return sortDeals(filtered, sortBy, referenceState);
+  }, [deals, filters, sortBy, detectedState]);
 
   return (
     <main>
@@ -205,6 +240,19 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
           </aside>
 
           <div className="min-h-[70vh]">
+            {sortBy === "closest" && filters.state === "All" && (
+              <p className="mb-2 text-xs text-zinc-500">
+                {geoStatus === "pending" && "Finding your location…"}
+                {geoStatus === "granted" &&
+                  (detectedState
+                    ? `Showing deals closest to ${detectedState} based on your device's location.`
+                    : "Couldn't match your location to a state — showing deals in default order.")}
+                {geoStatus === "denied" &&
+                  "Location access denied, so we can't sort by distance — showing deals in default order. Pick a state under Location to sort by hand instead."}
+                {geoStatus === "unavailable" &&
+                  "Location isn't available on this device/browser — showing deals in default order. Pick a state under Location to sort by hand instead."}
+              </p>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <SortBar sortBy={sortBy} onSortChange={setSortBy} resultCount={results.length} />
 
