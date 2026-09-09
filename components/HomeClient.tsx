@@ -129,10 +129,10 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
               </a>
             </div>
 
-            <div className="mx-auto mt-8 grid max-w-lg grid-cols-3 gap-4 text-center">
+            <div className="mx-auto mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-center">
               <HeroStat value={`${deals.length}+`} label="Active deals" />
-              <HeroStat value={`${sellerCount}`} label="Dealers &amp; brokers" />
-              <HeroStat value={`${stateCount}`} label="States covered" />
+              {sellerCount >= 5 && <HeroStat value={`${sellerCount}`} label="Dealers &amp; brokers" />}
+              {stateCount >= 3 && <HeroStat value={`${stateCount}`} label="States covered" />}
             </div>
           </div>
         </div>
