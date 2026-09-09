@@ -66,7 +66,7 @@ export default function SiteFooter() {
             <ul className="mt-3 space-y-2 text-sm text-zinc-500">
               <li className="flex items-start gap-2">
                 <ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-400" />
-                <span>Verified badge = seller identity confirmed by our team.</span>
+                <span>Every listing shows real contact info for the dealer or broker who posted it — you deal with them directly.</span>
               </li>
               <li>
                 <a

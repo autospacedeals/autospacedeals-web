@@ -149,7 +149,7 @@ export default function DealCoverFlow({
               }}
             >
               <div
-                className="overflow-hidden rounded-lg bg-zinc-900 shadow-2xl shadow-black/60"
+                className="relative overflow-hidden rounded-lg bg-zinc-900 shadow-2xl shadow-black/60"
                 style={{ height: ITEM_HEIGHT }}
               >
                 {image ? (
@@ -164,6 +164,20 @@ export default function DealCoverFlow({
                     <Car size={48} />
                   </div>
                 )}
+                {/* Same disclosure grid/detail views show for these fields —
+                    only on the centered card so the side cards stay clean. */}
+                {isCenter &&
+                  (deal.sample ? (
+                    <span className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-zinc-950">
+                      Sample listing — not exact vehicle
+                    </span>
+                  ) : (
+                    deal.photoAutoSourced && (
+                      <span className="absolute inset-x-0 bottom-0 bg-zinc-950/85 px-2 py-1 text-center text-[10px] font-semibold text-zinc-300">
+                        Stock photo — may not be exact vehicle
+                      </span>
+                    )
+                  ))}
               </div>
               {/* Glossy floor reflection — mirrors the bottom half of the
                   real photo above it, faded out, like a reflective floor.
