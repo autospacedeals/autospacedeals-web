@@ -1,5 +1,20 @@
 import type { Deal } from "./deals-data";
 
+// Remembers which deal a shopper last clicked into, so navigating back to
+// the homepage (a full remount, not client-side routing) can return them to
+// that same car instead of always resetting to the top of the list. Written
+// right before navigating to a deal's detail page, read once and cleared on
+// the homepage's next mount — see HomeClient.tsx.
+export const LAST_VIEWED_DEAL_KEY = "asd_home_last_viewed_deal_v1";
+
+export function markDealViewed(dealId: string): void {
+  try {
+    localStorage.setItem(LAST_VIEWED_DEAL_KEY, dealId);
+  } catch {
+    // Ignore storage failures — navigation still works, just without restore.
+  }
+}
+
 // Defensive against bad/missing data: the type says `number`, but a value
 // coming from the database (or a row that slipped through with a null in a
 // column TypeScript assumes is always populated) can arrive as null,

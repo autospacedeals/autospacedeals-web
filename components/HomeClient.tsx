@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -18,6 +18,7 @@ import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
 import {
   DEFAULT_FILTERS,
   filterDeals,
+  LAST_VIEWED_DEAL_KEY,
   sortDeals,
   type DealFilters,
   type SortOption,
@@ -45,9 +46,17 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewModeState] = useState<"grid" | "coverflow">("grid");
+  const [viewModeLoaded, setViewModeLoaded] = useState(false);
+  // The deal a shopper clicked into last visit (see markDealViewed) — used to
+  // reopen on the same car instead of resetting to the top of the list.
+  // Consumed (cleared) once it's been applied so it doesn't stick around and
+  // hijack a later manual grid/coverflow toggle in the same visit.
+  const [restoreDealId, setRestoreDealId] = useState<string | null>(null);
+  const restoredScrollRef = useRef(false);
 
-  // Load any saved view mode once the page is hydrated (avoids an SSR
-  // hydration mismatch, since the server always renders the "grid" default).
+  // Load any saved view mode + last-viewed deal once the page is hydrated
+  // (avoids an SSR hydration mismatch, since the server always renders the
+  // "grid" default with nothing to restore).
   useEffect(() => {
     try {
       const saved = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
@@ -56,7 +65,30 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
     } catch {
       // Ignore — just fall back to the default.
     }
+    try {
+      const lastDeal = localStorage.getItem(LAST_VIEWED_DEAL_KEY);
+      if (lastDeal) {
+        setRestoreDealId(lastDeal);
+        localStorage.removeItem(LAST_VIEWED_DEAL_KEY);
+      }
+    } catch {
+      // Ignore — just falls back to no restore.
+    }
+    setViewModeLoaded(true);
   }, []);
+
+  // Grid view: once we know the real view mode and have a deal to restore,
+  // scroll it into view. Runs once per visit (restoredScrollRef guards it) —
+  // coverflow's restore instead happens via the initialDealId prop below.
+  useEffect(() => {
+    if (!viewModeLoaded || !restoreDealId || restoredScrollRef.current) return;
+    restoredScrollRef.current = true;
+    if (viewMode === "grid") {
+      const el = document.getElementById(`deal-${restoreDealId}`);
+      el?.scrollIntoView({ block: "center" });
+    }
+    setRestoreDealId(null);
+  }, [viewModeLoaded, viewMode, restoreDealId]);
 
   function setViewMode(mode: "grid" | "coverflow") {
     setViewModeState(mode);
@@ -283,12 +315,14 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
             {results.length > 0 ? (
               viewMode === "coverflow" ? (
                 <div className="mt-6">
-                  <DealCoverFlow deals={results} />
+                  <DealCoverFlow deals={results} initialDealId={restoreDealId} />
                 </div>
               ) : (
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {results.map((deal) => (
-                    <DealCard key={deal.id} deal={deal} />
+                    <div key={deal.id} id={`deal-${deal.id}`}>
+                      <DealCard deal={deal} />
+                    </div>
                   ))}
                 </div>
               )

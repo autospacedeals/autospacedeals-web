@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { MapPin, Gauge, ArrowRight, Store } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { displayMsrp, formatCurrency, msrpDiscountPercent, relativeDatePosted } from "@/lib/deal-utils";
+import {
+  displayMsrp,
+  formatCurrency,
+  markDealViewed,
+  msrpDiscountPercent,
+  relativeDatePosted,
+} from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
 
 // HOT and VALUE badges were dropped per Robert — too cluttered for the
@@ -29,7 +35,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
 
   return (
     <article className="group flex flex-col rounded-3xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-white/20 hover:bg-white/[0.07] sm:p-5">
-      <Link href={detailHref} className="block">
+      <Link href={detailHref} className="block" onClick={() => markDealViewed(deal.id)}>
         <div className="relative mb-4 overflow-hidden rounded-2xl bg-zinc-900">
           <img
             src={image}
@@ -150,6 +156,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
 
       <Link
         href={detailHref}
+        onClick={() => markDealViewed(deal.id)}
         className="mt-2 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
       >
         View Full Details <ArrowRight size={15} />

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Car, ArrowRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { formatCurrency } from "@/lib/deal-utils";
+import { formatCurrency, markDealViewed } from "@/lib/deal-utils";
 
 // A nod to the old iTunes/iPod "Cover Flow" browser — cars stand in for
 // albums, flip through them in 3D, center one is the one you're looking at.
@@ -19,9 +19,21 @@ const VISIBLE_RANGE = 6;
 const SWIPE_THRESHOLD = 40;
 const CLICK_MOVE_TOLERANCE = 6;
 
-export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
+export default function DealCoverFlow({
+  deals,
+  initialDealId,
+}: {
+  deals: Deal[];
+  // Set once, right after this mounts, to reopen on the same car a shopper
+  // was viewing before navigating to its detail page — see HomeClient.tsx.
+  initialDealId?: string | null;
+}) {
   const router = useRouter();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (!initialDealId) return 0;
+    const idx = deals.findIndex((d) => d.id === initialDealId);
+    return idx >= 0 ? idx : 0;
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ startX: number; moved: number } | null>(null);
   // Set on pointerup and read by the click handler that fires right after —
@@ -48,7 +60,10 @@ export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
       prev();
     } else if (e.key === "Enter") {
       const deal = deals[activeIndex];
-      if (deal) router.push(`/deals/${deal.slug}`);
+      if (deal) {
+        markDealViewed(deal.id);
+        router.push(`/deals/${deal.slug}`);
+      }
     }
   }
 
@@ -73,7 +88,10 @@ export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
     if (Math.abs(lastMovedRef.current) > CLICK_MOVE_TOLERANCE) return; // it was a drag, not a tap
     if (i === activeIndex) {
       const deal = deals[i];
-      if (deal) router.push(`/deals/${deal.slug}`);
+      if (deal) {
+        markDealViewed(deal.id);
+        router.push(`/deals/${deal.slug}`);
+      }
     } else {
       goTo(i);
     }
@@ -218,6 +236,7 @@ export default function DealCoverFlow({ deals }: { deals: Deal[] }) {
           </p>
           <Link
             href={`/deals/${activeDeal.slug}`}
+            onClick={() => markDealViewed(activeDeal.id)}
             className="mt-4 flex items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
           >
             View Full Details <ArrowRight size={15} />
