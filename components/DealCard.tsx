@@ -1,3 +1,12 @@
+// Needs to be a Client Component: the onClick handlers below (markDealViewed)
+// attach an event listener to <Link>. DealCard is rendered both from Client
+// Components (the homepage grid) and true Server Components (the "Similar
+// Deals" section on every /deals/[slug] page via DealDetailView) — without
+// this directive, the Server Component render path crashes with "Event
+// handlers cannot be passed to Client Component props" on every single deal
+// page, since a Server Component can't hand a function prop to <Link>.
+"use client";
+
 import Link from "next/link";
 import { MapPin, Gauge, ArrowRight, Store } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
