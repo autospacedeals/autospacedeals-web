@@ -68,6 +68,15 @@ export async function signUpAction(
   if (!data.user) {
     return { error: "Something went wrong creating your account. Please try again." };
   }
+  // Supabase deliberately avoids leaking whether an email is already
+  // registered: if one is, signUp() still returns success with a `user`
+  // object, but doesn't actually create a new auth row — that object's id
+  // has no matching row in auth.users. The tell is an empty `identities`
+  // array. Without this check we'd sail on to the brokers insert below and
+  // hit a raw foreign-key violation instead of a real error message.
+  if (data.user.identities && data.user.identities.length === 0) {
+    return { error: "An account with this email already exists. Try signing in instead." };
+  }
 
   // Use the admin client for the profile insert so this works even if the
   // Supabase project requires email confirmation (in which case there's no
