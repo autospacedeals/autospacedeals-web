@@ -25,6 +25,7 @@ import {
   type SortOption,
 } from "@/lib/deal-utils";
 import DealCard from "@/components/DealCard";
+import CompareModal from "@/components/CompareModal";
 import DealCoverFlow from "@/components/DealCoverFlow";
 import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
@@ -54,6 +55,18 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
   // hijack a later manual grid/coverflow toggle in the same visit.
   const [restoreDealId, setRestoreDealId] = useState<string | null>(null);
   const restoredScrollRef = useRef(false);
+
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+  const MAX_COMPARE = 3;
+
+  function toggleCompare(id: string) {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_COMPARE) return prev;
+      return [...prev, id];
+    });
+  }
 
   // Load any saved view mode + last-viewed deal once the page is hydrated
   // (avoids an SSR hydration mismatch, since the server always renders the
@@ -304,7 +317,13 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {results.map((deal) => (
                     <div key={deal.id} id={`deal-${deal.id}`}>
-                      <DealCard deal={deal} score={scores.get(deal.id)} />
+                      <DealCard
+                        deal={deal}
+                        score={scores.get(deal.id)}
+                        compareSelected={compareIds.includes(deal.id)}
+                        compareDisabled={compareIds.length >= MAX_COMPARE}
+                        onToggleCompare={() => toggleCompare(deal.id)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -375,6 +394,43 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
           </Link>
         </div>
       </section>
+
+      {compareIds.length > 0 && !showCompare && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-zinc-950/95 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-zinc-300">
+              {compareIds.length} deal{compareIds.length > 1 ? "s" : ""} selected
+              {compareIds.length < 2 && " — pick at least one more"}
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCompareIds([])}
+                className="text-xs font-semibold text-zinc-500 transition hover:text-white"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                disabled={compareIds.length < 2}
+                onClick={() => setShowCompare(true)}
+                className="rounded-xl bg-white px-5 py-2 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-50"
+              >
+                Compare
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCompare && (
+        <CompareModal
+          deals={compareIds.map((id) => deals.find((d) => d.id === id)).filter((d): d is Deal => !!d)}
+          scores={scores}
+          onRemove={(id) => setCompareIds((prev) => prev.filter((x) => x !== id))}
+          onClose={() => setShowCompare(false)}
+        />
+      )}
     </main>
   );
 }

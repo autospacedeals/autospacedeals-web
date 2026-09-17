@@ -44,7 +44,24 @@ const CONDITION_STYLES: Record<string, string> = {
   Used: "bg-zinc-700 text-white",
 };
 
-export default function DealCard({ deal, score }: { deal: Deal; score?: DealScore | null }) {
+export default function DealCard({
+  deal,
+  score,
+  compareSelected,
+  onToggleCompare,
+  compareDisabled,
+}: {
+  deal: Deal;
+  score?: DealScore | null;
+  // Compare-mode props are all optional and only passed from the homepage
+  // grid — DealCard renders in several other places (similar deals, a
+  // broker's public profile) where comparing doesn't make sense, and
+  // omitting these just hides the checkbox rather than requiring every
+  // call site to pass no-op handlers.
+  compareSelected?: boolean;
+  onToggleCompare?: () => void;
+  compareDisabled?: boolean;
+}) {
   const image = deal.images[0];
   const discount = msrpDiscountPercent(deal);
   const detailHref = `/deals/${deal.slug}`;
@@ -174,6 +191,25 @@ export default function DealCard({ deal, score }: { deal: Deal; score?: DealScor
           <Gauge size={13} /> {relativeDatePosted(deal.datePosted)}
         </p>
       </div>
+
+      {onToggleCompare && (
+        <label
+          className={`mt-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+            compareSelected
+              ? "border-white/30 bg-white/10 text-white"
+              : "border-white/10 bg-white/[0.02] text-zinc-400"
+          } ${compareDisabled && !compareSelected ? "opacity-50" : "cursor-pointer hover:border-white/20"}`}
+        >
+          <input
+            type="checkbox"
+            checked={!!compareSelected}
+            disabled={compareDisabled && !compareSelected}
+            onChange={onToggleCompare}
+            className="rounded border-white/20 bg-white/5"
+          />
+          {compareSelected ? "Added to compare" : "Compare this deal"}
+        </label>
+      )}
 
       <ContactActionsCompact deal={deal} />
 
