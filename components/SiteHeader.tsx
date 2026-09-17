@@ -6,10 +6,12 @@ import Image from "next/image";
 import { Menu, X, UserCircle2, LogOut } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
 
+// Trimmed to destinations that actually go somewhere — "About" and
+// "Brokers" used to just scroll to homepage sections; the broker link now
+// points straight at signup instead.
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals" },
-  { href: "/#how", label: "About" },
-  { href: "/#brokers", label: "Brokers" },
+  { href: "/broker/signup", label: "For Brokers" },
   { href: "/leasing-guide", label: "Guide" },
 ];
 
@@ -40,9 +42,9 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
 
         <nav className="hidden items-center gap-8 text-sm text-zinc-300 md:flex">
           {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="transition hover:text-white">
+            <Link key={link.href} href={link.href} className="transition hover:text-white">
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -96,14 +98,14 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
         <div className="border-t border-white/10 bg-zinc-950 px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-1 text-sm">
             {NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             {account ? (
               <Link

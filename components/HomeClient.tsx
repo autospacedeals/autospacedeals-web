@@ -320,29 +320,22 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
       {/* How it works */}
       {/* ---------------------------------------------------------------- */}
       <section id="how" className="border-y border-white/10 bg-white/[0.03]">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
-          <p className="mb-2 text-center text-sm font-semibold uppercase tracking-[0.25em] text-zinc-500">
-            How it works
-          </p>
-          <h2 className="mb-10 text-center text-3xl font-black sm:text-4xl">
-            A simpler way to shop for a deal
-          </h2>
-
-          <div className="grid gap-5 md:grid-cols-3">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+          <div className="grid gap-6 sm:grid-cols-3">
             <InfoCard
               icon={ShieldCheck}
               title="Brokers post directly"
-              text="Dealers and brokers upload their own inventory and it's live immediately — no waiting on approval, so what you see is current."
+              text="Live immediately, no approval wait."
             />
             <InfoCard
               icon={SlidersHorizontal}
-              title="Standardized deal format"
-              text="Payments, due at signing, term, mileage, location, fees, and source details are organized consistently so deals are easy to compare."
+              title="Standardized format"
+              text="Payment, term, mileage, fees — easy to compare."
             />
             <InfoCard
               icon={Car}
-              title="Easy seller handoff"
-              text="Shoppers contact the dealer or broker directly, so the seller keeps the lead and closes the deal — no middleman."
+              title="Direct seller handoff"
+              text="Contact the dealer or broker directly."
             />
           </div>
         </div>
@@ -351,39 +344,23 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
       {/* ---------------------------------------------------------------- */}
       {/* For dealers & brokers */}
       {/* ---------------------------------------------------------------- */}
-      <section id="brokers" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
-        <div className="grid items-center gap-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-10 md:grid-cols-[1fr_auto]">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-zinc-500">
-              <Store size={16} /> For Dealers &amp; Brokers
+      <section id="brokers" className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:flex-row sm:justify-between sm:p-6">
+          <div className="text-center sm:text-left">
+            <p className="flex items-center justify-center gap-2 text-sm font-semibold text-zinc-200 sm:justify-start">
+              <Store size={16} /> List your dealer or broker deals for free
             </p>
-            <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-              Get your inventory in front of ready-to-buy shoppers.
-            </h2>
-            <p className="mt-3 max-w-2xl leading-7 text-zinc-300">
-              List your dealer or broker deals on Drive for free while we&apos;re in
-              early access. You keep every lead — shoppers contact you directly by phone, text,
-              or email.
-            </p>
-            <p className="mt-3 flex items-center gap-2 text-sm text-zinc-500">
-              <Users size={15} /> {sellerCount} dealers &amp; brokers already listed
+            <p className="mt-1 flex items-center justify-center gap-2 text-xs text-zinc-500 sm:justify-start">
+              <Users size={13} /> {sellerCount} dealers &amp; brokers already listed · you keep every lead
             </p>
           </div>
 
-          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-            <Link
-              href="/broker/signup"
-              className="flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-            >
-              Create a Broker Account <ArrowRight size={16} />
-            </Link>
-            <a
-              href="mailto:rob@idriveus.com?subject=I%20want%20to%20list%20deals%20on%20Drive"
-              className="text-center text-xs font-semibold text-zinc-500 hover:text-white"
-            >
-              or just email us
-            </a>
-          </div>
+          <Link
+            href="/broker/signup"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+          >
+            Create a Broker Account <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
     </main>
@@ -400,12 +377,14 @@ function InfoCard({
   text: string;
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-zinc-950 p-6">
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white">
-        <Icon size={20} />
+    <div className="flex items-center gap-3 text-center sm:flex-col sm:text-center">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white sm:mb-1">
+        <Icon size={16} />
       </div>
-      <h3 className="text-xl font-black">{title}</h3>
-      <p className="mt-3 leading-7 text-zinc-400">{text}</p>
+      <div className="text-left sm:text-center">
+        <p className="text-sm font-bold">{title}</p>
+        <p className="text-xs text-zinc-500">{text}</p>
+      </div>
     </div>
   );
 }

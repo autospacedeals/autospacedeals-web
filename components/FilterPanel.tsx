@@ -1,6 +1,7 @@
 "use client";
 
-import { SlidersHorizontal, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { SlidersHorizontal, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import type { BodyStyle, FuelType } from "@/lib/deals-data";
 import {
   DEFAULT_FILTERS,
@@ -35,6 +36,11 @@ export default function FilterPanel({
   terms,
   mileageOptions,
 }: FilterPanelProps) {
+  // Fuel type and mileage allowance are used far less often than the fields
+  // above them — tucked behind a toggle so the panel doesn't front-load 9
+  // dropdowns before you've even glanced at a car.
+  const [showMore, setShowMore] = useState(false);
+
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -70,12 +76,6 @@ export default function FilterPanel({
           options={["All", ...bodyStyles]}
         />
         <Select
-          label="Fuel type"
-          value={filters.fuel}
-          onChange={(v) => onChange({ fuel: v })}
-          options={["All", ...fuels]}
-        />
-        <Select
           label="Broker/dealer"
           value={filters.seller}
           onChange={(v) => onChange({ seller: v })}
@@ -95,19 +95,39 @@ export default function FilterPanel({
           suffix=" mo"
         />
         <Select
-          label="Mileage allowance"
-          value={filters.mileage}
-          onChange={(v) => onChange({ mileage: v })}
-          options={mileageOptions}
-          suffix="/yr"
-        />
-        <Select
           label="Lease type"
           value={filters.paymentType}
           onChange={(v) => onChange({ paymentType: v })}
           options={["All", "Monthly", "One-pay"]}
         />
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowMore((v) => !v)}
+        className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-white"
+      >
+        {showMore ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        {showMore ? "Fewer filters" : "More filters"}
+      </button>
+
+      {showMore && (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          <Select
+            label="Fuel type"
+            value={filters.fuel}
+            onChange={(v) => onChange({ fuel: v })}
+            options={["All", ...fuels]}
+          />
+          <Select
+            label="Mileage allowance"
+            value={filters.mileage}
+            onChange={(v) => onChange({ mileage: v })}
+            options={mileageOptions}
+            suffix="/yr"
+          />
+        </div>
+      )}
 
       <div className="mt-4 space-y-4 border-t border-white/10 pt-4">
         <RangeField
