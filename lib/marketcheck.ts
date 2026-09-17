@@ -42,16 +42,21 @@ export interface LeaseStructure {
   source: string; // program name this was pulled from, for a "based on ___" note
 }
 
-// Picks the single best real lease offer to prefill a calculator with — one
-// that's actually typed as a lease and has enough of the structure (MSRP +
-// residual, at minimum) to compute real numbers from, rather than an
-// incentive-only offer (e.g. a pure loyalty rebate) that never carried a
-// residual/cap-cost figure to begin with.
-export function pickLeaseStructure(offers: MarketCheckIncentiveOffer[]): LeaseStructure | null {
+// Picks every real lease offer with enough structure to compute from —
+// MSRP + residual + term, at minimum — deduped one-per-term so the
+// calculator can offer a term selector where switching terms swaps in that
+// term's own residual/money factor/acquisition fee, instead of assuming
+// one term's numbers apply no matter what length is picked (leases almost
+// always quote a different residual and sometimes a different money
+// factor per term).
+export function pickLeaseStructures(offers: MarketCheckIncentiveOffer[]): LeaseStructure[] {
+  const byTerm = new Map<number, LeaseStructure>();
+
   for (const o of offers) {
     if (o.offerType !== "lease") continue;
     if (!o.msrp || o.msrp <= 0 || !o.residualValue || o.residualValue <= 0) continue;
     if (!o.term || o.term <= 0) continue;
+    if (byTerm.has(o.term)) continue; // keep the first (best-ranked) offer per term
 
     const residualPercent = (o.residualValue / o.msrp) * 100;
     // APR-equivalent -> money factor is the standard conversion (money
@@ -59,16 +64,26 @@ export function pickLeaseStructure(offers: MarketCheckIncentiveOffer[]): LeaseSt
     // than guessing when MarketCheck didn't report one for this offer.
     const moneyFactor = o.aprEquivalent != null ? o.aprEquivalent / 2400 : 0;
 
-    return {
+    byTerm.set(o.term, {
       msrp: o.msrp,
       residualPercent,
       moneyFactor,
       term: o.term,
       acquisitionFee: o.acquisitionFee,
       source: o.programName,
-    };
+    });
   }
-  return null;
+
+  return Array.from(byTerm.values()).sort((a, b) => a.term - b.term);
+}
+
+// Picks the single best real lease offer to prefill a calculator with —
+// the same 36-month-first preference a shopper would expect by default,
+// falling back to whichever term actually has data.
+export function pickLeaseStructure(offers: MarketCheckIncentiveOffer[]): LeaseStructure | null {
+  const structures = pickLeaseStructures(offers);
+  if (structures.length === 0) return null;
+  return structures.find((s) => s.term === 36) ?? structures[0];
 }
 
 export interface MarketCheckLookupParams {

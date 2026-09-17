@@ -12,6 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Link2,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/deal-utils";
 import {
@@ -25,6 +27,11 @@ import {
 } from "@/lib/lease-calculator";
 import { lookupLeaseNumbers, type LeaseNumbersLookup } from "@/app/calculator/actions";
 import type { SuggestedIncentive } from "@/lib/ai-incentives";
+import type { LeaseStructure } from "@/lib/marketcheck";
+
+// Fallback term options when no real program data has been looked up yet —
+// the standard 3-month-increment brackets most captive lenders offer.
+const STANDARD_TERMS = [24, 27, 30, 33, 36, 39, 42, 45, 48];
 
 // Standalone, anyone-can-use lease calculator — not tied to a specific
 // listing. "Look up real numbers" tries MarketCheck for actual residual/
@@ -58,6 +65,7 @@ export default function LeaseCalculator() {
   const [aprMode, setAprMode] = useState(initialState?.aprMode ?? true); // most shoppers think in APR%, not raw money factor
   const [selectedIncentives, setSelectedIncentives] = useState<Set<number>>(new Set());
   const [suggested, setSuggested] = useState<SuggestedIncentive[]>([]);
+  const [structures, setStructures] = useState<LeaseStructure[]>([]);
 
   const [showMileage, setShowMileage] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -85,6 +93,7 @@ export default function LeaseCalculator() {
         setLookupResult(result);
         setSuggested(result.incentives);
         setSelectedIncentives(new Set());
+        setStructures(result.structures);
 
         if (result.structureSource === "verified") {
           patch({
@@ -123,10 +132,35 @@ export default function LeaseCalculator() {
     [input, incentivesTotal]
   );
 
+  // Terms the little +/- adjuster next to "Term" steps through — real
+  // program lengths once a vehicle's been looked up (so stepping snaps to
+  // whatever's actually offered, e.g. 24/36/39mo, and pulls in that term's
+  // own residual/money factor/acquisition fee), or a standard 3-month-
+  // increment bracket before any lookup has run.
+  const availableTerms = useMemo(() => {
+    if (structures.length === 0) return STANDARD_TERMS;
+    return Array.from(new Set(structures.map((s) => s.term))).sort((a, b) => a - b);
+  }, [structures]);
+
+  function selectTerm(term: number) {
+    const structure = structures.find((s) => s.term === term);
+    if (structure) {
+      patch({
+        term,
+        residualPercent: Math.round(structure.residualPercent * 10) / 10,
+        moneyFactor: structure.moneyFactor,
+        acquisitionFee: structure.acquisitionFee ?? input.acquisitionFee,
+      });
+    } else {
+      patch({ term });
+    }
+  }
+
   function reset() {
     setInput(DEFAULT_LEASE_INPUT);
     setSelectedIncentives(new Set());
     setSuggested([]);
+    setStructures([]);
     setLookupResult(null);
     setLookupError(null);
     router.replace("/calculator");
@@ -313,7 +347,13 @@ export default function LeaseCalculator() {
             />
           )}
 
-          <NumberField label="Term" value={input.term} onChange={(v) => patch({ term: v })} suffix="mo" />
+          <TermStepper
+            term={input.term}
+            availableTerms={availableTerms}
+            hasRealPrograms={structures.length > 0}
+            onSelectTerm={selectTerm}
+            onManualChange={(v) => patch({ term: v })}
+          />
           <NumberField
             label="Down payment"
             value={input.downPayment}
@@ -335,6 +375,12 @@ export default function LeaseCalculator() {
             step={0.1}
           />
         </div>
+
+        <p className="mt-2 text-[11px] text-zinc-500">
+          {structures.length > 0
+            ? `Real programs found for ${availableTerms.join(", ")} mo — the term adjuster snaps to these and updates residual %/money factor to match.`
+            : `No vehicle looked up yet — the term adjuster steps through standard ${availableTerms[0]}–${availableTerms[availableTerms.length - 1]} mo brackets without changing residual/money factor.`}
+        </p>
 
         {/* Trade-in */}
         <div className="mt-4 border-t border-white/10 pt-4">
@@ -537,6 +583,74 @@ export default function LeaseCalculator() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Term's +/- buttons step through actually-available program lengths
+// (e.g. 24/36/39mo) instead of ±1 month, and selecting one swaps in that
+// term's own residual %/money factor via onSelectTerm. The number itself
+// stays directly editable (onManualChange) for a one-off custom term,
+// which intentionally does NOT touch residual/money factor since there's
+// no program data for an arbitrary length.
+function TermStepper({
+  term,
+  availableTerms,
+  hasRealPrograms,
+  onSelectTerm,
+  onManualChange,
+}: {
+  term: number;
+  availableTerms: number[];
+  hasRealPrograms: boolean;
+  onSelectTerm: (term: number) => void;
+  onManualChange: (term: number) => void;
+}) {
+  function step(direction: 1 | -1) {
+    const idx = availableTerms.indexOf(term);
+    let nextTerm: number | undefined;
+
+    if (idx !== -1) {
+      nextTerm = availableTerms[idx + direction];
+    } else if (direction === 1) {
+      nextTerm = availableTerms.find((t) => t > term);
+    } else {
+      nextTerm = [...availableTerms].reverse().find((t) => t < term);
+    }
+
+    if (nextTerm !== undefined) onSelectTerm(nextTerm);
+  }
+
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold text-zinc-500">
+        Term {hasRealPrograms && <span className="text-emerald-400">· real programs</span>}
+      </span>
+      <div className="flex items-center rounded-xl border border-white/10 bg-zinc-900 px-2 py-1.5">
+        <button
+          type="button"
+          onClick={() => step(-1)}
+          aria-label="Shorter term"
+          className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <Minus size={14} />
+        </button>
+        <input
+          type="number"
+          value={term}
+          onChange={(e) => onManualChange(Number(e.target.value))}
+          className="w-full bg-transparent text-center text-sm text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <span className="pr-1 text-sm text-zinc-500">mo</span>
+        <button
+          type="button"
+          onClick={() => step(1)}
+          aria-label="Longer term"
+          className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+    </label>
   );
 }
 

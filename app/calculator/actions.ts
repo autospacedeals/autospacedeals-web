@@ -8,7 +8,7 @@
 // list. The calculator always stays editable either way; this just saves a
 // shopper from having to know money factor / residual % off the top of
 // their head.
-import { fetchMarketCheckIncentives, pickLeaseStructure } from "@/lib/marketcheck";
+import { fetchMarketCheckIncentives, pickLeaseStructure, pickLeaseStructures, type LeaseStructure } from "@/lib/marketcheck";
 import { suggestIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
 
 export interface LeaseNumbersLookup {
@@ -22,6 +22,11 @@ export interface LeaseNumbersLookup {
   // from, for a "based on ___" note next to the prefilled fields.
   basedOn: string | null;
   incentives: SuggestedIncentive[];
+  // Every real term program found (24mo, 36mo, 39mo, etc.), each with its
+  // own residual %/money factor — lets the calculator's term stepper snap
+  // to an actually-offered length and swap in that term's real numbers,
+  // instead of assuming one term's residual/MF applies at every length.
+  structures: LeaseStructure[];
 }
 
 export async function lookupLeaseNumbers(params: {
@@ -38,6 +43,7 @@ export async function lookupLeaseNumbers(params: {
   ]);
 
   const structure = pickLeaseStructure(marketcheck.offers);
+  const structures = pickLeaseStructures(marketcheck.offers);
 
   if (!structure) {
     return {
@@ -49,6 +55,7 @@ export async function lookupLeaseNumbers(params: {
       acquisitionFee: null,
       basedOn: null,
       incentives,
+      structures: [],
     };
   }
 
@@ -61,5 +68,6 @@ export async function lookupLeaseNumbers(params: {
     acquisitionFee: structure.acquisitionFee,
     basedOn: structure.source,
     incentives,
+    structures,
   };
 }
