@@ -1,12 +1,25 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Calculator, Search, RotateCcw, CircleAlert, CheckCircle2, Sparkles } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Calculator,
+  Search,
+  RotateCcw,
+  CircleAlert,
+  CheckCircle2,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Link2,
+} from "lucide-react";
 import { formatCurrency } from "@/lib/deal-utils";
 import {
   computeLeaseEstimate,
   moneyFactorFromApr,
   aprFromMoneyFactor,
+  encodeCalculatorState,
+  decodeCalculatorState,
   DEFAULT_LEASE_INPUT,
   type LeaseCalculatorInput,
 } from "@/lib/lease-calculator";
@@ -18,20 +31,37 @@ import type { SuggestedIncentive } from "@/lib/ai-incentives";
 // money-factor/cap-cost data on the vehicle (see app/calculator/actions.ts);
 // every field stays editable either way, since the point is letting a
 // shopper sanity-check *any* lease quote, not just ones sourced from us.
+// MarketCheck's numbers come from advertised offers, not a lender rate
+// sheet, so they're a grounded starting point to confirm, not a quote.
 export default function LeaseCalculator() {
-  const [year, setYear] = useState(String(new Date().getFullYear() + 1));
-  const [make, setMake] = useState("");
-  const [model, setModel] = useState("");
-  const [trim, setTrim] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // A shared calculator link (see "Copy shareable link" below) encodes the
+  // vehicle + every input field into a `?d=` param — hydrate from it once
+  // on first render if present, otherwise fall back to defaults.
+  const initialState = useMemo(() => {
+    const encoded = searchParams.get("d");
+    return encoded ? decodeCalculatorState(encoded) : null;
+  }, [searchParams]);
+
+  const [year, setYear] = useState(initialState?.vehicle.year ?? String(new Date().getFullYear() + 1));
+  const [make, setMake] = useState(initialState?.vehicle.make ?? "");
+  const [model, setModel] = useState(initialState?.vehicle.model ?? "");
+  const [trim, setTrim] = useState(initialState?.vehicle.trim ?? "");
 
   const [lookupPending, startLookup] = useTransition();
   const [lookupResult, setLookupResult] = useState<LeaseNumbersLookup | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
-  const [input, setInput] = useState<LeaseCalculatorInput>(DEFAULT_LEASE_INPUT);
-  const [aprMode, setAprMode] = useState(true); // most shoppers think in APR%, not raw money factor
+  const [input, setInput] = useState<LeaseCalculatorInput>(initialState?.input ?? DEFAULT_LEASE_INPUT);
+  const [aprMode, setAprMode] = useState(initialState?.aprMode ?? true); // most shoppers think in APR%, not raw money factor
   const [selectedIncentives, setSelectedIncentives] = useState<Set<number>>(new Set());
   const [suggested, setSuggested] = useState<SuggestedIncentive[]>([]);
+
+  const [showMileage, setShowMileage] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   function patch(fields: Partial<LeaseCalculatorInput>) {
     setInput((prev) => ({ ...prev, ...fields }));
@@ -61,6 +91,7 @@ export default function LeaseCalculator() {
             msrp: result.msrp ?? input.msrp,
             sellingPrice: result.msrp ?? input.sellingPrice,
             residualPercent: result.residualPercent ?? input.residualPercent,
+            standardMileage: input.standardMileage,
             moneyFactor: result.moneyFactor ?? input.moneyFactor,
             term: result.term ?? input.term,
             acquisitionFee: result.acquisitionFee ?? input.acquisitionFee,
@@ -98,10 +129,23 @@ export default function LeaseCalculator() {
     setSuggested([]);
     setLookupResult(null);
     setLookupError(null);
+    router.replace("/calculator");
+  }
+
+  function copyShareLink() {
+    const encoded = encodeCalculatorState({ vehicle: { year, make, model, trim }, input, aprMode });
+    const url = `${window.location.origin}/calculator${encoded ? `?d=${encoded}` : ""}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => console.error("Copy shareable link failed:", err));
   }
 
   return (
-    <div className="space-y-6 pb-40 sm:pb-44">
+    <div className="space-y-6 pb-48 sm:pb-52">
       {/* Vehicle lookup */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold">
@@ -137,7 +181,8 @@ export default function LeaseCalculator() {
               <p className="flex items-center gap-2 text-emerald-400">
                 <CheckCircle2 size={15} />
                 Prefilled MSRP, residual %, money factor, term, and acquisition fee based on{" "}
-                <span className="font-semibold">{lookupResult.basedOn}</span>.
+                <span className="font-semibold">{lookupResult.basedOn}</span> — a real advertised
+                offer, not a lender rate sheet. Confirm before relying on it.
               </p>
             ) : (
               <p className="flex items-center gap-2 text-zinc-400">
@@ -192,13 +237,22 @@ export default function LeaseCalculator() {
           <h2 className="flex items-center gap-2 text-lg font-bold">
             <Calculator size={18} /> Lease Numbers
           </h2>
-          <button
-            type="button"
-            onClick={reset}
-            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-white"
-          >
-            <RotateCcw size={12} /> Reset
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={copyShareLink}
+              className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-white"
+            >
+              <Link2 size={12} /> {copied ? "Copied!" : "Copy shareable link"}
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-white"
+            >
+              <RotateCcw size={12} /> Reset
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -208,6 +262,13 @@ export default function LeaseCalculator() {
             value={input.sellingPrice}
             onChange={(v) => patch({ sellingPrice: v })}
             prefix="$"
+            extra={
+              result.percentOffMsrp > 0 ? (
+                <span className="ml-2 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                  {result.percentOffMsrp.toFixed(1)}% off MSRP
+                </span>
+              ) : undefined
+            }
           />
           <NumberField
             label="Residual %"
@@ -260,19 +321,6 @@ export default function LeaseCalculator() {
             prefix="$"
           />
           <NumberField
-            label="Acquisition fee"
-            value={input.acquisitionFee}
-            onChange={(v) => patch({ acquisitionFee: v })}
-            prefix="$"
-          />
-          <NumberField label="Doc fee" value={input.docFee} onChange={(v) => patch({ docFee: v })} prefix="$" />
-          <NumberField
-            label="Disposition fee"
-            value={input.dispositionFee}
-            onChange={(v) => patch({ dispositionFee: v })}
-            prefix="$"
-          />
-          <NumberField
             label="Payment tax rate"
             value={input.paymentTaxRate}
             onChange={(v) => patch({ paymentTaxRate: v })}
@@ -288,15 +336,146 @@ export default function LeaseCalculator() {
           />
         </div>
 
-        <label className="mt-4 flex items-center gap-2 text-sm text-zinc-300">
-          <input
-            type="checkbox"
-            checked={input.includeFirstPaymentAtSigning}
-            onChange={(e) => patch({ includeFirstPaymentAtSigning: e.target.checked })}
-            className="rounded border-white/20 bg-white/5"
-          />
-          First month&apos;s payment is due at signing
-        </label>
+        {/* Trade-in */}
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <p className="mb-3 text-sm font-semibold text-zinc-300">Trade-in (optional)</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <NumberField
+              label="Trade-in value"
+              value={input.tradeInValue}
+              onChange={(v) => patch({ tradeInValue: v })}
+              prefix="$"
+            />
+            <NumberField
+              label="Loan payoff owed"
+              value={input.tradeInPayoff}
+              onChange={(v) => patch({ tradeInPayoff: v })}
+              prefix="$"
+            />
+            <div className="flex flex-col">
+              <span className="mb-1 block text-xs font-semibold text-zinc-500">Trade equity</span>
+              <div className="flex flex-1 items-center rounded-xl border border-white/10 bg-zinc-900 px-3 py-2.5">
+                <span
+                  className={`text-sm font-bold ${
+                    result.tradeEquity < 0 ? "text-amber-400" : "text-zinc-200"
+                  }`}
+                >
+                  {result.tradeEquity < 0 ? "-" : ""}
+                  {formatCurrency(Math.abs(result.tradeEquity))}
+                </span>
+                <span className="ml-2 text-[11px] text-zinc-500">
+                  {result.tradeEquity < 0 ? "rolled into payment" : "reduces cap cost"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fees — each can be paid at signing or rolled into the payment */}
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <p className="mb-3 text-sm font-semibold text-zinc-300">Fees</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <FeeField
+              label="Acquisition fee"
+              amount={input.acquisitionFee}
+              onAmountChange={(v) => patch({ acquisitionFee: v })}
+              capitalized={input.acquisitionFeeCapitalized}
+              onCapitalizedChange={(v) => patch({ acquisitionFeeCapitalized: v })}
+            />
+            <FeeField
+              label="Doc fee"
+              amount={input.docFee}
+              onAmountChange={(v) => patch({ docFee: v })}
+              capitalized={input.docFeeCapitalized}
+              onCapitalizedChange={(v) => patch({ docFeeCapitalized: v })}
+            />
+            <FeeField
+              label="Gov / DMV fee"
+              amount={input.govFee}
+              onAmountChange={(v) => patch({ govFee: v })}
+              capitalized={input.govFeeCapitalized}
+              onCapitalizedChange={(v) => patch({ govFeeCapitalized: v })}
+            />
+          </div>
+          <div className="mt-3">
+            <NumberField
+              label="Disposition fee (due at lease-end, informational)"
+              value={input.dispositionFee}
+              onChange={(v) => patch({ dispositionFee: v })}
+              prefix="$"
+            />
+          </div>
+        </div>
+
+        {/* Mileage adjustment */}
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowMileage((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-white"
+          >
+            {showMileage ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            Mileage adjustment
+          </button>
+          {showMileage && (
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <NumberField
+                label="Your annual mileage"
+                value={input.annualMileage}
+                onChange={(v) => patch({ annualMileage: v })}
+                suffix="mi/yr"
+                step={1000}
+              />
+              <NumberField
+                label="Mileage residual was quoted for"
+                value={input.standardMileage}
+                onChange={(v) => patch({ standardMileage: v })}
+                suffix="mi/yr"
+                step={1000}
+              />
+              <NumberField
+                label="Residual adjustment"
+                value={input.residualAdjustmentPerMile}
+                onChange={(v) => patch({ residualAdjustmentPerMile: v })}
+                prefix="$"
+                suffix="/mi"
+                step={0.001}
+              />
+            </div>
+          )}
+          {result.residualAdjustmentDollars !== 0 && (
+            <p className="mt-2 text-xs text-zinc-500">
+              Driving {input.annualMileage.toLocaleString()} mi/yr instead of the quoted{" "}
+              {input.standardMileage.toLocaleString()} mi/yr adjusts residual{" "}
+              {result.residualAdjustmentDollars < 0 ? "down" : "up"} by{" "}
+              {formatCurrency(Math.abs(result.residualAdjustmentDollars))}, to{" "}
+              {formatCurrency(result.residualValue)} ({result.adjustedResidualPercent.toFixed(1)}%).
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:gap-6">
+          <label className="flex items-center gap-2 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              checked={input.onePay}
+              onChange={(e) => patch({ onePay: e.target.checked })}
+              className="rounded border-white/20 bg-white/5"
+            />
+            One-pay lease (single upfront payment, no monthly bill)
+          </label>
+          {!input.onePay && (
+            <label className="flex items-center gap-2 text-sm text-zinc-300">
+              <input
+                type="checkbox"
+                checked={input.includeFirstPaymentAtSigning}
+                onChange={(e) => patch({ includeFirstPaymentAtSigning: e.target.checked })}
+                className="rounded border-white/20 bg-white/5"
+              />
+              First month&apos;s payment is due at signing
+            </label>
+          )}
+        </div>
       </div>
 
       <div className="flex items-start gap-2 text-xs leading-5 text-zinc-500">
@@ -314,11 +493,40 @@ export default function LeaseCalculator() {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-zinc-950/95 backdrop-blur">
         <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            <Result label="Monthly payment" value={formatCurrency(result.monthlyPayment)} big />
+            {input.onePay ? (
+              <Result
+                label="One-pay total"
+                value={formatCurrency(result.dueAtSigningBreakdown.onePayTotal)}
+                big
+              />
+            ) : (
+              <Result label="Monthly payment" value={formatCurrency(result.monthlyPayment)} big />
+            )}
             <Result label="Due at signing" value={formatCurrency(result.dueAtSigning)} big />
             <Result label="Total lease cost" value={formatCurrency(result.totalLeaseCost)} />
             <Result label="Effective monthly cost" value={formatCurrency(result.effectiveMonthly)} />
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowBreakdown((v) => !v)}
+            className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-zinc-500 transition hover:text-white"
+          >
+            {showBreakdown ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            {showBreakdown ? "Hide" : "Show"} due-at-signing breakdown
+          </button>
+          {showBreakdown && (
+            <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg bg-white/[0.03] p-3 text-[11px] text-zinc-400 sm:grid-cols-4">
+              <span>Down payment: {formatCurrency(result.dueAtSigningBreakdown.downPayment)}</span>
+              <span>Upfront fees: {formatCurrency(result.dueAtSigningBreakdown.upfrontFees)}</span>
+              {input.onePay ? (
+                <span>One-pay total: {formatCurrency(result.dueAtSigningBreakdown.onePayTotal)}</span>
+              ) : (
+                <span>First payment: {formatCurrency(result.dueAtSigningBreakdown.firstPayment)}</span>
+              )}
+              <span>Tax: {formatCurrency(result.dueAtSigningBreakdown.tax)}</span>
+            </div>
+          )}
 
           <div className="mt-2 hidden grid-cols-4 gap-3 border-t border-white/10 pt-2 text-[11px] text-zinc-500 sm:grid">
             <span>Net cap cost: {formatCurrency(result.netCapCost)}</span>
@@ -392,6 +600,49 @@ function NumberField({
         {suffix && <span className="ml-1 text-sm text-zinc-500">{suffix}</span>}
       </div>
     </label>
+  );
+}
+
+// A fee amount plus a two-way toggle for whether it's paid in cash at
+// signing or capitalized (rolled into the monthly payment) — real leases
+// vary on this per fee, so it's not safe to hard-code either way.
+function FeeField({
+  label,
+  amount,
+  onAmountChange,
+  capitalized,
+  onCapitalizedChange,
+}: {
+  label: string;
+  amount: number;
+  onAmountChange: (v: number) => void;
+  capitalized: boolean;
+  onCapitalizedChange: (v: boolean) => void;
+}) {
+  return (
+    <div>
+      <NumberField label={label} value={amount} onChange={onAmountChange} prefix="$" />
+      <div className="mt-1.5 flex gap-1.5">
+        <button
+          type="button"
+          onClick={() => onCapitalizedChange(true)}
+          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+            capitalized ? "bg-white text-zinc-950" : "bg-white/5 text-zinc-500 hover:text-white"
+          }`}
+        >
+          Rolled into payment
+        </button>
+        <button
+          type="button"
+          onClick={() => onCapitalizedChange(false)}
+          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+            !capitalized ? "bg-white text-zinc-950" : "bg-white/5 text-zinc-500 hover:text-white"
+          }`}
+        >
+          Paid at signing
+        </button>
+      </div>
+    </div>
   );
 }
 

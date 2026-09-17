@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import LeaseCalculator from "@/components/LeaseCalculator";
 
 export const metadata: Metadata = {
@@ -18,7 +19,12 @@ export default function CalculatorPage() {
           listed on Drive.
         </p>
 
-        <LeaseCalculator />
+        {/* LeaseCalculator reads a shareable-link query param via
+            useSearchParams, which requires a Suspense boundary so this
+            route doesn't get forced fully dynamic. */}
+        <Suspense fallback={<div className="text-sm text-zinc-500">Loading calculator…</div>}>
+          <LeaseCalculator />
+        </Suspense>
       </section>
     </main>
   );
