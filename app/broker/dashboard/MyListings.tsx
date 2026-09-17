@@ -158,7 +158,13 @@ function deriveDraft(deal: Deal): RowDraft {
   };
 }
 
-export default function MyListings({ deals }: { deals: Deal[] }) {
+export default function MyListings({
+  deals,
+  brokerState,
+}: {
+  deals: Deal[];
+  brokerState?: string;
+}) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
@@ -348,6 +354,7 @@ export default function MyListings({ deals }: { deals: Deal[] }) {
                 deal={deal}
                 selected={selected.has(deal.id)}
                 onToggleSelect={() => toggleOne(deal.id)}
+                brokerState={brokerState}
               />
             ))}
           </tbody>
@@ -361,10 +368,12 @@ function ListingRow({
   deal,
   selected,
   onToggleSelect,
+  brokerState,
 }: {
   deal: Deal;
   selected: boolean;
   onToggleSelect: () => void;
+  brokerState?: string;
 }) {
   const baseline = useMemo(() => deriveDraft(deal), [deal]);
   const [draft, setDraft] = useState<RowDraft>(baseline);
@@ -755,6 +764,7 @@ function ListingRow({
               <IncentivesEditor
                 value={draft.incentives}
                 onChange={(rows) => set("incentives", rows)}
+                brokerState={brokerState}
               />
 
               <div>

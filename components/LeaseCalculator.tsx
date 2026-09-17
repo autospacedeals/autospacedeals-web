@@ -33,6 +33,10 @@ import type { LeaseStructure } from "@/lib/marketcheck";
 // the standard 3-month-increment brackets most captive lenders offer.
 const STANDARD_TERMS = [24, 27, 30, 33, 36, 39, 42, 45, 48];
 
+// Annual mileage allowances are essentially always one of these — captive
+// lenders don't quote a residual for an arbitrary number like 11,000/yr.
+const MILEAGE_BRACKETS = [7500, 10000, 12000, 15000];
+
 // Standalone, anyone-can-use lease calculator — not tied to a specific
 // listing. "Look up real numbers" tries MarketCheck for actual residual/
 // money-factor/cap-cost data on the vehicle (see app/calculator/actions.ts);
@@ -56,6 +60,10 @@ export default function LeaseCalculator() {
   const [make, setMake] = useState(initialState?.vehicle.make ?? "");
   const [model, setModel] = useState(initialState?.vehicle.model ?? "");
   const [trim, setTrim] = useState(initialState?.vehicle.trim ?? "");
+  // Some manufacturer lease programs (regional lease cash, DMA-specific
+  // incentives) only apply in certain areas — passing zip lets MarketCheck
+  // return those instead of only nationwide programs.
+  const [zip, setZip] = useState(initialState?.vehicle.zip ?? "");
 
   const [lookupPending, startLookup] = useTransition();
   const [lookupResult, setLookupResult] = useState<LeaseNumbersLookup | null>(null);
@@ -89,6 +97,7 @@ export default function LeaseCalculator() {
           make: make.trim(),
           model: model.trim(),
           trim: trim.trim() || undefined,
+          zip: zip.trim() || undefined,
         });
         setLookupResult(result);
         setSuggested(result.incentives);
@@ -167,7 +176,7 @@ export default function LeaseCalculator() {
   }
 
   function copyShareLink() {
-    const encoded = encodeCalculatorState({ vehicle: { year, make, model, trim }, input, aprMode });
+    const encoded = encodeCalculatorState({ vehicle: { year, make, model, trim, zip }, input, aprMode });
     const url = `${window.location.origin}/calculator${encoded ? `?d=${encoded}` : ""}`;
     navigator.clipboard
       .writeText(url)
@@ -191,12 +200,22 @@ export default function LeaseCalculator() {
           below.
         </p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           <TextField label="Year" value={year} onChange={setYear} placeholder="2026" />
           <TextField label="Make" value={make} onChange={setMake} placeholder="Honda" />
           <TextField label="Model" value={model} onChange={setModel} placeholder="CR-V" />
           <TextField label="Trim (optional)" value={trim} onChange={setTrim} placeholder="EX-L" />
+          <TextField
+            label="Zip (optional)"
+            value={zip}
+            onChange={setZip}
+            placeholder="90210"
+          />
         </div>
+        <p className="mt-1.5 text-[11px] text-zinc-500">
+          Zip helps surface region-specific lease cash — some manufacturer incentives only apply
+          in certain areas.
+        </p>
 
         <button
           type="button"
@@ -290,12 +309,19 @@ export default function LeaseCalculator() {
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <NumberField label="MSRP" value={input.msrp} onChange={(v) => patch({ msrp: v })} prefix="$" />
+          <NumberField
+            label="MSRP"
+            value={input.msrp}
+            onChange={(v) => patch({ msrp: v })}
+            prefix="$"
+            step={250}
+          />
           <NumberField
             label="Selling price"
             value={input.sellingPrice}
             onChange={(v) => patch({ sellingPrice: v })}
             prefix="$"
+            step={250}
             extra={
               result.percentOffMsrp > 0 ? (
                 <span className="ml-2 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
@@ -347,11 +373,13 @@ export default function LeaseCalculator() {
             />
           )}
 
-          <TermStepper
-            term={input.term}
-            availableTerms={availableTerms}
-            hasRealPrograms={structures.length > 0}
-            onSelectTerm={selectTerm}
+          <BracketStepper
+            label="Term"
+            badge={structures.length > 0 && <span className="text-emerald-400">· real programs</span>}
+            value={input.term}
+            brackets={availableTerms}
+            suffix="mo"
+            onSelect={selectTerm}
             onManualChange={(v) => patch({ term: v })}
           />
           <NumberField
@@ -359,6 +387,7 @@ export default function LeaseCalculator() {
             value={input.downPayment}
             onChange={(v) => patch({ downPayment: v })}
             prefix="$"
+            step={100}
           />
           <NumberField
             label="Payment tax rate"
@@ -391,12 +420,14 @@ export default function LeaseCalculator() {
               value={input.tradeInValue}
               onChange={(v) => patch({ tradeInValue: v })}
               prefix="$"
+              step={100}
             />
             <NumberField
               label="Loan payoff owed"
               value={input.tradeInPayoff}
               onChange={(v) => patch({ tradeInPayoff: v })}
               prefix="$"
+              step={100}
             />
             <div className="flex flex-col">
               <span className="mb-1 block text-xs font-semibold text-zinc-500">Trade equity</span>
@@ -427,6 +458,7 @@ export default function LeaseCalculator() {
               onAmountChange={(v) => patch({ acquisitionFee: v })}
               capitalized={input.acquisitionFeeCapitalized}
               onCapitalizedChange={(v) => patch({ acquisitionFeeCapitalized: v })}
+              step={25}
             />
             <FeeField
               label="Doc fee"
@@ -434,6 +466,7 @@ export default function LeaseCalculator() {
               onAmountChange={(v) => patch({ docFee: v })}
               capitalized={input.docFeeCapitalized}
               onCapitalizedChange={(v) => patch({ docFeeCapitalized: v })}
+              step={25}
             />
             <FeeField
               label="Gov / DMV fee"
@@ -441,6 +474,7 @@ export default function LeaseCalculator() {
               onAmountChange={(v) => patch({ govFee: v })}
               capitalized={input.govFeeCapitalized}
               onCapitalizedChange={(v) => patch({ govFeeCapitalized: v })}
+              step={25}
             />
           </div>
           <div className="mt-3">
@@ -449,6 +483,7 @@ export default function LeaseCalculator() {
               value={input.dispositionFee}
               onChange={(v) => patch({ dispositionFee: v })}
               prefix="$"
+              step={25}
             />
           </div>
         </div>
@@ -465,19 +500,21 @@ export default function LeaseCalculator() {
           </button>
           {showMileage && (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <NumberField
+              <BracketStepper
                 label="Your annual mileage"
                 value={input.annualMileage}
-                onChange={(v) => patch({ annualMileage: v })}
+                brackets={MILEAGE_BRACKETS}
                 suffix="mi/yr"
-                step={1000}
+                onSelect={(v) => patch({ annualMileage: v })}
+                onManualChange={(v) => patch({ annualMileage: v })}
               />
-              <NumberField
+              <BracketStepper
                 label="Mileage residual was quoted for"
                 value={input.standardMileage}
-                onChange={(v) => patch({ standardMileage: v })}
+                brackets={MILEAGE_BRACKETS}
                 suffix="mi/yr"
-                step={1000}
+                onSelect={(v) => patch({ standardMileage: v })}
+                onManualChange={(v) => patch({ standardMileage: v })}
               />
               <NumberField
                 label="Residual adjustment"
@@ -586,65 +623,68 @@ export default function LeaseCalculator() {
   );
 }
 
-// Term's +/- buttons step through actually-available program lengths
-// (e.g. 24/36/39mo) instead of ±1 month, and selecting one swaps in that
-// term's own residual %/money factor via onSelectTerm. The number itself
-// stays directly editable (onManualChange) for a one-off custom term,
-// which intentionally does NOT touch residual/money factor since there's
-// no program data for an arbitrary length.
-function TermStepper({
-  term,
-  availableTerms,
-  hasRealPrograms,
-  onSelectTerm,
+// Generic stepper whose +/- buttons snap to a fixed set of real-world
+// brackets (lease term lengths, mileage allowances, etc.) instead of the
+// browser's native ±1 spin buttons, which have no relationship to what's
+// actually offered. The number stays directly editable (onManualChange)
+// for a one-off custom value that doesn't need to match a bracket.
+function BracketStepper({
+  label,
+  badge,
+  value,
+  brackets,
+  suffix,
+  onSelect,
   onManualChange,
 }: {
-  term: number;
-  availableTerms: number[];
-  hasRealPrograms: boolean;
-  onSelectTerm: (term: number) => void;
-  onManualChange: (term: number) => void;
+  label: string;
+  badge?: React.ReactNode;
+  value: number;
+  brackets: number[];
+  suffix: string;
+  onSelect: (v: number) => void;
+  onManualChange: (v: number) => void;
 }) {
   function step(direction: 1 | -1) {
-    const idx = availableTerms.indexOf(term);
-    let nextTerm: number | undefined;
+    const idx = brackets.indexOf(value);
+    let next: number | undefined;
 
     if (idx !== -1) {
-      nextTerm = availableTerms[idx + direction];
+      next = brackets[idx + direction];
     } else if (direction === 1) {
-      nextTerm = availableTerms.find((t) => t > term);
+      next = brackets.find((b) => b > value);
     } else {
-      nextTerm = [...availableTerms].reverse().find((t) => t < term);
+      next = [...brackets].reverse().find((b) => b < value);
     }
 
-    if (nextTerm !== undefined) onSelectTerm(nextTerm);
+    if (next !== undefined) onSelect(next);
   }
 
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-semibold text-zinc-500">
-        Term {hasRealPrograms && <span className="text-emerald-400">· real programs</span>}
+        {label} {badge}
       </span>
       <div className="flex items-center rounded-xl border border-white/10 bg-zinc-900 px-2 py-1.5">
         <button
           type="button"
           onClick={() => step(-1)}
-          aria-label="Shorter term"
+          aria-label={`Lower ${label}`}
           className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
         >
           <Minus size={14} />
         </button>
         <input
           type="number"
-          value={term}
+          value={value}
           onChange={(e) => onManualChange(Number(e.target.value))}
           className="w-full bg-transparent text-center text-sm text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
-        <span className="pr-1 text-sm text-zinc-500">mo</span>
+        <span className="pr-1 text-sm text-zinc-500">{suffix}</span>
         <button
           type="button"
           onClick={() => step(1)}
-          aria-label="Longer term"
+          aria-label={`Higher ${label}`}
           className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
         >
           <Plus size={14} />
@@ -726,16 +766,18 @@ function FeeField({
   onAmountChange,
   capitalized,
   onCapitalizedChange,
+  step = 1,
 }: {
   label: string;
   amount: number;
   onAmountChange: (v: number) => void;
   capitalized: boolean;
   onCapitalizedChange: (v: boolean) => void;
+  step?: number;
 }) {
   return (
     <div>
-      <NumberField label={label} value={amount} onChange={onAmountChange} prefix="$" />
+      <NumberField label={label} value={amount} onChange={onAmountChange} prefix="$" step={step} />
       <div className="mt-1.5 flex gap-1.5">
         <button
           type="button"

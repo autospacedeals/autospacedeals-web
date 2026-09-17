@@ -53,7 +53,7 @@ const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
 const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
-export default function NewSubmissionForm() {
+export default function NewSubmissionForm({ brokerState }: { brokerState?: string }) {
   const [category, setCategory] = useState<"manual" | "link" | null>(null);
   // Bumped to force-remount LinkForm when a broker wants to try the same
   // (or a different) source again after some rows came back unreadable —
@@ -88,14 +88,24 @@ export default function NewSubmissionForm() {
       </div>
 
       {category === "link" && (
-        <LinkForm key={linkFormKey} onStartOver={() => setLinkFormKey((k) => k + 1)} />
+        <LinkForm
+          key={linkFormKey}
+          onStartOver={() => setLinkFormKey((k) => k + 1)}
+          brokerState={brokerState}
+        />
       )}
-      {category === "manual" && <ManualForm />}
+      {category === "manual" && <ManualForm brokerState={brokerState} />}
     </div>
   );
 }
 
-function LinkForm({ onStartOver }: { onStartOver: () => void }) {
+function LinkForm({
+  onStartOver,
+  brokerState,
+}: {
+  onStartOver: () => void;
+  brokerState?: string;
+}) {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
   const [sourceType, setSourceType] = useState<
     "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot"
@@ -158,17 +168,21 @@ function LinkForm({ onStartOver }: { onStartOver: () => void }) {
                   {state.skipReasons?.[i] ?? "Couldn't fully read this row"} — everything else we
                   could read is already filled in below, just fix what&apos;s missing.
                 </p>
-                <ManualForm submissionId={state.submissionId} initialValues={partial} />
+                <ManualForm
+                  submissionId={state.submissionId}
+                  initialValues={partial}
+                  brokerState={brokerState}
+                />
               </div>
             ))}
             <div className="border-t border-white/10 pt-5">
               <p className="mb-2 text-sm text-zinc-400">Add another car from this source:</p>
-              <ManualForm submissionId={state.submissionId} />
+              <ManualForm submissionId={state.submissionId} brokerState={brokerState} />
             </div>
           </div>
         ) : (
           <div className="mt-4">
-            <ManualForm submissionId={state.submissionId} />
+            <ManualForm submissionId={state.submissionId} brokerState={brokerState} />
           </div>
         )}
       </div>
@@ -337,6 +351,7 @@ function LinkForm({ onStartOver }: { onStartOver: () => void }) {
 function ManualForm({
   submissionId,
   initialValues,
+  brokerState,
 }: {
   submissionId?: string;
   // Pre-fills whatever a parser (heuristic or AI) already managed to read
@@ -344,6 +359,7 @@ function ManualForm({
   // SubmissionState.skippedDeals. Left undefined for a plain blank "add a
   // car" form.
   initialValues?: Partial<ParsedDeal>;
+  brokerState?: string;
 }) {
   const [state, formAction, pending] = useActionState(createManualDealAction, initialState);
   const [onePay, setOnePay] = useState(initialValues?.onePay ?? false);
@@ -596,7 +612,7 @@ function ManualForm({
 
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Incentives</p>
-          <IncentivesEditor value={incentives} onChange={setIncentives} />
+          <IncentivesEditor value={incentives} onChange={setIncentives} brokerState={brokerState} />
         </div>
 
         <div>

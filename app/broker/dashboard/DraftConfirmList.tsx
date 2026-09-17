@@ -18,7 +18,13 @@ const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
 const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
-export default function DraftConfirmList({ drafts }: { drafts: Deal[] }) {
+export default function DraftConfirmList({
+  drafts,
+  brokerState,
+}: {
+  drafts: Deal[];
+  brokerState?: string;
+}) {
   const [checked, setChecked] = useState<Set<string>>(new Set(drafts.map((d) => d.id)));
   const [confirming, setConfirming] = useState(false);
 
@@ -53,7 +59,13 @@ export default function DraftConfirmList({ drafts }: { drafts: Deal[] }) {
 
       <div className="mt-5 space-y-2">
         {drafts.map((deal) => (
-          <DraftRow key={deal.id} deal={deal} checked={checked.has(deal.id)} onToggle={() => toggle(deal.id)} />
+          <DraftRow
+            key={deal.id}
+            deal={deal}
+            checked={checked.has(deal.id)}
+            onToggle={() => toggle(deal.id)}
+            brokerState={brokerState}
+          />
         ))}
       </div>
 
@@ -73,10 +85,12 @@ function DraftRow({
   deal,
   checked,
   onToggle,
+  brokerState,
 }: {
   deal: Deal;
   checked: boolean;
   onToggle: () => void;
+  brokerState?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -335,7 +349,7 @@ function DraftRow({
           </div>
         </div>
 
-        <IncentivesEditor value={incentives} onChange={setIncentives} />
+        <IncentivesEditor value={incentives} onChange={setIncentives} brokerState={brokerState} />
 
         <div>
           <label className={labelClass}>Photo URLs (one per line, optional)</label>

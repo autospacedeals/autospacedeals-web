@@ -274,7 +274,7 @@ export function aprFromMoneyFactor(moneyFactor: number): number {
 // -----------------------------------------------------------------------------
 
 export interface ShareableCalculatorState {
-  vehicle: { year: string; make: string; model: string; trim: string };
+  vehicle: { year: string; make: string; model: string; trim: string; zip: string };
   input: LeaseCalculatorInput;
   aprMode: boolean;
 }

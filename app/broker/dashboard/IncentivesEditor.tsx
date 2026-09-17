@@ -36,9 +36,16 @@ const labelClass = "mb-1 block text-xs font-semibold text-zinc-400";
 export default function IncentivesEditor({
   value,
   onChange,
+  brokerState,
 }: {
   value: IncentiveRow[];
   onChange: (rows: IncentiveRow[]) => void;
+  // The broker's own state — some manufacturer incentive programs (regional
+  // lease cash, DMA-specific offers) only apply in certain areas, so
+  // passing this lets MarketCheck surface those instead of only nationwide
+  // programs. Optional since older/incomplete broker profiles may not have
+  // a state on file.
+  brokerState?: string;
 }) {
   const [suggesting, setSuggesting] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
@@ -80,7 +87,13 @@ export default function IncentivesEditor({
     setSuggestError(null);
     setSuggesting(true);
     try {
-      const result = await suggestIncentivesAction({ year, make, model, trim: trim || undefined });
+      const result = await suggestIncentivesAction({
+        year,
+        make,
+        model,
+        trim: trim || undefined,
+        state: brokerState || undefined,
+      });
       if (result.error) {
         setSuggestError(result.error);
       } else if (result.incentives.length === 0) {

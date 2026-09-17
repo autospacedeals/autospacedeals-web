@@ -146,7 +146,7 @@ export default async function BrokerDashboardPage() {
 
       {pendingDrafts.length > 0 && (
         <div id="pending-drafts" className="mt-8">
-          <DraftConfirmList drafts={pendingDrafts} />
+          <DraftConfirmList drafts={pendingDrafts} brokerState={broker?.state} />
         </div>
       )}
 
@@ -154,7 +154,7 @@ export default async function BrokerDashboardPage() {
 
       <div className="mt-8">
         <h2 className="mb-4 text-lg font-bold">Your live listings</h2>
-        <MyListings deals={publishedListings} />
+        <MyListings deals={publishedListings} brokerState={broker?.state} />
       </div>
 
       <RemovedListings deals={removedListings} />
@@ -171,7 +171,7 @@ export default async function BrokerDashboardPage() {
           gets an account removed.
         </p>
         <div className="mt-6">
-          <NewSubmissionForm />
+          <NewSubmissionForm brokerState={broker?.state} />
         </div>
       </div>
     </main>
