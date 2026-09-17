@@ -17,6 +17,58 @@ export interface MarketCheckIncentiveOffer {
   description: string | null;
   validThrough: string | null;
   source: string | null; // site MarketCheck scraped this offer from
+  // Raw lease-structure fields scraped alongside the incentive itself — a
+  // real offer document already carries most of what a lease payment
+  // calculator needs (residual, cap cost, money-factor-equivalent APR),
+  // not just the rebate amount. See pickLeaseStructure() below, which
+  // turns these into calculator-ready numbers.
+  msrp: number | null;
+  netCapCost: number | null;
+  grossCapCost: number | null;
+  residualValue: number | null; // lease_end_purchase_price
+  acquisitionFee: number | null;
+  dispositionFee: number | null;
+  term: number | null;
+  termUnit: string | null;
+  aprEquivalent: number | null; // money-factor-equivalent APR, as a percent (e.g. 3.0)
+}
+
+export interface LeaseStructure {
+  msrp: number;
+  residualPercent: number; // 0-100
+  moneyFactor: number; // e.g. 0.00125
+  term: number;
+  acquisitionFee: number | null;
+  source: string; // program name this was pulled from, for a "based on ___" note
+}
+
+// Picks the single best real lease offer to prefill a calculator with — one
+// that's actually typed as a lease and has enough of the structure (MSRP +
+// residual, at minimum) to compute real numbers from, rather than an
+// incentive-only offer (e.g. a pure loyalty rebate) that never carried a
+// residual/cap-cost figure to begin with.
+export function pickLeaseStructure(offers: MarketCheckIncentiveOffer[]): LeaseStructure | null {
+  for (const o of offers) {
+    if (o.offerType !== "lease") continue;
+    if (!o.msrp || o.msrp <= 0 || !o.residualValue || o.residualValue <= 0) continue;
+    if (!o.term || o.term <= 0) continue;
+
+    const residualPercent = (o.residualValue / o.msrp) * 100;
+    // APR-equivalent -> money factor is the standard conversion (money
+    // factor × 2400 ≈ APR%); default to a conservative 0 (0% MF) rather
+    // than guessing when MarketCheck didn't report one for this offer.
+    const moneyFactor = o.aprEquivalent != null ? o.aprEquivalent / 2400 : 0;
+
+    return {
+      msrp: o.msrp,
+      residualPercent,
+      moneyFactor,
+      term: o.term,
+      acquisitionFee: o.acquisitionFee,
+      source: o.programName,
+    };
+  }
+  return null;
 }
 
 export interface MarketCheckLookupParams {
@@ -108,30 +160,32 @@ async function runQuery(
     const offers: MarketCheckIncentiveOffer[] = listings
       .map((listing) => listing?.offer)
       .filter((offer): offer is Record<string, unknown> => !!offer && typeof offer === "object")
-      .map((offer) => ({
-        programName: programName(offer),
-        amount: pickAmount(offer),
-        offerType: typeof (offer as { offer_type?: unknown }).offer_type === "string"
-          ? (offer as { offer_type: string }).offer_type
-          : null,
-        targetGroup:
-          typeof (offer as { cashback_target_group?: unknown }).cashback_target_group === "string"
-            ? (offer as { cashback_target_group: string }).cashback_target_group
-            : null,
-        description:
-          Array.isArray((offer as { offers?: unknown }).offers) &&
-          typeof (offer as { offers: unknown[] }).offers[0] === "string"
-            ? ((offer as { offers: string[] }).offers[0] as string).trim()
-            : null,
-        validThrough:
-          typeof (offer as { valid_through?: unknown }).valid_through === "string"
-            ? (offer as { valid_through: string }).valid_through
-            : null,
-        source:
-          typeof (offer as { source?: unknown }).source === "string"
-            ? (offer as { source: string }).source
-            : null,
-      }));
+      .map((offer) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const o = offer as any;
+        const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+        const firstAmount = Array.isArray(o.amounts) && o.amounts.length > 0 ? o.amounts[0] : null;
+
+        return {
+          programName: programName(offer),
+          amount: pickAmount(offer),
+          offerType: typeof o.offer_type === "string" ? o.offer_type : null,
+          targetGroup: typeof o.cashback_target_group === "string" ? o.cashback_target_group : null,
+          description:
+            Array.isArray(o.offers) && typeof o.offers[0] === "string" ? String(o.offers[0]).trim() : null,
+          validThrough: typeof o.valid_through === "string" ? o.valid_through : null,
+          source: typeof o.source === "string" ? o.source : null,
+          msrp: num(o.msrp),
+          netCapCost: num(o.net_cap_cost),
+          grossCapCost: num(o.gross_cap_cost),
+          residualValue: num(o.lease_end_purchase_price),
+          acquisitionFee: num(o.acquisition_fee),
+          dispositionFee: num(o.disposition_fee),
+          term: num(firstAmount?.term),
+          termUnit: typeof firstAmount?.term_unit === "string" ? firstAmount.term_unit : null,
+          aprEquivalent: num(firstAmount?.apr),
+        };
+      });
 
     return { offers, error: null };
   } catch (err) {

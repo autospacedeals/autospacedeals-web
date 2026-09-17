@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Calculator, RotateCcw, CircleAlert } from "lucide-react";
+import Link from "next/link";
+import { Calculator, RotateCcw, CircleAlert, ArrowRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { estimatePayment, formatCurrency } from "@/lib/deal-utils";
 
@@ -199,6 +200,14 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
           {deal.sellerName} before signing.
         </p>
       </div>
+
+      <Link
+        href="/calculator"
+        className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-white"
+      >
+        <Calculator size={13} /> Want to dig into residual value and money factor? Try the full
+        Lease Calculator <ArrowRight size={13} />
+      </Link>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Calculator, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Leasing Guide",
@@ -23,6 +25,29 @@ export default function LeasingGuidePage() {
           important numbers: monthly payment, due at signing, term, mileage,
           money factor, residual value, and incentives.
         </p>
+
+        <Link
+          href="/calculator"
+          className="mb-10 flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:bg-white/[0.07] sm:flex-row"
+        >
+          <span className="flex items-center gap-3 text-center sm:text-left">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">
+              <Calculator size={18} />
+            </span>
+            <span>
+              <span className="block text-sm font-bold text-white">
+                Ready to run the numbers?
+              </span>
+              <span className="block text-xs text-zinc-400">
+                Try the Lease Calculator on any car — real numbers pulled in automatically when
+                available.
+              </span>
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-white">
+            Open calculator <ArrowRight size={15} />
+          </span>
+        </Link>
 
         <div className="space-y-10">
           <Section title="What Is a Car Lease?">
