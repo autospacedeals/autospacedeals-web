@@ -101,7 +101,7 @@ export default function LeaseCalculator() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-40 sm:pb-44">
       {/* Vehicle lookup */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold">
@@ -299,23 +299,6 @@ export default function LeaseCalculator() {
         </label>
       </div>
 
-      {/* Results */}
-      <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5 sm:p-6">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Result label="Monthly payment" value={formatCurrency(result.monthlyPayment)} big />
-          <Result label="Due at signing" value={formatCurrency(result.dueAtSigning)} big />
-          <Result label="Total lease cost" value={formatCurrency(result.totalLeaseCost)} />
-          <Result label="Effective monthly cost" value={formatCurrency(result.effectiveMonthly)} />
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-xs text-zinc-500 sm:grid-cols-4">
-          <span>Net cap cost: {formatCurrency(result.netCapCost)}</span>
-          <span>Residual value: {formatCurrency(result.residualValue)}</span>
-          <span>Depreciation fee: {formatCurrency(result.depreciationFee)}/mo</span>
-          <span>Rent charge: {formatCurrency(result.rentCharge)}/mo</span>
-        </div>
-      </div>
-
       <div className="flex items-start gap-2 text-xs leading-5 text-zinc-500">
         <CircleAlert size={14} className="mt-0.5 shrink-0" />
         <p>
@@ -323,6 +306,27 @@ export default function LeaseCalculator() {
           actual payment depends on lender approval, exact taxes/fees, and current incentive
           eligibility. Confirm final numbers with the dealer or broker before signing.
         </p>
+      </div>
+
+      {/* Results — pinned to the bottom of the viewport so the live totals
+          stay visible while scrolling back up to tweak a field, instead of
+          having to scroll back down after every change. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-zinc-950/95 backdrop-blur">
+        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <Result label="Monthly payment" value={formatCurrency(result.monthlyPayment)} big />
+            <Result label="Due at signing" value={formatCurrency(result.dueAtSigning)} big />
+            <Result label="Total lease cost" value={formatCurrency(result.totalLeaseCost)} />
+            <Result label="Effective monthly cost" value={formatCurrency(result.effectiveMonthly)} />
+          </div>
+
+          <div className="mt-2 hidden grid-cols-4 gap-3 border-t border-white/10 pt-2 text-[11px] text-zinc-500 sm:grid">
+            <span>Net cap cost: {formatCurrency(result.netCapCost)}</span>
+            <span>Residual value: {formatCurrency(result.residualValue)}</span>
+            <span>Depreciation fee: {formatCurrency(result.depreciationFee)}/mo</span>
+            <span>Rent charge: {formatCurrency(result.rentCharge)}/mo</span>
+          </div>
+        </div>
       </div>
     </div>
   );
