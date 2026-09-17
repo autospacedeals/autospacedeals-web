@@ -18,8 +18,10 @@ import {
   DEFAULT_FILTERS,
   filterDeals,
   LAST_VIEWED_DEAL_KEY,
+  scoreDeal,
   sortDeals,
   type DealFilters,
+  type DealScore,
   type SortOption,
 } from "@/lib/deal-utils";
 import DealCard from "@/components/DealCard";
@@ -130,6 +132,16 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
   }, [sortBy, geoStatus]);
 
   const sellerCount = useMemo(() => new Set(deals.map((d) => d.sellerName)).size, [deals]);
+
+  // Scored once against the full, unfiltered pool (not just whatever
+  // currently matches the filters) so a deal's badge doesn't flicker or
+  // change meaning as someone adjusts filters — it's always "compared to
+  // every live deal on the site," a stable reference point.
+  const scores = useMemo(() => {
+    const map = new Map<string, DealScore | null>();
+    for (const deal of deals) map.set(deal.id, scoreDeal(deal, deals));
+    return map;
+  }, [deals]);
 
   const MAKES = useMemo(() => ["All", ...Array.from(new Set(deals.map((d) => d.make))).sort()], [deals]);
   const SELLERS = useMemo(
@@ -292,7 +304,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {results.map((deal) => (
                     <div key={deal.id} id={`deal-${deal.id}`}>
-                      <DealCard deal={deal} />
+                      <DealCard deal={deal} score={scores.get(deal.id)} />
                     </div>
                   ))}
                 </div>

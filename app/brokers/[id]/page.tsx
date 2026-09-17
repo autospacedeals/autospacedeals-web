@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin, Phone, Store } from "lucide-react";
 import { getBrokerProfile } from "@/lib/supabase/brokers";
-import { getPublishedDealsByBroker } from "@/lib/supabase/deals";
-import { phoneDigits } from "@/lib/deal-utils";
+import { getPublishedDealsByBroker, getPublishedDeals } from "@/lib/supabase/deals";
+import { phoneDigits, scoreDeal, type DealScore } from "@/lib/deal-utils";
 import DealCard from "@/components/DealCard";
 
 export const dynamic = "force-dynamic";
@@ -35,8 +35,14 @@ export default async function BrokerProfilePage({
   // Listings are secondary to the broker's own info — if fetching them
   // somehow throws, still show the profile rather than a blank error page.
   let listings: Awaited<ReturnType<typeof getPublishedDealsByBroker>> = [];
+  // Scored against every published deal site-wide, not just this broker's
+  // own inventory — comparing a broker only to themselves would make every
+  // one of their listings look artificially "great."
+  let scores: Record<string, DealScore | null> = {};
   try {
     listings = await getPublishedDealsByBroker(id);
+    const allDeals = await getPublishedDeals();
+    scores = Object.fromEntries(listings.map((d) => [d.id, scoreDeal(d, allDeals)]));
   } catch (err) {
     console.error("Failed to load broker's listings:", err);
   }
@@ -88,7 +94,7 @@ export default async function BrokerProfilePage({
         {listings.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {listings.map((deal) => (
-              <DealCard key={deal.id} deal={deal} />
+              <DealCard key={deal.id} deal={deal} score={scores[deal.id] ?? null} />
             ))}
           </div>
         ) : (

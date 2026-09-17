@@ -130,6 +130,52 @@ export function msrpDiscountPercent(deal: Deal): number {
   return ((deal.msrp - deal.sellingPrice) / deal.msrp) * 100;
 }
 
+export type DealScoreLabel = "great" | "good" | "fair";
+
+export interface DealScore {
+  label: DealScoreLabel;
+  text: string;
+}
+
+const DEAL_SCORE_TEXT: Record<DealScoreLabel, string> = {
+  great: "Great Deal",
+  good: "Good Deal",
+  fair: "Fair Deal",
+};
+
+// Scores a deal's effective monthly cost against comparable deals — same
+// body style when there's enough of that body style to compare fairly,
+// otherwise the whole pool. This is deliberately about effective monthly
+// cost (the shopper's real bottom line, payment + due-at-signing spread
+// across the term) rather than % off MSRP alone, since MSRP itself can be
+// masked, inflated, or simply missing.
+//
+// Only positive/neutral tiers exist on purpose — there's no "High Price"
+// badge. Brokers list for free and this is meant to help a shopper spot a
+// standout deal, not publicly shame a broker's own listing next to their
+// contact info.
+export function scoreDeal(deal: Deal, allDeals: Deal[]): DealScore | null {
+  const sameBodyStyle = allDeals.filter((d) => d.id !== deal.id && d.bodyStyle === deal.bodyStyle);
+  const pool = sameBodyStyle.length >= 5 ? sameBodyStyle : allDeals.filter((d) => d.id !== deal.id);
+
+  // Not enough comparable data to score fairly — omit the badge rather
+  // than show a confident-looking label backed by 1-2 data points.
+  if (pool.length < 4) return null;
+
+  const dealCost = effectiveMonthly(deal);
+  const poolCosts = pool.map(effectiveMonthly);
+  // Percentile rank: fraction of the comparable pool that costs MORE than
+  // this deal. 1.0 = cheapest in the pool, 0.0 = most expensive.
+  const rank = poolCosts.filter((c) => c > dealCost).length / poolCosts.length;
+
+  let label: DealScoreLabel | null = null;
+  if (rank >= 0.85) label = "great";
+  else if (rank >= 0.6) label = "good";
+  else if (rank >= 0.35) label = "fair";
+
+  return label ? { label, text: DEAL_SCORE_TEXT[label] } : null;
+}
+
 // Rough, estimate-only payment math for the interactive calculator on the
 // deal page: extra money put down (or an incentive applied) reduces the
 // amount financed, and that reduction is spread evenly across the

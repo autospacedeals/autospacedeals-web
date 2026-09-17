@@ -6,7 +6,7 @@
 // duplicating this whole layout in two places and letting them drift.
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Store, Flag, CircleAlert } from "lucide-react";
+import { ArrowLeft, MapPin, Store, Flag, CircleAlert, Sparkles } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 import type { Deal } from "@/lib/deals-data";
@@ -18,9 +18,10 @@ import {
   msrpDiscountPercent,
   relativeDatePosted,
   reportIssueMailtoHref,
+  type DealScore,
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
-import DealCard, { BADGE_STYLES } from "@/components/DealCard";
+import DealCard, { BADGE_STYLES, SCORE_STYLES } from "@/components/DealCard";
 
 const CONDITION_STYLES: Record<string, string> = {
   New: "bg-blue-500 text-white",
@@ -33,6 +34,8 @@ const CONDITION_STYLES: Record<string, string> = {
 export default function DealDetailView({
   deal,
   similar = [],
+  score = null,
+  similarScores = {},
   backHref = "/#deals",
   backLabel = "Back to all deals",
   // A draft preview isn't public yet — reporting it as inaccurate, or
@@ -43,6 +46,12 @@ export default function DealDetailView({
 }: {
   deal: Deal;
   similar?: Deal[];
+  // How this deal (and each similar deal) compares to the full site pool —
+  // computed by the page component, which has access to every published
+  // deal; DealDetailView itself only ever sees `deal` + a handful of
+  // `similar` ones, not enough to score fairly on its own.
+  score?: DealScore | null;
+  similarScores?: Record<string, DealScore | null>;
   backHref?: string;
   backLabel?: string;
   isPreview?: boolean;
@@ -78,6 +87,13 @@ export default function DealDetailView({
         <div>
           <DealPhotoGallery images={deal.images} alt={dealTitle(deal)}>
             <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+              {score && (
+                <span
+                  className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${SCORE_STYLES[score.label]}`}
+                >
+                  <Sparkles size={12} /> {score.text}
+                </span>
+              )}
               {deal.badge && BADGE_STYLES[deal.badge] && (
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-950">
                   {deal.badge}
@@ -299,7 +315,7 @@ export default function DealDetailView({
           <h2 className="mb-5 text-2xl font-black">Similar Deals</h2>
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {similar.map((d) => (
-              <DealCard key={d.id} deal={d} />
+              <DealCard key={d.id} deal={d} score={similarScores[d.id] ?? null} />
             ))}
           </div>
         </section>

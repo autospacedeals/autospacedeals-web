@@ -8,7 +8,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Gauge, ArrowRight, Store } from "lucide-react";
+import { MapPin, Gauge, ArrowRight, Store, Sparkles } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import {
   displayMsrp,
@@ -16,8 +16,15 @@ import {
   markDealViewed,
   msrpDiscountPercent,
   relativeDatePosted,
+  type DealScore,
 } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
+
+export const SCORE_STYLES: Record<DealScore["label"], string> = {
+  great: "bg-emerald-500 text-white",
+  good: "bg-blue-500 text-white",
+  fair: "bg-zinc-700 text-white",
+};
 
 // HOT and VALUE badges were dropped per Robert — too cluttered for the
 // clean look he wants. Only badge types listed here render at all; a
@@ -37,7 +44,7 @@ const CONDITION_STYLES: Record<string, string> = {
   Used: "bg-zinc-700 text-white",
 };
 
-export default function DealCard({ deal }: { deal: Deal }) {
+export default function DealCard({ deal, score }: { deal: Deal; score?: DealScore | null }) {
   const image = deal.images[0];
   const discount = msrpDiscountPercent(deal);
   const detailHref = `/deals/${deal.slug}`;
@@ -53,6 +60,13 @@ export default function DealCard({ deal }: { deal: Deal }) {
           />
 
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+            {score && (
+              <span
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${SCORE_STYLES[score.label]}`}
+              >
+                <Sparkles size={11} /> {score.text}
+              </span>
+            )}
             {deal.badge && BADGE_STYLES[deal.badge] && (
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-bold ${BADGE_STYLES[deal.badge]}`}
