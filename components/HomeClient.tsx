@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Search,
   ShieldCheck,
@@ -131,7 +130,6 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
   }, [sortBy, geoStatus]);
 
   const sellerCount = useMemo(() => new Set(deals.map((d) => d.sellerName)).size, [deals]);
-  const stateCount = useMemo(() => new Set(deals.map((d) => d.state)).size, [deals]);
 
   const MAKES = useMemo(() => ["All", ...Array.from(new Set(deals.map((d) => d.make))).sort()], [deals]);
   const SELLERS = useMemo(
@@ -180,34 +178,13 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.2),transparent_30%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
+        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mx-auto mb-8 max-w-lg overflow-hidden rounded-2xl">
-              <Image
-                src="/logo-hero.png"
-                alt="Drive"
-                width={1448}
-                height={625}
-                priority
-                className="h-auto w-full"
-              />
-            </div>
-
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-zinc-300 sm:text-sm">
-              <ShieldCheck size={15} /> Broker &amp; dealer deals, verified and organized
-            </div>
-
             <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
               Compare real lease deals in one place.
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg">
-              Stop digging through dealer sites, broker posts, and forum threads. Drive
-              organizes offers from dealers and brokers into clean listings with real payments,
-              due at signing, term, mileage, and direct contact info.
-            </p>
-
-            <div className="mx-auto mt-8 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 p-2 shadow-2xl backdrop-blur">
+            <div className="mx-auto mt-6 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 p-2 shadow-2xl backdrop-blur">
               <div className="flex flex-1 items-center gap-2 rounded-xl bg-zinc-950 px-4 py-3">
                 <Search className="shrink-0 text-zinc-400" size={18} />
                 <input
@@ -223,12 +200,6 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
               >
                 Search
               </a>
-            </div>
-
-            <div className="mx-auto mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-center">
-              <HeroStat value={`${deals.length}+`} label="Active deals" />
-              {sellerCount >= 5 && <HeroStat value={`${sellerCount}`} label="Dealers &amp; brokers" />}
-              {stateCount >= 3 && <HeroStat value={`${stateCount}`} label="States covered" />}
             </div>
           </div>
         </div>
@@ -416,15 +387,6 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
         </div>
       </section>
     </main>
-  );
-}
-
-function HeroStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <p className="text-2xl font-black sm:text-3xl">{value}</p>
-      <p className="text-xs text-zinc-400 sm:text-sm">{label}</p>
-    </div>
   );
 }
 
