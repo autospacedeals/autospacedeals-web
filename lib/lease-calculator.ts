@@ -308,3 +308,111 @@ export function decodeCalculatorState(encoded: string): ShareableCalculatorState
     return null;
   }
 }
+
+// -----------------------------------------------------------------------------
+// Lease-end calculator — buyout vs. return, the other real decision point
+// every lessee eventually hits (not just "what will my payment be").
+// -----------------------------------------------------------------------------
+//
+// The comparison that actually matters isn't "which total dollar amount is
+// bigger" — it's "which option leaves you better off relative to doing
+// nothing." Buying out isn't a pure cost: you end up owning a car worth
+// something, so its true cost is what you pay minus what the car is worth
+// (netCostOfBuyout — negative means you're getting built-in equity).
+// Returning has no offsetting asset, so its cost is just the fees involved.
+// Whichever net cost is lower wins.
+
+export interface LeaseEndInput {
+  // Buyout side
+  residualPayoff: number; // what the lender says it costs to buy the car outright
+  purchaseOptionFee: number; // fixed fee most lenders charge to exercise the buyout
+  buyoutTaxRate: number; // % sales tax most states apply to the buyout amount
+  estimatedMarketValue: number; // what the car could sell/trade for today — the shopper's own estimate
+
+  // Return side
+  dispositionFee: number; // charged by the lender for returning the car
+  totalMilesDriven: number;
+  totalMileageAllowance: number; // full-term allowance (e.g. annual mileage × years), not the annual figure
+  excessMileageFeePerMile: number;
+  estimatedWearAndTear: number; // optional manual estimate for excess wear/damage charges
+}
+
+export const DEFAULT_LEASE_END_INPUT: LeaseEndInput = {
+  residualPayoff: 0,
+  purchaseOptionFee: 350,
+  buyoutTaxRate: 0,
+  estimatedMarketValue: 0,
+  dispositionFee: 0,
+  totalMilesDriven: 0,
+  totalMileageAllowance: 0,
+  excessMileageFeePerMile: 0.25,
+  estimatedWearAndTear: 0,
+};
+
+export type LeaseEndRecommendation = "buyout" | "return" | "close";
+
+export interface LeaseEndResult {
+  buyoutTaxAmount: number;
+  buyoutTotalCost: number; // cash actually paid to buy the car out
+  netCostOfBuyout: number; // buyoutTotalCost − estimatedMarketValue; negative = built-in equity
+
+  excessMiles: number;
+  excessMileageFee: number;
+  returnTotalCost: number; // dispositionFee + excessMileageFee + estimatedWearAndTear (pure cost, no asset)
+
+  recommendation: LeaseEndRecommendation;
+  netAdvantage: number; // how much better the recommended option is, in dollars
+}
+
+// Below this gap, the two options are close enough that the "right" answer
+// probably comes down to non-financial preference (want to keep the car?
+// don't want the hassle of selling it?) more than the numbers.
+const LEASE_END_CLOSE_THRESHOLD = 150;
+
+export function computeLeaseEndEstimate(rawInput: Partial<LeaseEndInput>): LeaseEndResult {
+  const input: LeaseEndInput = { ...DEFAULT_LEASE_END_INPUT, ...rawInput };
+
+  const residualPayoff = Math.max(0, safeNumber(input.residualPayoff));
+  const purchaseOptionFee = Math.max(0, safeNumber(input.purchaseOptionFee));
+  const buyoutTaxRate = Math.max(0, safeNumber(input.buyoutTaxRate));
+  const estimatedMarketValue = Math.max(0, safeNumber(input.estimatedMarketValue));
+
+  const dispositionFee = Math.max(0, safeNumber(input.dispositionFee));
+  const totalMilesDriven = Math.max(0, safeNumber(input.totalMilesDriven));
+  const totalMileageAllowance = Math.max(0, safeNumber(input.totalMileageAllowance));
+  const excessMileageFeePerMile = Math.max(0, safeNumber(input.excessMileageFeePerMile));
+  const estimatedWearAndTear = Math.max(0, safeNumber(input.estimatedWearAndTear));
+
+  const buyoutTaxAmount = residualPayoff * (buyoutTaxRate / 100);
+  const buyoutTotalCost = residualPayoff + purchaseOptionFee + buyoutTaxAmount;
+  const netCostOfBuyout = buyoutTotalCost - estimatedMarketValue;
+
+  const excessMiles = Math.max(0, totalMilesDriven - totalMileageAllowance);
+  const excessMileageFee = excessMiles * excessMileageFeePerMile;
+  const returnTotalCost = dispositionFee + excessMileageFee + estimatedWearAndTear;
+
+  const gap = returnTotalCost - netCostOfBuyout; // positive = buyout is cheaper
+  let recommendation: LeaseEndRecommendation;
+  let netAdvantage: number;
+  if (Math.abs(gap) < LEASE_END_CLOSE_THRESHOLD) {
+    recommendation = "close";
+    netAdvantage = Math.abs(gap);
+  } else if (gap > 0) {
+    recommendation = "buyout";
+    netAdvantage = gap;
+  } else {
+    recommendation = "return";
+    netAdvantage = -gap;
+  }
+
+  return {
+    buyoutTaxAmount,
+    buyoutTotalCost,
+    netCostOfBuyout,
+    excessMiles,
+    excessMileageFee,
+    returnTotalCost,
+    recommendation,
+    netAdvantage,
+  };
+}

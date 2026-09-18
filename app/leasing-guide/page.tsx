@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Calculator, ArrowRight } from "lucide-react";
+import { Calculator, ArrowRight, Scale } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Leasing Guide",
@@ -165,6 +165,25 @@ export default function LeasingGuidePage() {
               <li>Low due at signing</li>
               <li>Clear fees and terms</li>
             </ul>
+          </Section>
+
+          <Section title="What Happens When Your Lease Ends?">
+            <p>
+              At lease-end you usually have three options: buy the car at its residual (payoff)
+              value, return it and walk away, or trade it in toward something new.
+            </p>
+            <p>
+              Buying out isn&apos;t automatically the wrong move — if the car is worth more than
+              the payoff amount, you have built-in equity. Returning has its own costs too: a
+              disposition fee, and a per-mile charge for any miles over your allowance.
+            </p>
+            <Link
+              href="/lease-end"
+              className="mt-3 flex items-center gap-2 text-sm font-semibold text-white hover:underline"
+            >
+              <Scale size={15} /> Compare buyout vs. return with the Lease-End Calculator
+              <ArrowRight size={14} />
+            </Link>
           </Section>
         </div>
       </section>

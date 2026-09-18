@@ -11,7 +11,7 @@ import { headerSignOutAction } from "@/app/actions";
 // points straight at signup instead.
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals" },
-  { href: "/broker/signup", label: "For Brokers" },
+  { href: "/broker/signup", label: "Brokers" },
   { href: "/leasing-guide", label: "Guide" },
 ];
 
