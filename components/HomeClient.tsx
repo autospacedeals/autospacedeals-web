@@ -206,7 +206,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
         <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
-              Compare real lease deals in one place.
+              Find your next lease deal.
             </h1>
 
             <div className="mx-auto mt-6 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 p-2 shadow-2xl backdrop-blur">
