@@ -8,11 +8,12 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, ArrowRight, Store, Sparkles } from "lucide-react";
+import { MapPin, ArrowRight, Store, Sparkles, Clock } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import {
   displayMsrp,
   formatCurrency,
+  isNewlyPosted,
   markDealViewed,
   msrpDiscountPercent,
   type DealScore,
@@ -76,6 +77,11 @@ export default function DealCard({
           />
 
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+            {isNewlyPosted(deal) && (
+              <span className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2.5 py-1 text-xs font-bold text-white">
+                <Clock size={11} /> Just Listed
+              </span>
+            )}
             {score && (
               <span
                 className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${SCORE_STYLES[score.label]}`}

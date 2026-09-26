@@ -230,6 +230,15 @@ export function relativeDatePosted(dateStr: string, today?: Date): string {
   return `Posted ${formatDate(dateStr)}`;
 }
 
+// Drives the "Just Listed" badge — true for the first couple of days after
+// a deal goes live. We show shoppers a lightweight freshness signal instead
+// of an exact date (which mostly just told people how "stale" older, still
+// perfectly good deals were).
+export function isNewlyPosted(deal: Pick<Deal, "datePosted">, today?: Date): boolean {
+  if (!deal.datePosted) return false;
+  return daysAgo(deal.datePosted, today) <= 2;
+}
+
 export function phoneDigits(phone: string | null | undefined): string {
   return (phone ?? "").replace(/\D/g, "");
 }

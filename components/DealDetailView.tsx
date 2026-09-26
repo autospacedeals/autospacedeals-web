@@ -6,7 +6,7 @@
 // duplicating this whole layout in two places and letting them drift.
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Store, Flag, CircleAlert, Sparkles } from "lucide-react";
+import { ArrowLeft, MapPin, Store, Flag, CircleAlert, Sparkles, Clock } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 import type { Deal } from "@/lib/deals-data";
@@ -15,8 +15,8 @@ import {
   displayMsrp,
   effectiveMonthly,
   formatCurrency,
+  isNewlyPosted,
   msrpDiscountPercent,
-  relativeDatePosted,
   reportIssueMailtoHref,
   type DealScore,
 } from "@/lib/deal-utils";
@@ -87,6 +87,11 @@ export default function DealDetailView({
         <div>
           <DealPhotoGallery images={deal.images} alt={dealTitle(deal)}>
             <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+              {isNewlyPosted(deal) && (
+                <span className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-3 py-1 text-xs font-bold text-white">
+                  <Clock size={12} /> Just Listed
+                </span>
+              )}
               {score && (
                 <span
                   className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${SCORE_STYLES[score.label]}`}
@@ -208,7 +213,6 @@ export default function DealDetailView({
               {deal.interior && <Detail label="Interior" value={deal.interior} />}
               {deal.fuel && <Detail label="Fuel type" value={deal.fuel} />}
               {deal.bodyStyle && <Detail label="Body style" value={deal.bodyStyle} />}
-              <Detail label="Posted" value={relativeDatePosted(deal.datePosted)} />
             </dl>
 
             {packages.length > 0 && (
