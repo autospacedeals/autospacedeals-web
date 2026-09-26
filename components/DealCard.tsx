@@ -8,14 +8,13 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Gauge, ArrowRight, Store, Sparkles } from "lucide-react";
+import { MapPin, ArrowRight, Store, Sparkles } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import {
   displayMsrp,
   formatCurrency,
   markDealViewed,
   msrpDiscountPercent,
-  relativeDatePosted,
   type DealScore,
 } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
@@ -186,9 +185,6 @@ export default function DealCard({
           )}{" "}
           · {deal.sellerType}
           {deal.sellerDealership && ` at ${deal.sellerDealership}`}
-        </p>
-        <p className="flex items-center gap-2 text-xs text-zinc-500">
-          <Gauge size={13} /> {relativeDatePosted(deal.datePosted)}
         </p>
       </div>
 
