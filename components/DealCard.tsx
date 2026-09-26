@@ -16,15 +16,8 @@ import {
   isNewlyPosted,
   markDealViewed,
   msrpDiscountPercent,
-  type DealScore,
 } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
-
-export const SCORE_STYLES: Record<DealScore["label"], string> = {
-  great: "bg-emerald-500 text-white",
-  good: "bg-blue-500 text-white",
-  fair: "bg-zinc-700 text-white",
-};
 
 // HOT and VALUE badges were dropped per Robert — too cluttered for the
 // clean look he wants. Only badge types listed here render at all; a

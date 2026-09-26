@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { Deal } from "@/lib/deals-data";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
-import { dealTitle, formatCurrency, getSimilarDealsFrom, scoreDeal, type DealScore } from "@/lib/deal-utils";
+import { dealTitle, formatCurrency, getSimilarDealsFrom } from "@/lib/deal-utils";
 import DealDetailView from "@/components/DealDetailView";
 
 // Always fetch fresh — a broker can edit/reprice/remove their own listing at
@@ -60,14 +60,12 @@ export default async function DealDetailPage({
   if (!deal) notFound();
 
   let similar: Deal[] = [];
-  let score: DealScore | null = null;
   try {
     const allDeals = await getPublishedDeals();
     similar = getSimilarDealsFrom(allDeals, deal, 3);
-    score = scoreDeal(deal, allDeals);
   } catch (err) {
     console.error("DealDetailPage: similar deals failed for", deal.id, err);
   }
 
-  return <DealDetailView deal={deal} similar={similar} score={score} />;
+  return <DealDetailView deal={deal} similar={similar} />;
 }

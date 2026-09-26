@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { X, ArrowRight, Sparkles } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import {
   dealTitle,
@@ -9,9 +9,7 @@ import {
   effectiveMonthly,
   formatCurrency,
   msrpDiscountPercent,
-  type DealScore,
 } from "@/lib/deal-utils";
-import { SCORE_STYLES } from "./DealCard";
 
 // A lightweight, client-only side-by-side view — no new route, since the
 // homepage already has every selected deal's full data in memory. Lays
@@ -19,12 +17,10 @@ import { SCORE_STYLES } from "./DealCard";
 // 2 or 3 selected deals both work without conditional column classes.
 export default function CompareModal({
   deals,
-  scores,
   onRemove,
   onClose,
 }: {
   deals: Deal[];
-  scores: Map<string, DealScore | null | undefined>;
   onRemove: (id: string) => void;
   onClose: () => void;
 }) {
@@ -56,7 +52,6 @@ export default function CompareModal({
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-2">
             {deals.map((deal) => {
-              const score = scores.get(deal.id);
               const discount = msrpDiscountPercent(deal);
               return (
                 <div
@@ -79,14 +74,6 @@ export default function CompareModal({
                   >
                     <X size={11} /> Remove
                   </button>
-
-                  {score && (
-                    <span
-                      className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${SCORE_STYLES[score.label]}`}
-                    >
-                      <Sparkles size={10} /> {score.text}
-                    </span>
-                  )}
 
                   <h3 className="mt-2 text-sm font-black leading-tight">{dealTitle(deal)}</h3>
                   <p className="text-xs text-zinc-500">

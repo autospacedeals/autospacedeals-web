@@ -6,7 +6,7 @@
 // duplicating this whole layout in two places and letting them drift.
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Store, Flag, CircleAlert, Sparkles, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Store, Flag, CircleAlert, Clock } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 import type { Deal } from "@/lib/deals-data";
@@ -18,10 +18,9 @@ import {
   isNewlyPosted,
   msrpDiscountPercent,
   reportIssueMailtoHref,
-  type DealScore,
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
-import DealCard, { BADGE_STYLES, SCORE_STYLES } from "@/components/DealCard";
+import DealCard, { BADGE_STYLES } from "@/components/DealCard";
 
 const CONDITION_STYLES: Record<string, string> = {
   New: "bg-blue-500 text-white",
@@ -34,7 +33,6 @@ const CONDITION_STYLES: Record<string, string> = {
 export default function DealDetailView({
   deal,
   similar = [],
-  score = null,
   backHref = "/#deals",
   backLabel = "Back to all deals",
   // A draft preview isn't public yet — reporting it as inaccurate, or
@@ -45,11 +43,6 @@ export default function DealDetailView({
 }: {
   deal: Deal;
   similar?: Deal[];
-  // How this deal compares to the full site pool — computed by the page
-  // component, which has access to every published deal; DealDetailView
-  // itself only ever sees `deal` + a handful of `similar` ones, not enough
-  // to score fairly on its own.
-  score?: DealScore | null;
   backHref?: string;
   backLabel?: string;
   isPreview?: boolean;
@@ -88,13 +81,6 @@ export default function DealDetailView({
               {isNewlyPosted(deal) && (
                 <span className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-3 py-1 text-xs font-bold text-white">
                   <Clock size={12} /> Just Listed
-                </span>
-              )}
-              {score && (
-                <span
-                  className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${SCORE_STYLES[score.label]}`}
-                >
-                  <Sparkles size={12} /> {score.text}
                 </span>
               )}
               {deal.badge && BADGE_STYLES[deal.badge] && (
