@@ -35,7 +35,6 @@ export default function DealDetailView({
   deal,
   similar = [],
   score = null,
-  similarScores = {},
   backHref = "/#deals",
   backLabel = "Back to all deals",
   // A draft preview isn't public yet — reporting it as inaccurate, or
@@ -46,12 +45,11 @@ export default function DealDetailView({
 }: {
   deal: Deal;
   similar?: Deal[];
-  // How this deal (and each similar deal) compares to the full site pool —
-  // computed by the page component, which has access to every published
-  // deal; DealDetailView itself only ever sees `deal` + a handful of
-  // `similar` ones, not enough to score fairly on its own.
+  // How this deal compares to the full site pool — computed by the page
+  // component, which has access to every published deal; DealDetailView
+  // itself only ever sees `deal` + a handful of `similar` ones, not enough
+  // to score fairly on its own.
   score?: DealScore | null;
-  similarScores?: Record<string, DealScore | null>;
   backHref?: string;
   backLabel?: string;
   isPreview?: boolean;
@@ -319,7 +317,7 @@ export default function DealDetailView({
           <h2 className="mb-5 text-2xl font-black">Similar Deals</h2>
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {similar.map((d) => (
-              <DealCard key={d.id} deal={d} score={similarScores[d.id] ?? null} />
+              <DealCard key={d.id} deal={d} />
             ))}
           </div>
         </section>

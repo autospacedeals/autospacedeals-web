@@ -319,7 +319,6 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
                     <div key={deal.id} id={`deal-${deal.id}`}>
                       <DealCard
                         deal={deal}
-                        score={scores.get(deal.id)}
                         compareSelected={compareIds.includes(deal.id)}
                         compareDisabled={compareIds.length >= MAX_COMPARE}
                         onToggleCompare={() => toggleCompare(deal.id)}

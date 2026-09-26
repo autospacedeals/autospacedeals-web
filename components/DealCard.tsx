@@ -8,7 +8,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, ArrowRight, Store, Sparkles, Clock } from "lucide-react";
+import { MapPin, ArrowRight, Store, Clock } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import {
   displayMsrp,
@@ -46,13 +46,11 @@ const CONDITION_STYLES: Record<string, string> = {
 
 export default function DealCard({
   deal,
-  score,
   compareSelected,
   onToggleCompare,
   compareDisabled,
 }: {
   deal: Deal;
-  score?: DealScore | null;
   // Compare-mode props are all optional and only passed from the homepage
   // grid — DealCard renders in several other places (similar deals, a
   // broker's public profile) where comparing doesn't make sense, and
@@ -80,13 +78,6 @@ export default function DealCard({
             {isNewlyPosted(deal) && (
               <span className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2.5 py-1 text-xs font-bold text-white">
                 <Clock size={11} /> Just Listed
-              </span>
-            )}
-            {score && (
-              <span
-                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${SCORE_STYLES[score.label]}`}
-              >
-                <Sparkles size={11} /> {score.text}
               </span>
             )}
             {deal.badge && BADGE_STYLES[deal.badge] && (

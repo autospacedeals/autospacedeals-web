@@ -61,15 +61,13 @@ export default async function DealDetailPage({
 
   let similar: Deal[] = [];
   let score: DealScore | null = null;
-  let similarScores: Record<string, DealScore | null> = {};
   try {
     const allDeals = await getPublishedDeals();
     similar = getSimilarDealsFrom(allDeals, deal, 3);
     score = scoreDeal(deal, allDeals);
-    similarScores = Object.fromEntries(similar.map((d) => [d.id, scoreDeal(d, allDeals)]));
   } catch (err) {
     console.error("DealDetailPage: similar deals failed for", deal.id, err);
   }
 
-  return <DealDetailView deal={deal} similar={similar} score={score} similarScores={similarScores} />;
+  return <DealDetailView deal={deal} similar={similar} score={score} />;
 }
