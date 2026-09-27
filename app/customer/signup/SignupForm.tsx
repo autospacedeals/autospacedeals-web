@@ -7,11 +7,9 @@ import { signUpAction, type AuthState } from "../actions";
 
 const initialState: AuthState = { error: null };
 
-const inputClass =
-  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
-const labelClass = "mb-1.5 block text-sm font-semibold text-zinc-300";
-const fileInputClass =
-  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-white/20";
+const inputClass = "input";
+const labelClass = "field-label";
+const fileInputClass = "file-input";
 
 export default function SignupForm() {
   const [state, formAction, pending] = useActionState(signUpAction, initialState);
@@ -20,16 +18,13 @@ export default function SignupForm() {
   if (state.needsConfirmation) {
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-center">
-        <MailCheck size={32} className="text-emerald-400" />
-        <p className="text-lg font-bold">Check your email</p>
-        <p className="max-w-sm text-sm text-zinc-400">
+        <MailCheck size={32} className="text-success" />
+        <p className="type-title">Check your email</p>
+        <p className="max-w-sm text-sm text-fg-secondary">
           We sent a confirmation link to finish setting up your account. Once confirmed, come back
           and sign in.
         </p>
-        <Link
-          href="/customer/login"
-          className="mt-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-        >
+        <Link href="/customer/login" className="btn btn-primary mt-2">
           Go to sign in
         </Link>
       </div>
@@ -37,19 +32,26 @@ export default function SignupForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className={labelClass}>First name</label>
-          <input required name="firstName" placeholder="Jordan" className={inputClass} />
+          <label htmlFor="signup-first-name" className={labelClass}>
+            First name
+          </label>
+          <input id="signup-first-name" required name="firstName" placeholder="Jordan" className={inputClass} />
         </div>
         <div>
-          <label className={labelClass}>Last name</label>
-          <input required name="lastName" placeholder="Smith" className={inputClass} />
+          <label htmlFor="signup-last-name" className={labelClass}>
+            Last name
+          </label>
+          <input id="signup-last-name" required name="lastName" placeholder="Smith" className={inputClass} />
         </div>
         <div>
-          <label className={labelClass}>Zip code</label>
+          <label htmlFor="signup-zip-code" className={labelClass}>
+            Zip code
+          </label>
           <input
+            id="signup-zip-code"
             required
             name="zipCode"
             inputMode="numeric"
@@ -60,13 +62,18 @@ export default function SignupForm() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 pt-4">
-        <label className={labelClass}>Email</label>
-        <input required type="email" name="email" autoComplete="email" className={inputClass} />
+      <div className="border-t border-line pt-5">
+        <label htmlFor="signup-email" className={labelClass}>
+          Email
+        </label>
+        <input id="signup-email" required type="email" name="email" autoComplete="email" className={inputClass} />
       </div>
       <div>
-        <label className={labelClass}>Password</label>
+        <label htmlFor="signup-password" className={labelClass}>
+          Password
+        </label>
         <input
+          id="signup-password"
           required
           type="password"
           name="password"
@@ -74,68 +81,93 @@ export default function SignupForm() {
           autoComplete="new-password"
           className={inputClass}
         />
-        <p className="mt-1 text-xs text-zinc-600">At least 8 characters.</p>
+        <p className="field-hint">At least 8 characters.</p>
       </div>
 
-      <div className="border-t border-white/10 pt-4">
+      <div className="border-t border-line pt-2">
         <button
           type="button"
           onClick={() => setShowOptional((v) => !v)}
-          className="flex w-full items-center justify-between text-sm font-semibold text-zinc-300 transition hover:text-white"
+          aria-expanded={showOptional}
+          className="flex min-h-11 w-full items-center justify-between text-sm font-medium text-fg-secondary transition-colors hover:text-fg"
         >
           <span>Additional info (optional)</span>
           {showOptional ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
-        <p className="mt-1 text-xs text-zinc-600">
-          Adding these now can speed things up when you're ready to sign — you can always add or
+        <p className="field-hint">
+          Adding these now can speed things up when you&apos;re ready to sign — you can always add or
           update them later from your dashboard.
         </p>
 
         {showOptional && (
-          <div className="mt-4 space-y-4">
+          <div className="mt-5 space-y-5">
             <div>
-              <label className={labelClass}>Address</label>
-              <input name="address" placeholder="123 Main St, Los Angeles, CA" className={inputClass} />
+              <label htmlFor="signup-address" className={labelClass}>
+                Address
+              </label>
+              <input
+                id="signup-address"
+                name="address"
+                placeholder="123 Main St, Los Angeles, CA"
+                className={inputClass}
+              />
             </div>
             <div>
-              <label className={labelClass}>Current vehicle</label>
+              <label htmlFor="signup-current-vehicle" className={labelClass}>
+                Current vehicle
+              </label>
               <input
+                id="signup-current-vehicle"
                 name="currentVehicle"
                 placeholder="2023 Honda Accord, lease ends March 2027"
                 className={inputClass}
               />
             </div>
             <div>
-              <label className={labelClass}>Driver&apos;s license (photo)</label>
-              <input type="file" name="driversLicense" accept="image/*" className={fileInputClass} />
+              <label htmlFor="signup-drivers-license" className={labelClass}>
+                Driver&apos;s license (photo)
+              </label>
+              <input
+                id="signup-drivers-license"
+                type="file"
+                name="driversLicense"
+                accept="image/*"
+                className={fileInputClass}
+              />
             </div>
             <div>
-              <label className={labelClass}>Insurance / AAA card (photo)</label>
-              <input type="file" name="insuranceCard" accept="image/*" className={fileInputClass} />
+              <label htmlFor="signup-insurance-card" className={labelClass}>
+                Insurance / AAA card (photo)
+              </label>
+              <input
+                id="signup-insurance-card"
+                type="file"
+                name="insuranceCard"
+                accept="image/*"
+                className={fileInputClass}
+              />
             </div>
-            <p className="text-xs text-zinc-600">
+            <p className="text-xs leading-5 text-fg-muted">
               These are stored privately and only used to speed up paperwork with a broker or
-              dealer once you're ready to move forward on a deal.
+              dealer once you&apos;re ready to move forward on a deal.
             </p>
           </div>
         )}
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="alert alert-danger">
+          {state.error}
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
-      >
-        <UserPlus size={16} /> {pending ? "Creating account..." : "Create account"}
+      <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
+        <UserPlus /> {pending ? "Creating account..." : "Create account"}
       </button>
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-fg-muted">
         Already have an account?{" "}
-        <Link href="/customer/login" className="font-semibold text-white hover:underline">
+        <Link href="/customer/login" className="font-medium text-fg transition-colors hover:text-accent-fg">
           Sign in
         </Link>
       </p>

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
 import SignupForm from "./SignupForm";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
+import { LogoMark } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Create a Broker/Dealer Account",
@@ -22,18 +22,24 @@ export default async function BrokerSignupPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-16 sm:px-6">
-      <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-zinc-400">
-        <ShieldCheck size={16} /> Broker &amp; Dealer Portal
-      </div>
-      <h1 className="text-3xl font-black">Create your account</h1>
-      <p className="mt-2 text-zinc-400">
-        Get a dashboard to submit your inventory sources — a forum thread, your website, or a
-        spreadsheet — for us to review and add to the site.
-      </p>
-
-      <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-        <SignupForm />
+    <main className="relative isolate px-4 py-16 sm:py-20">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(50%_60%_at_50%_0%,rgb(47_123_255/0.14),transparent_70%)]"
+      />
+      <div className="mx-auto w-full max-w-md">
+        <div className="panel p-8 shadow-pop sm:p-10">
+          <LogoMark decorative className="size-10 text-fg" />
+          <p className="label mt-6">Dealer &amp; broker portal</p>
+          <h1 className="type-page mt-1 text-3xl sm:text-3xl">Create your account</h1>
+          <p className="mt-2 text-sm text-fg-muted">
+            Get a dashboard to submit your inventory sources — a forum thread, your website, or a
+            spreadsheet — for us to review and add to the site.
+          </p>
+          <div className="mt-8">
+            <SignupForm />
+          </div>
+        </div>
       </div>
     </main>
   );

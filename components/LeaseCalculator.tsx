@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Calculator,
@@ -188,19 +188,19 @@ export default function LeaseCalculator() {
   }
 
   return (
-    <div className="space-y-6 pb-48 sm:pb-52">
+    <div className="space-y-6">
       {/* Vehicle lookup */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold">
-          <Search size={18} /> Look Up a Vehicle
+      <div className="panel">
+        <h2 className="panel-title">
+          <Search /> Look up a vehicle
         </h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1.5 text-sm text-fg-muted">
           Optional — we&apos;ll try to prefill residual value, money factor, and current incentives
           from real manufacturer lease programs. You can also just fill in the numbers yourself
           below.
         </p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mt-5 grid grid-cols-2 items-end gap-4 sm:grid-cols-5">
           <TextField label="Year" value={year} onChange={setYear} placeholder="2026" />
           <TextField label="Make" value={make} onChange={setMake} placeholder="Honda" />
           <TextField label="Model" value={model} onChange={setModel} placeholder="CR-V" />
@@ -212,7 +212,7 @@ export default function LeaseCalculator() {
             placeholder="90210"
           />
         </div>
-        <p className="mt-1.5 text-[11px] text-zinc-500">
+        <p className="mt-2 text-xs text-fg-muted">
           Zip helps surface region-specific lease cash — some manufacturer incentives only apply
           in certain areas.
         </p>
@@ -221,62 +221,65 @@ export default function LeaseCalculator() {
           type="button"
           onClick={runLookup}
           disabled={lookupPending}
-          className="mt-4 flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
+          className="btn btn-primary mt-5"
         >
-          <Search size={15} /> {lookupPending ? "Looking up…" : "Look up real numbers"}
+          <Search /> {lookupPending ? "Looking up…" : "Look up real numbers"}
         </button>
 
-        {lookupError && <p className="mt-3 text-sm text-amber-400">{lookupError}</p>}
+        {lookupError && <p className="mt-3 text-sm text-warning">{lookupError}</p>}
 
         {lookupResult && !lookupError && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm">
+          <div
+            className={`alert mt-4 ${
+              lookupResult.structureSource === "verified" ? "alert-success" : "alert-info"
+            }`}
+          >
             {lookupResult.structureSource === "verified" ? (
-              <p className="flex items-center gap-2 text-emerald-400">
-                <CheckCircle2 size={15} />
-                Prefilled MSRP, residual %, money factor, term, and acquisition fee based on{" "}
-                <span className="font-semibold">{lookupResult.basedOn}</span> — a real advertised
-                offer, not a lender rate sheet. Confirm before relying on it.
-              </p>
+              <>
+                <CheckCircle2 />
+                <p>
+                  Prefilled MSRP, residual %, money factor, term, and acquisition fee based on{" "}
+                  <span className="font-semibold">{lookupResult.basedOn}</span> — a real advertised
+                  offer, not a lender rate sheet. Confirm before relying on it.
+                </p>
+              </>
             ) : (
-              <p className="flex items-center gap-2 text-zinc-400">
-                <CircleAlert size={15} />
-                No verified lease program found for this vehicle — enter MSRP, residual %, and
-                money factor manually below.
-              </p>
+              <>
+                <CircleAlert />
+                <p>
+                  No verified lease program found for this vehicle — enter MSRP, residual %, and
+                  money factor manually below.
+                </p>
+              </>
             )}
           </div>
         )}
 
         {suggested.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
+          <div>
+            <p className="field-label mt-5 flex items-center gap-1.5">
               <Sparkles size={14} /> Incentives that may apply
             </p>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {suggested.map((inc, idx) => (
-                <label
-                  key={idx}
-                  className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
-                >
-                  <span className="flex items-center gap-2">
+                <label key={idx} className="choice justify-between">
+                  <span className="flex items-center gap-2.5">
                     <input
                       type="checkbox"
                       checked={selectedIncentives.has(idx)}
                       onChange={() => toggleIncentive(idx)}
-                      className="rounded border-white/20 bg-white/5"
+                      className="checkbox"
                     />
                     {inc.name}
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        inc.source === "verified"
-                          ? "bg-emerald-400/10 text-emerald-400"
-                          : "bg-white/10 text-zinc-400"
+                      className={`pill ${
+                        inc.source === "verified" ? "pill-success" : "pill-neutral"
                       }`}
                     >
                       {inc.source === "verified" ? "Verified" : "Estimated"}
                     </span>
                   </span>
-                  <span className="font-semibold text-zinc-300">{formatCurrency(inc.amount)}</span>
+                  <span className="shrink-0 font-semibold text-fg">{formatCurrency(inc.amount)}</span>
                 </label>
               ))}
             </div>
@@ -285,30 +288,22 @@ export default function LeaseCalculator() {
       </div>
 
       {/* Editable numbers */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-bold">
-            <Calculator size={18} /> Lease Numbers
+      <div className="panel">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="panel-title">
+            <Calculator /> Lease numbers
           </h2>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={copyShareLink}
-              className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-white"
-            >
-              <Link2 size={12} /> {copied ? "Copied!" : "Copy shareable link"}
+          <div className="flex flex-wrap items-center gap-1">
+            <button type="button" onClick={copyShareLink} className="btn btn-ghost btn-sm">
+              <Link2 /> {copied ? "Copied!" : "Copy shareable link"}
             </button>
-            <button
-              type="button"
-              onClick={reset}
-              className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-white"
-            >
-              <RotateCcw size={12} /> Reset
+            <button type="button" onClick={reset} className="btn btn-ghost btn-sm">
+              <RotateCcw /> Reset
             </button>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-2 items-end gap-4 sm:grid-cols-3">
           <NumberField
             label="MSRP"
             value={input.msrp}
@@ -324,7 +319,7 @@ export default function LeaseCalculator() {
             step={250}
             extra={
               result.percentOffMsrp > 0 ? (
-                <span className="ml-2 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                <span className="pill pill-success">
                   {result.percentOffMsrp.toFixed(1)}% off MSRP
                 </span>
               ) : undefined
@@ -349,7 +344,7 @@ export default function LeaseCalculator() {
                 <button
                   type="button"
                   onClick={() => setAprMode(false)}
-                  className="ml-2 text-[11px] font-semibold text-zinc-500 underline hover:text-white"
+                  className="text-[11px] font-medium text-fg-muted underline decoration-dotted underline-offset-2 hover:text-fg"
                 >
                   use money factor
                 </button>
@@ -365,7 +360,7 @@ export default function LeaseCalculator() {
                 <button
                   type="button"
                   onClick={() => setAprMode(true)}
-                  className="ml-2 text-[11px] font-semibold text-zinc-500 underline hover:text-white"
+                  className="text-[11px] font-medium text-fg-muted underline decoration-dotted underline-offset-2 hover:text-fg"
                 >
                   use APR %
                 </button>
@@ -375,7 +370,7 @@ export default function LeaseCalculator() {
 
           <BracketStepper
             label="Term"
-            badge={structures.length > 0 && <span className="text-emerald-400">· real programs</span>}
+            badge={structures.length > 0 && <span className="text-success">· real programs</span>}
             value={input.term}
             brackets={availableTerms}
             suffix="mo"
@@ -405,16 +400,16 @@ export default function LeaseCalculator() {
           />
         </div>
 
-        <p className="mt-2 text-[11px] text-zinc-500">
+        <p className="mt-2 text-[11px] text-fg-muted">
           {structures.length > 0
             ? `Real programs found for ${availableTerms.join(", ")} mo — the term adjuster snaps to these and updates residual %/money factor to match.`
             : `No vehicle looked up yet — the term adjuster steps through standard ${availableTerms[0]}–${availableTerms[availableTerms.length - 1]} mo brackets without changing residual/money factor.`}
         </p>
 
         {/* Trade-in */}
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="mb-3 text-sm font-semibold text-zinc-300">Trade-in (optional)</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-5 border-t border-line pt-5">
+          <p className="mb-3 text-sm font-medium text-fg">Trade-in (optional)</p>
+          <div className="grid grid-cols-2 items-end gap-4 sm:grid-cols-3">
             <NumberField
               label="Trade-in value"
               value={input.tradeInValue}
@@ -429,18 +424,18 @@ export default function LeaseCalculator() {
               prefix="$"
               step={100}
             />
-            <div className="flex flex-col">
-              <span className="mb-1 block text-xs font-semibold text-zinc-500">Trade equity</span>
-              <div className="flex flex-1 items-center rounded-xl border border-white/10 bg-zinc-900 px-3 py-2.5">
+            <div className="col-span-2 flex flex-col sm:col-span-1">
+              <span className="field-label">Trade equity</span>
+              <div className="input-group">
                 <span
-                  className={`text-sm font-bold ${
-                    result.tradeEquity < 0 ? "text-amber-400" : "text-zinc-200"
+                  className={`text-sm font-semibold ${
+                    result.tradeEquity < 0 ? "text-warning" : "text-fg"
                   }`}
                 >
                   {result.tradeEquity < 0 ? "-" : ""}
                   {formatCurrency(Math.abs(result.tradeEquity))}
                 </span>
-                <span className="ml-2 text-[11px] text-zinc-500">
+                <span className="ml-2 text-[11px] leading-4 text-fg-muted">
                   {result.tradeEquity < 0 ? "rolled into payment" : "reduces cap cost"}
                 </span>
               </div>
@@ -449,9 +444,9 @@ export default function LeaseCalculator() {
         </div>
 
         {/* Fees — each can be paid at signing or rolled into the payment */}
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="mb-3 text-sm font-semibold text-zinc-300">Fees</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mt-5 border-t border-line pt-5">
+          <p className="mb-3 text-sm font-medium text-fg">Fees</p>
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <FeeField
               label="Acquisition fee"
               amount={input.acquisitionFee}
@@ -477,7 +472,7 @@ export default function LeaseCalculator() {
               step={25}
             />
           </div>
-          <div className="mt-3">
+          <div className="mt-4">
             <NumberField
               label="Disposition fee (due at lease-end, informational)"
               value={input.dispositionFee}
@@ -489,17 +484,18 @@ export default function LeaseCalculator() {
         </div>
 
         {/* Mileage adjustment */}
-        <div className="mt-4 border-t border-white/10 pt-4">
+        <div className="mt-5 border-t border-line pt-5">
           <button
             type="button"
             onClick={() => setShowMileage((v) => !v)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-white"
+            aria-expanded={showMileage}
+            className="inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg pointer-coarse:min-h-11"
           >
             {showMileage ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
             Mileage adjustment
           </button>
           {showMileage && (
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
               <BracketStepper
                 label="Your annual mileage"
                 value={input.annualMileage}
@@ -527,7 +523,7 @@ export default function LeaseCalculator() {
             </div>
           )}
           {result.residualAdjustmentDollars !== 0 && (
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-3 text-xs leading-5 text-fg-muted">
               Driving {input.annualMileage.toLocaleString()} mi/yr instead of the quoted{" "}
               {input.standardMileage.toLocaleString()} mi/yr adjusts residual{" "}
               {result.residualAdjustmentDollars < 0 ? "down" : "up"} by{" "}
@@ -537,23 +533,23 @@ export default function LeaseCalculator() {
           )}
         </div>
 
-        <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:gap-6">
-          <label className="flex items-center gap-2 text-sm text-zinc-300">
+        <div className="mt-5 flex flex-col border-t border-line pt-2 sm:flex-row sm:items-center sm:gap-6">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-fg-secondary">
             <input
               type="checkbox"
               checked={input.onePay}
               onChange={(e) => patch({ onePay: e.target.checked })}
-              className="rounded border-white/20 bg-white/5"
+              className="checkbox"
             />
             One-pay lease (single upfront payment, no monthly bill)
           </label>
           {!input.onePay && (
-            <label className="flex items-center gap-2 text-sm text-zinc-300">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-fg-secondary">
               <input
                 type="checkbox"
                 checked={input.includeFirstPaymentAtSigning}
                 onChange={(e) => patch({ includeFirstPaymentAtSigning: e.target.checked })}
-                className="rounded border-white/20 bg-white/5"
+                className="checkbox"
               />
               First month&apos;s payment is due at signing
             </label>
@@ -561,7 +557,7 @@ export default function LeaseCalculator() {
         </div>
       </div>
 
-      <div className="flex items-start gap-2 text-xs leading-5 text-zinc-500">
+      <div className="flex items-start gap-2 text-xs leading-5 text-fg-muted">
         <CircleAlert size={14} className="mt-0.5 shrink-0" />
         <p>
           These numbers are estimates for comparison only, using standard lease payment math —
@@ -573,9 +569,10 @@ export default function LeaseCalculator() {
       {/* Results — pinned to the bottom of the viewport so the live totals
           stay visible while scrolling back up to tweak a field, instead of
           having to scroll back down after every change. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-zinc-950/95 backdrop-blur">
-        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <div data-results-bar="lease" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/85 backdrop-blur-xl">
+        <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
+        <div className="container-page max-w-4xl py-3 sm:py-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-6">
             {input.onePay ? (
               <Result
                 label="One-pay total"
@@ -593,13 +590,14 @@ export default function LeaseCalculator() {
           <button
             type="button"
             onClick={() => setShowBreakdown((v) => !v)}
-            className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-zinc-500 transition hover:text-white"
+            aria-expanded={showBreakdown}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-fg-muted transition-colors hover:text-fg"
           >
             {showBreakdown ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             {showBreakdown ? "Hide" : "Show"} due-at-signing breakdown
           </button>
           {showBreakdown && (
-            <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg bg-white/[0.03] p-3 text-[11px] text-zinc-400 sm:grid-cols-4">
+            <div className="well mt-2 grid grid-cols-2 gap-2 p-3 text-[11px] text-fg-secondary sm:grid-cols-4">
               <span>Down payment: {formatCurrency(result.dueAtSigningBreakdown.downPayment)}</span>
               <span>Upfront fees: {formatCurrency(result.dueAtSigningBreakdown.upfrontFees)}</span>
               {input.onePay ? (
@@ -611,7 +609,7 @@ export default function LeaseCalculator() {
             </div>
           )}
 
-          <div className="mt-2 hidden grid-cols-4 gap-3 border-t border-white/10 pt-2 text-[11px] text-zinc-500 sm:grid">
+          <div className="mt-2 hidden grid-cols-4 gap-3 border-t border-line pt-2 text-[11px] text-fg-muted sm:grid">
             <span>Net cap cost: {formatCurrency(result.netCapCost)}</span>
             <span>Residual value: {formatCurrency(result.residualValue)}</span>
             <span>Depreciation fee: {formatCurrency(result.depreciationFee)}/mo</span>
@@ -660,37 +658,42 @@ function BracketStepper({
     if (next !== undefined) onSelect(next);
   }
 
+  // Explicit htmlFor/id: wrapping the +/- buttons in the <label> made the
+  // "Lower" button its labeled control, so clicking the label stepped down.
+  const inputId = useId();
+
   return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-zinc-500">
+    <div>
+      <label htmlFor={inputId} className="field-label">
         {label} {badge}
-      </span>
-      <div className="flex items-center rounded-xl border border-white/10 bg-zinc-900 px-2 py-1.5">
+      </label>
+      <div className="input-group max-sm:px-2">
         <button
           type="button"
           onClick={() => step(-1)}
           aria-label={`Lower ${label}`}
-          className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          className="stepper-btn"
         >
-          <Minus size={14} />
+          <Minus />
         </button>
         <input
+          id={inputId}
           type="number"
           value={value}
           onChange={(e) => onManualChange(Number(e.target.value))}
-          className="w-full bg-transparent text-center text-sm text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
-        <span className="pr-1 text-sm text-zinc-500">{suffix}</span>
+        <span className="input-affix">{suffix}</span>
         <button
           type="button"
           onClick={() => step(1)}
           aria-label={`Higher ${label}`}
-          className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          className="stepper-btn"
         >
-          <Plus size={14} />
+          <Plus />
         </button>
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -707,13 +710,13 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-zinc-500">{label}</span>
+      <span className="field-label">{label}</span>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white outline-none placeholder:text-zinc-600"
+        className="input"
       />
     </label>
   );
@@ -736,22 +739,26 @@ function NumberField({
   step?: number;
   extra?: React.ReactNode;
 }) {
+  // Explicit htmlFor/id so an `extra` button (APR / money factor toggle)
+  // isn't the label's labeled control — clicking the label focuses the input.
+  const inputId = useId();
+
   return (
-    <label className="block">
-      <span className="mb-1 flex items-center text-xs font-semibold text-zinc-500">
+    <label htmlFor={inputId} className="block">
+      <span className="field-label flex flex-wrap items-center gap-x-2 gap-y-1">
         {label}
         {extra}
       </span>
-      <div className="flex items-center rounded-xl border border-white/10 bg-zinc-900 px-3 py-2.5">
-        {prefix && <span className="mr-1 text-sm text-zinc-500">{prefix}</span>}
+      <div className="input-group">
+        {prefix && <span className="input-affix">{prefix}</span>}
         <input
+          id={inputId}
           type="number"
           value={Number.isFinite(value) ? value : 0}
           onChange={(e) => onChange(Number(e.target.value))}
           step={step}
-          className="w-full bg-transparent text-sm text-white outline-none"
         />
-        {suffix && <span className="ml-1 text-sm text-zinc-500">{suffix}</span>}
+        {suffix && <span className="input-affix">{suffix}</span>}
       </div>
     </label>
   );
@@ -778,22 +785,20 @@ function FeeField({
   return (
     <div>
       <NumberField label={label} value={amount} onChange={onAmountChange} prefix="$" step={step} />
-      <div className="mt-1.5 flex gap-1.5">
+      <div role="group" aria-label={`${label}: how it's paid`} className="segmented mt-2 flex w-full">
         <button
           type="button"
           onClick={() => onCapitalizedChange(true)}
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
-            capitalized ? "bg-white text-zinc-950" : "bg-white/5 text-zinc-500 hover:text-white"
-          }`}
+          aria-pressed={capitalized}
+          className="segmented-item flex-auto justify-center px-2.5 text-center text-xs leading-tight"
         >
           Rolled into payment
         </button>
         <button
           type="button"
           onClick={() => onCapitalizedChange(false)}
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
-            !capitalized ? "bg-white text-zinc-950" : "bg-white/5 text-zinc-500 hover:text-white"
-          }`}
+          aria-pressed={!capitalized}
+          className="segmented-item flex-auto justify-center px-2.5 text-center text-xs leading-tight"
         >
           Paid at signing
         </button>
@@ -805,8 +810,8 @@ function FeeField({
 function Result({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
     <div>
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className={big ? "mt-1 text-2xl font-black text-white" : "mt-1 text-lg font-bold text-white"}>
+      <p className="label">{label}</p>
+      <p className={big ? "stat-value mt-1.5" : "mt-1.5 text-lg font-semibold text-fg-secondary"}>
         {value}
       </p>
     </div>

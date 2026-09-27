@@ -100,19 +100,20 @@ export default function SubmitDealForm() {
     window.location.href = buildMailto(form);
   }
 
-  const inputClass =
-    "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
-  const labelClass = "mb-1.5 block text-sm font-semibold text-zinc-300";
+  const inputClass = "input";
+  const selectClass = "select";
+  const labelClass = "field-label";
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-8">
-      <section>
-        <h2 className="mb-4 text-lg font-bold">Your info</h2>
+    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+      <section className="panel">
+        <h2 className="type-title mb-5">Your info</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>I am a</label>
+            <label htmlFor="submit-seller-type" className={labelClass}>I am a</label>
             <select
-              className={inputClass}
+              id="submit-seller-type"
+              className={selectClass}
               value={form.sellerType}
               onChange={(e) => update("sellerType", e.target.value as FormState["sellerType"])}
             >
@@ -121,8 +122,9 @@ export default function SubmitDealForm() {
             </select>
           </div>
           <div>
-            <label className={labelClass}>Business name</label>
+            <label htmlFor="submit-seller-name" className={labelClass}>Business name</label>
             <input
+              id="submit-seller-name"
               required
               className={inputClass}
               placeholder="e.g. Chrome Stallions"
@@ -131,8 +133,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Contact phone</label>
+            <label htmlFor="submit-seller-phone" className={labelClass}>Contact phone</label>
             <input
+              id="submit-seller-phone"
               required
               className={inputClass}
               placeholder="949-555-1234"
@@ -141,8 +144,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Contact email</label>
+            <label htmlFor="submit-seller-email" className={labelClass}>Contact email</label>
             <input
+              id="submit-seller-email"
               required
               type="email"
               className={inputClass}
@@ -152,8 +156,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>City</label>
+            <label htmlFor="submit-city" className={labelClass}>City</label>
             <input
+              id="submit-city"
               required
               className={inputClass}
               value={form.city}
@@ -161,8 +166,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>State</label>
+            <label htmlFor="submit-state" className={labelClass}>State</label>
             <input
+              id="submit-state"
               required
               maxLength={2}
               className={inputClass}
@@ -174,12 +180,13 @@ export default function SubmitDealForm() {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-4 text-lg font-bold">Vehicle</h2>
+      <section className="panel">
+        <h2 className="type-title mb-5">Vehicle</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Year</label>
+            <label htmlFor="submit-year" className={labelClass}>Year</label>
             <input
+              id="submit-year"
               required
               inputMode="numeric"
               className={inputClass}
@@ -189,8 +196,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Make</label>
+            <label htmlFor="submit-make" className={labelClass}>Make</label>
             <input
+              id="submit-make"
               required
               className={inputClass}
               placeholder="BMW"
@@ -199,8 +207,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Model</label>
+            <label htmlFor="submit-model" className={labelClass}>Model</label>
             <input
+              id="submit-model"
               required
               className={inputClass}
               placeholder="X5"
@@ -209,8 +218,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Trim</label>
+            <label htmlFor="submit-trim" className={labelClass}>Trim</label>
             <input
+              id="submit-trim"
               className={inputClass}
               placeholder="xDrive40i"
               value={form.trim}
@@ -218,9 +228,10 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Body style</label>
+            <label htmlFor="submit-body-style" className={labelClass}>Body style</label>
             <select
-              className={inputClass}
+              id="submit-body-style"
+              className={selectClass}
               value={form.bodyStyle}
               onChange={(e) => update("bodyStyle", e.target.value)}
             >
@@ -232,9 +243,10 @@ export default function SubmitDealForm() {
             </select>
           </div>
           <div>
-            <label className={labelClass}>Fuel type</label>
+            <label htmlFor="submit-fuel" className={labelClass}>Fuel type</label>
             <select
-              className={inputClass}
+              id="submit-fuel"
+              className={selectClass}
               value={form.fuel}
               onChange={(e) => update("fuel", e.target.value)}
             >
@@ -248,12 +260,13 @@ export default function SubmitDealForm() {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-4 text-lg font-bold">Deal terms</h2>
+      <section className="panel">
+        <h2 className="type-title mb-5">Deal terms</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Term (months)</label>
+            <label htmlFor="submit-term" className={labelClass}>Term (months)</label>
             <input
+              id="submit-term"
               required
               inputMode="numeric"
               className={inputClass}
@@ -263,8 +276,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>MSRP</label>
+            <label htmlFor="submit-msrp" className={labelClass}>MSRP</label>
             <input
+              id="submit-msrp"
               inputMode="numeric"
               className={inputClass}
               placeholder="55000"
@@ -273,8 +287,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Selling price</label>
+            <label htmlFor="submit-selling-price" className={labelClass}>Selling price</label>
             <input
+              id="submit-selling-price"
               inputMode="numeric"
               className={inputClass}
               placeholder="52000"
@@ -283,8 +298,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Monthly payment</label>
+            <label htmlFor="submit-payment" className={labelClass}>Monthly payment</label>
             <input
+              id="submit-payment"
               required
               inputMode="numeric"
               className={inputClass}
@@ -294,8 +310,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Due at signing</label>
+            <label htmlFor="submit-due-at-signing" className={labelClass}>Due at signing</label>
             <input
+              id="submit-due-at-signing"
               required
               inputMode="numeric"
               className={inputClass}
@@ -305,8 +322,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Miles per year</label>
+            <label htmlFor="submit-miles-per-year" className={labelClass}>Miles per year</label>
             <input
+              id="submit-miles-per-year"
               inputMode="numeric"
               className={inputClass}
               placeholder="10000"
@@ -315,8 +333,9 @@ export default function SubmitDealForm() {
             />
           </div>
           <div>
-            <label className={labelClass}>Source / posting link (optional)</label>
+            <label htmlFor="submit-source-url" className={labelClass}>Source / posting link (optional)</label>
             <input
+              id="submit-source-url"
               className={inputClass}
               placeholder="Leasehackr thread, etc."
               value={form.sourceUrl}
@@ -326,23 +345,21 @@ export default function SubmitDealForm() {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-4 text-lg font-bold">Notes &amp; conditions</h2>
+      <section className="panel">
+        <h2 id="submit-notes-heading" className="type-title mb-5">Notes &amp; conditions</h2>
         <textarea
-          className={`${inputClass} min-h-32 resize-y`}
+          aria-labelledby="submit-notes-heading"
+          className="textarea min-h-32 resize-y"
           placeholder="Loyalty/conquest requirements, broker fees included, incentives applied, tax status, etc."
           value={form.notes}
           onChange={(e) => update("notes", e.target.value)}
         />
       </section>
 
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 sm:w-auto"
-      >
-        <Mail size={16} /> Send Submission
+      <button type="submit" className="btn btn-primary btn-lg w-full sm:w-auto">
+        <Mail /> Send submission
       </button>
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs leading-5 text-fg-muted">
         This opens your email app with everything filled in — nothing is sent until you hit send
         there. Please attach a few real photos before sending.
       </p>

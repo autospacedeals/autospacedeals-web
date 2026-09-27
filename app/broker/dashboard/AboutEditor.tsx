@@ -10,27 +10,23 @@ export default function AboutEditor({ about, brokerId }: { about: string | null;
 
   if (!editing) {
     return (
-      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+      <div className="panel mt-6">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-zinc-300">About your business</p>
-            <p className="mt-1 text-sm text-zinc-500">
+          <div className="min-w-0">
+            <p className="type-title">About your business</p>
+            <p className="mt-1 text-sm break-words text-fg-secondary">
               {about || "Nothing written yet — add a short blurb shoppers see on your public profile page."}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
-          >
-            <Pencil size={13} /> Edit
+          <button type="button" onClick={() => setEditing(true)} className="btn btn-secondary btn-sm">
+            <Pencil /> Edit
           </button>
         </div>
         <a
           href={`/brokers/${brokerId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block text-xs font-semibold text-zinc-500 underline decoration-dotted hover:text-white"
+          className="link-quiet mt-3 inline-block text-xs font-medium underline decoration-dotted underline-offset-4"
         >
           View your public profile
         </a>
@@ -39,16 +35,16 @@ export default function AboutEditor({ about, brokerId }: { about: string | null;
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-white/20 bg-white/[0.05] p-4 sm:p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-zinc-300">About your business</p>
+    <div className="panel mt-6 border-line-strong">
+      <div className="flex items-center justify-between gap-3">
+        <p className="type-title">About your business</p>
         <button
           type="button"
           onClick={() => setEditing(false)}
-          className="text-zinc-500 hover:text-white"
+          className="btn btn-ghost btn-icon btn-sm -mr-2"
           aria-label="Cancel"
         >
-          <X size={16} />
+          <X />
         </button>
       </div>
 
@@ -63,15 +59,17 @@ export default function AboutEditor({ about, brokerId }: { about: string | null;
       >
         <textarea
           name="about"
+          aria-label="About your business"
           defaultValue={about ?? ""}
           placeholder="A few sentences about your business — how long you've been around, what you specialize in, why shoppers should work with you."
-          className="min-h-28 w-full resize-y rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none"
+          className="textarea min-h-28 resize-y"
         />
-        {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
-        <button
-          type="submit"
-          className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-        >
+        {error && (
+          <p role="alert" className="alert alert-danger">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary btn-sm">
           Save
         </button>
       </form>

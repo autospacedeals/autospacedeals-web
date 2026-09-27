@@ -2,17 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Menu, X, UserCircle2, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Menu, X, LogOut, ChevronRight } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
+import { LogoWordmark } from "@/components/Logo";
 
 // Trimmed to destinations that actually go somewhere — "About" and
 // "Brokers" used to just scroll to homepage sections; the broker link now
-// points straight at signup instead.
+// points straight at signup instead. Calculator was previously only
+// reachable from the guide. `match` decides which link is marked current
+// (Calculator stays active on /lease-end too).
 const NAV_LINKS = [
-  { href: "/#deals", label: "Deals" },
-  { href: "/broker/signup", label: "Brokers" },
-  { href: "/leasing-guide", label: "Guide" },
+  { href: "/#deals", label: "Deals", match: (p: string) => p === "/" || p.startsWith("/deals/") },
+  {
+    href: "/calculator",
+    label: "Calculator",
+    match: (p: string) => p.startsWith("/calculator") || p.startsWith("/lease-end"),
+  },
+  { href: "/leasing-guide", label: "Guide", match: (p: string) => p.startsWith("/leasing-guide") },
+  { href: "/broker/signup", label: "Brokers", match: () => false },
 ];
 
 // The signed-in label + destination in the header — a broker sees their
@@ -23,63 +31,71 @@ export interface HeaderAccount {
   href: string;
 }
 
+function initials(label: string) {
+  return label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
 export default function SiteHeader({ account }: { account: HeaderAccount | null }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname() ?? "";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-3">
-          <Image
-            src="/logo-wordmark.png"
-            alt="Drive"
-            width={940}
-            height={211}
-            priority
-            className="h-7 w-auto sm:h-9"
-          />
-        </Link>
-
-        <nav className="hidden items-center gap-8 text-sm text-zinc-300 md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className="transition hover:text-white">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          {account ? (
-            <Link
-              href={account.href}
-              className="hidden items-center gap-1.5 text-sm font-semibold text-zinc-300 transition hover:text-white sm:inline-flex"
-            >
-              <UserCircle2 size={16} /> {account.label}
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="hidden text-sm font-semibold text-zinc-300 transition hover:text-white sm:inline-block"
-            >
-              Log in
-            </Link>
-          )}
-          {account ? (
-            <form action={headerSignOutAction} className="hidden sm:block">
-              <button
-                type="submit"
-                className="flex items-center gap-1.5 rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-white/10 hover:text-white"
+    <header className="sticky top-0 z-40 border-b border-line bg-canvas/75 backdrop-blur-xl backdrop-saturate-150">
+      <div className="container-page flex h-16 items-center justify-between gap-6">
+        <div className="flex items-center gap-8">
+          <Link
+            href="/"
+            aria-label="Drive — home"
+            className="-m-1 shrink-0 rounded-lg p-1 pointer-coarse:-my-2 pointer-coarse:py-2"
+          >
+            <LogoWordmark decorative className="h-7 w-auto text-fg" />
+          </Link>
+          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={link.match(pathname) ? "page" : undefined}
+                className="nav-link pointer-coarse:py-3"
               >
-                <LogOut size={15} /> Sign out
-              </button>
-            </form>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="flex min-w-0 items-center gap-2">
+          {account ? (
+            <>
+              <Link
+                href={account.href}
+                className="btn btn-ghost btn-sm hidden min-w-0 shrink pl-1.5 sm:inline-flex"
+              >
+                <span aria-hidden="true" className="avatar size-6 text-[11px]">
+                  {initials(account.label)}
+                </span>
+                <span className="max-w-40 truncate">{account.label}</span>
+              </Link>
+              <form action={headerSignOutAction} className="hidden sm:block">
+                <button type="submit" className="btn btn-ghost btn-sm">
+                  <LogOut /> Sign out
+                </button>
+              </form>
+            </>
           ) : (
-            <Link
-              href="/signup"
-              className="hidden rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 sm:inline-block"
-            >
-              Sign up
-            </Link>
+            <>
+              <Link href="/login" className="btn btn-ghost btn-sm hidden sm:inline-flex">
+                Log in
+              </Link>
+              <Link href="/signup" className="btn btn-primary btn-sm hidden sm:inline-flex">
+                Sign up
+              </Link>
+            </>
           )}
 
           <button
@@ -87,62 +103,51 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
             onClick={() => setOpen((v) => !v)}
             aria-label="Toggle menu"
             aria-expanded={open}
-            className="rounded-xl border border-white/10 p-2 text-zinc-300 transition hover:bg-white/10 md:hidden"
+            className="btn btn-secondary btn-icon md:hidden"
           >
-            {open ? <X size={20} /> : <Menu size={20} />}
+            {open ? <X /> : <Menu />}
           </button>
         </div>
       </div>
 
       {open && (
-        <div className="border-t border-white/10 bg-zinc-950 px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-1 text-sm">
+        <div className="animate-fade-in border-t border-line bg-overlay/95 backdrop-blur-xl md:hidden">
+          <nav aria-label="Mobile" className="container-page py-3">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
+                aria-current={link.match(pathname) ? "page" : undefined}
+                className="flex h-12 items-center justify-between rounded-xl px-3 text-base font-medium text-fg-secondary transition-colors hover:bg-hover hover:text-fg aria-[current=page]:text-fg"
               >
                 {link.label}
+                <ChevronRight size={16} aria-hidden="true" className="text-fg-faint" />
               </Link>
             ))}
-            {account ? (
-              <Link
-                href={account.href}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
-              >
-                <UserCircle2 size={16} /> {account.label}
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-3 text-zinc-300 transition hover:bg-white/5 hover:text-white"
-              >
-                Log in
-              </Link>
-            )}
-            {account ? (
-              <form action={headerSignOutAction}>
-                <button
-                  type="submit"
-                  onClick={() => setOpen(false)}
-                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-3 text-center font-semibold text-zinc-300"
-                >
-                  <LogOut size={15} /> Sign out
-                </button>
-              </form>
-            ) : (
-              <Link
-                href="/signup"
-                onClick={() => setOpen(false)}
-                className="mt-2 rounded-lg bg-white px-3 py-3 text-center font-semibold text-zinc-950"
-              >
-                Sign up
-              </Link>
-            )}
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-line pt-4 pb-1">
+              {account ? (
+                <>
+                  <Link href={account.href} onClick={() => setOpen(false)} className="btn btn-secondary">
+                    <span className="truncate">{account.label}</span>
+                  </Link>
+                  <form action={headerSignOutAction}>
+                    <button type="submit" onClick={() => setOpen(false)} className="btn btn-ghost w-full">
+                      <LogOut /> Sign out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setOpen(false)} className="btn btn-secondary">
+                    Log in
+                  </Link>
+                  <Link href="/signup" onClick={() => setOpen(false)} className="btn btn-primary">
+                    Sign up
+                  </Link>
+                </>
+              )}
+            </div>
           </nav>
         </div>
       )}

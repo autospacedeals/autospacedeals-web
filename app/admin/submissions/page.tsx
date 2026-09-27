@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ExternalLink, ShieldCheck } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { reviewSubmissionAction } from "./actions";
@@ -76,12 +76,10 @@ export default async function AdminSubmissionsPage() {
   const pendingCount = sorted.filter((s) => s.status === "pending").length;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-      <p className="flex items-center gap-2 text-sm font-semibold text-zinc-400">
-        <ShieldCheck size={16} /> Admin
-      </p>
-      <h1 className="mt-1 text-3xl font-black">Submission queue</h1>
-      <p className="mt-1 text-sm text-zinc-500">
+    <main className="container-page max-w-5xl py-10 sm:py-12">
+      <p className="eyebrow">Admin</p>
+      <h1 className="type-page mt-3 text-3xl sm:text-3xl">Submission queue</h1>
+      <p className="mt-1 text-sm text-fg-muted">
         {pendingCount} pending · {sorted.length} total. Brokers now add their own cars right after
         submitting a link/sheet/file, so nothing here needs your approval to go live. This is just
         a reference log of what they&apos;ve linked — use &quot;Stage a car&quot; below only if you
@@ -92,35 +90,35 @@ export default async function AdminSubmissionsPage() {
 
       <div className="mt-8 space-y-3">
         {sorted.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-zinc-500">
+          <div className="card p-8 text-center text-sm text-fg-muted">
             No submissions yet.
           </div>
         )}
 
         {sorted.map((s) => (
-          <div key={s.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+          <div key={s.id} className="card p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="font-bold">{s.brokers?.business_name ?? "Unknown broker"}</p>
-                <p className="text-xs text-zinc-500">
+                <p className="font-semibold text-fg">{s.brokers?.business_name ?? "Unknown broker"}</p>
+                <p className="text-xs text-fg-muted">
                   {s.brokers?.seller_type} · {s.brokers?.city}, {s.brokers?.state} ·{" "}
                   {s.brokers?.contact_phone}
                 </p>
               </div>
               <span
-                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                className={`pill capitalize ${
                   s.status === "pending"
-                    ? "bg-amber-500/15 text-amber-300"
+                    ? "pill-warning"
                     : s.status === "approved"
-                      ? "bg-emerald-500/15 text-emerald-300"
-                      : "bg-red-500/15 text-red-300"
+                      ? "pill-success"
+                      : "pill-danger"
                 }`}
               >
                 {s.status}
               </span>
             </div>
 
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <p className="label mt-3">
               {SOURCE_TYPE_LABELS[s.source_type]}
             </p>
             <div className="mt-1">
@@ -130,28 +128,28 @@ export default async function AdminSubmissionsPage() {
                     href={fileLinks[s.id]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm font-semibold text-white hover:underline"
+                    className="link inline-flex items-center gap-1.5 text-sm"
                   >
                     Download file <ExternalLink size={13} />
                   </a>
                 ) : (
-                  <p className="text-sm text-zinc-500">File uploaded</p>
+                  <p className="text-sm text-fg-muted">File uploaded</p>
                 )
               ) : (
                 <a
                   href={s.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 break-all text-sm font-semibold text-white hover:underline"
+                  className="link inline-flex items-center gap-1.5 break-all text-sm"
                 >
                   {s.source_url} <ExternalLink size={13} className="shrink-0" />
                 </a>
               )}
             </div>
 
-            {s.notes && <p className="mt-2 text-sm text-zinc-400">Broker notes: {s.notes}</p>}
+            {s.notes && <p className="mt-2 text-sm break-words text-fg-secondary">Broker notes: {s.notes}</p>}
 
-            <p className="mt-3 text-xs text-zinc-600">
+            <p className="mt-3 text-xs text-fg-muted">
               Submitted{" "}
               {new Date(s.created_at).toLocaleDateString("en-US", {
                 month: "short",
@@ -161,19 +159,20 @@ export default async function AdminSubmissionsPage() {
             </p>
 
             {s.status === "pending" ? (
-              <form action={reviewSubmissionAction} className="mt-4 space-y-2 border-t border-white/10 pt-4">
+              <form action={reviewSubmissionAction} className="mt-4 space-y-2 border-t border-line pt-4">
                 <input type="hidden" name="id" value={s.id} />
                 <textarea
                   name="adminNotes"
+                  aria-label="Notes for the broker"
                   placeholder="Notes for the broker (shown to them if rejected)"
-                  className="min-h-16 w-full resize-y rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none"
+                  className="textarea min-h-16 resize-y"
                 />
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     name="status"
                     value="approved"
-                    className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400"
+                    className="btn btn-primary btn-sm"
                   >
                     Approve
                   </button>
@@ -181,7 +180,7 @@ export default async function AdminSubmissionsPage() {
                     type="submit"
                     name="status"
                     value="rejected"
-                    className="rounded-xl bg-red-500/90 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-500"
+                    className="btn btn-danger btn-sm"
                   >
                     Reject
                   </button>
@@ -199,7 +198,7 @@ export default async function AdminSubmissionsPage() {
 
             {s.status !== "pending" && (
               s.admin_notes && (
-                <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-sm text-zinc-400">
+                <p className="mt-3 rounded-lg bg-hover px-3 py-2 text-sm break-words text-fg-muted">
                   Admin notes: {s.admin_notes}
                 </p>
               )

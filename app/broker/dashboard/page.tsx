@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { LogOut, Store } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { mapRowToDeal, type DealRow } from "@/lib/supabase/deals";
 import { signOutAction } from "../actions";
@@ -109,27 +109,22 @@ export default async function BrokerDashboardPage() {
   }));
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
+    <main className="container-page max-w-[1600px] py-10 sm:py-12">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="flex items-center gap-2 text-sm font-semibold text-zinc-400">
-            <Store size={16} /> {broker?.seller_type ?? "Broker"} dashboard
-          </p>
-          <h1 className="mt-1 text-3xl font-black">{broker?.business_name ?? user.email}</h1>
+        <div className="min-w-0">
+          <p className="eyebrow">{broker?.seller_type ?? "Broker"} dashboard</p>
+          <h1 className="type-page mt-3 text-3xl break-words sm:text-3xl">{broker?.business_name ?? user.email}</h1>
           {broker?.dealership_name && (
-            <p className="text-sm text-zinc-400">at {broker.dealership_name}</p>
+            <p className="mt-1 text-sm break-words text-fg-muted">at {broker.dealership_name}</p>
           )}
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm break-words text-fg-muted">
             {broker?.contact_name && `${broker.contact_name} · `}
             {broker?.city}, {broker?.state} · {broker?.contact_phone} · {user.email}
           </p>
         </div>
         <form action={signOutAction}>
-          <button
-            type="submit"
-            className="flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
-          >
-            <LogOut size={15} /> Sign out
+          <button type="submit" className="btn btn-secondary btn-sm">
+            <LogOut /> Sign out
           </button>
         </form>
       </div>
@@ -137,7 +132,7 @@ export default async function BrokerDashboardPage() {
       <AboutEditor about={broker?.about ?? null} brokerId={user.id} />
 
       {dealsError && (
-        <div className="mt-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+        <div className="alert alert-danger mt-8">
           We couldn&apos;t load your listings right now — this looks like a backend issue, not
           something wrong with what you uploaded. Try refreshing, and let Robert know if it keeps
           happening.
@@ -153,19 +148,19 @@ export default async function BrokerDashboardPage() {
       <SheetSyncManager syncs={sheetSyncs} />
 
       <div className="mt-8">
-        <h2 className="mb-4 text-lg font-bold">Your live listings</h2>
+        <h2 className="type-title mb-4">Your live listings</h2>
         <MyListings deals={publishedListings} brokerState={broker?.state} />
       </div>
 
       <RemovedListings deals={removedListings} />
 
-      <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-        <h2 className="text-lg font-bold">Add inventory</h2>
-        <p className="mt-1 text-sm text-zinc-400">
+      <div className="panel mt-8 sm:p-8">
+        <h2 className="type-title">Add inventory</h2>
+        <p className="mt-1 text-sm text-fg-secondary">
           Add a car directly, or link a forum thread, your website, a Google Sheet, or a
           spreadsheet — either way, you publish it yourself and it&apos;s live right away.
         </p>
-        <p className="mt-2 text-xs text-amber-300/80">
+        <p className="mt-2 text-xs leading-5 text-warning">
           Reminder: always show the full due-at-signing amount, and disclose your assumed tax
           rate if the payment or due-at-signing figure bakes one in. Repeated false advertising
           gets an account removed.

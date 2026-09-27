@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, MessageSquare, Mail, CalendarCheck, Sparkles } from "lucide-react";
+import { Phone, MessageSquare, Mail, CalendarCheck, Sparkles, ChevronRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { dealMailtoHref, dealTitle, phoneDigits } from "@/lib/deal-utils";
 
@@ -23,24 +23,20 @@ function availabilityMailto(deal: Deal): string {
 /**
  * Compact contact actions used on deal cards — just Call and Text so the
  * card stays scannable. Stops click-through to the card's link.
+ * Call is tonal blue (the card's main action, but quieter than a filled
+ * button, so a grid of 12 cards isn't 12 bright-blue buttons).
  */
 export function ContactActionsCompact({ deal }: { deal: Deal }) {
   const phone = phoneDigits(deal.sellerPhone);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-2" onClick={stop}>
-      <a
-        href={`tel:${phone}`}
-        className="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-      >
-        <Phone size={16} /> Call
+    <div className="grid grid-cols-2 gap-2" onClick={stop}>
+      <a href={`tel:${phone}`} className="btn btn-tonal btn-sm">
+        <Phone /> Call
       </a>
-      <a
-        href={`sms:${phone}`}
-        className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-white/20"
-      >
-        <MessageSquare size={16} /> Text
+      <a href={`sms:${phone}`} className="btn btn-secondary btn-sm">
+        <MessageSquare /> Text
       </a>
     </div>
   );
@@ -48,33 +44,48 @@ export function ContactActionsCompact({ deal }: { deal: Deal }) {
 
 /**
  * Full contact / lead-flow actions used on the deal detail page.
+ * Two big actions (Call is the page's one filled-blue button), then the
+ * three email actions as a quiet list instead of five equal buttons.
  */
 export function ContactActionsFull({ deal }: { deal: Deal }) {
   const phone = phoneDigits(deal.sellerPhone);
 
-  const actions = [
-    { href: `tel:${phone}`, label: "Call Seller", icon: Phone, primary: true },
-    { href: `sms:${phone}`, label: "Text Seller", icon: MessageSquare, primary: true },
-    { href: dealMailtoHref(deal, "Request this deal"), label: "Request This Deal", icon: Mail },
-    { href: availabilityMailto(deal), label: "Check Availability", icon: CalendarCheck },
-    { href: matchMailto(deal), label: "Get Matched With Similar Deals", icon: Sparkles },
+  const more = [
+    { href: dealMailtoHref(deal, "Request this deal"), label: "Request this deal", icon: Mail },
+    { href: availabilityMailto(deal), label: "Check availability", icon: CalendarCheck },
+    { href: matchMailto(deal), label: "Get matched with similar deals", icon: Sparkles },
   ];
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {actions.map(({ href, label, icon: Icon, primary }) => (
-        <a
-          key={label}
-          href={href}
-          className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition ${
-            primary
-              ? "bg-white text-zinc-950 hover:bg-zinc-200"
-              : "bg-white/10 text-white hover:bg-white/20"
-          }`}
-        >
-          <Icon size={16} /> {label}
+    <div>
+      <div className="grid grid-cols-2 gap-2">
+        <a href={`tel:${phone}`} className="btn btn-primary btn-lg px-4">
+          <Phone /> Call seller
         </a>
-      ))}
+        <a href={`sms:${phone}`} className="btn btn-secondary btn-lg px-4">
+          <MessageSquare /> Text seller
+        </a>
+      </div>
+      <ul className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line">
+        {more.map(({ href, label, icon: Icon }) => (
+          <li key={label}>
+            <a
+              href={href}
+              className="group/row flex min-h-12 items-center gap-3 px-4 text-sm font-medium text-fg-secondary transition-colors hover:bg-hover hover:text-fg focus-visible:-outline-offset-2"
+            >
+              <Icon
+                size={16}
+                className="shrink-0 text-fg-muted transition-colors group-hover/row:text-accent-fg"
+              />
+              {label}
+              <ChevronRight
+                size={16}
+                className="ml-auto shrink-0 text-fg-faint transition-transform group-hover/row:translate-x-0.5"
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

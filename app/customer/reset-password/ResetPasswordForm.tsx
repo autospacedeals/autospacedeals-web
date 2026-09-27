@@ -6,18 +6,20 @@ import { resetPasswordAction, type AuthState } from "../actions";
 
 const initialState: AuthState = { error: null };
 
-const inputClass =
-  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
-const labelClass = "mb-1.5 block text-sm font-semibold text-zinc-300";
+const inputClass = "input";
+const labelClass = "field-label";
 
 export default function ResetPasswordForm() {
   const [state, formAction, pending] = useActionState(resetPasswordAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <div>
-        <label className={labelClass}>New password</label>
+        <label htmlFor="reset-password" className={labelClass}>
+          New password
+        </label>
         <input
+          id="reset-password"
           required
           type="password"
           name="password"
@@ -27,8 +29,11 @@ export default function ResetPasswordForm() {
         />
       </div>
       <div>
-        <label className={labelClass}>Confirm password</label>
+        <label htmlFor="reset-confirm-password" className={labelClass}>
+          Confirm password
+        </label>
         <input
+          id="reset-confirm-password"
           required
           type="password"
           name="confirmPassword"
@@ -39,15 +44,13 @@ export default function ResetPasswordForm() {
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="alert alert-danger">
+          {state.error}
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
-      >
-        <KeyRound size={16} /> {pending ? "Saving..." : "Save new password"}
+      <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
+        <KeyRound /> {pending ? "Saving..." : "Save new password"}
       </button>
     </form>
   );

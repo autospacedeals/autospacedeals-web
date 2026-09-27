@@ -13,8 +13,8 @@ export default function ForgotPasswordForm() {
   if (state.sent) {
     return (
       <div className="text-center">
-        <CheckCircle2 className="mx-auto text-emerald-400" size={32} />
-        <p className="mt-3 text-sm text-zinc-300">
+        <CheckCircle2 className="mx-auto text-success" size={32} />
+        <p className="mt-3 text-sm text-fg-secondary">
           If that email matches an account, a reset link is on its way. Check your inbox.
         </p>
       </div>
@@ -22,32 +22,26 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <div>
-        <label className="mb-1.5 block text-sm font-semibold text-zinc-300">Email</label>
-        <input
-          required
-          type="email"
-          name="email"
-          autoComplete="email"
-          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none"
-        />
+        <label htmlFor="forgot-email" className="field-label">
+          Email
+        </label>
+        <input id="forgot-email" required type="email" name="email" autoComplete="email" className="input" />
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="alert alert-danger">
+          {state.error}
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
-      >
-        <Mail size={16} /> {pending ? "Sending..." : "Send reset link"}
+      <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
+        <Mail /> {pending ? "Sending..." : "Send reset link"}
       </button>
 
-      <p className="text-center text-sm text-zinc-500">
-        <Link href="/customer/login" className="font-semibold text-white hover:underline">
+      <p className="text-center text-sm text-fg-muted">
+        <Link href="/customer/login" className="font-medium text-fg transition-colors hover:text-accent-fg">
           Back to sign in
         </Link>
       </p>

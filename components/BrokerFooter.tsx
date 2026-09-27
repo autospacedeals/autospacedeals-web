@@ -4,15 +4,14 @@ import Link from "next/link";
 // links and a copyright line.
 export default function BrokerFooter() {
   return (
-    <footer className="border-t border-white/10 bg-zinc-950">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <p className="flex flex-wrap items-center gap-x-3 text-xs text-zinc-600">
+    <footer className="border-t border-line bg-canvas">
+      <div className="container-page py-6">
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted">
           <span>© {new Date().getFullYear()} Drive. All rights reserved.</span>
-          <Link href="/privacy" className="hover:text-zinc-400">
+          <Link href="/privacy" className="link-quiet">
             Privacy Policy
           </Link>
-          <span aria-hidden="true">·</span>
-          <Link href="/terms" className="hover:text-zinc-400">
+          <Link href="/terms" className="link-quiet">
             Terms of Service
           </Link>
         </p>

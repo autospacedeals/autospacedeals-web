@@ -42,21 +42,17 @@ export default function FilterPanel({
   const [showMore, setShowMore] = useState(false);
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-bold text-white">
-          <SlidersHorizontal size={16} /> Filters
+    <div className="panel">
+      <div className="mb-5 flex items-center justify-between">
+        <p className="panel-title">
+          <SlidersHorizontal /> Filters
         </p>
-        <button
-          type="button"
-          onClick={() => onChange(DEFAULT_FILTERS)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-white"
-        >
-          <RotateCcw size={13} /> Reset
+        <button type="button" onClick={() => onChange(DEFAULT_FILTERS)} className="btn btn-ghost btn-sm -mr-2 px-3">
+          <RotateCcw /> Reset
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-1">
         <Select
           label="Make"
           value={filters.make}
@@ -105,14 +101,15 @@ export default function FilterPanel({
       <button
         type="button"
         onClick={() => setShowMore((v) => !v)}
-        className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-white"
+        aria-expanded={showMore}
+        className="mt-4 inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg pointer-coarse:min-h-11"
       >
-        {showMore ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        {showMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         {showMore ? "Fewer filters" : "More filters"}
       </button>
 
       {showMore && (
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+        <div className="mt-3 grid animate-fade-in gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-1">
           <Select
             label="Fuel type"
             value={filters.fuel}
@@ -129,7 +126,7 @@ export default function FilterPanel({
         </div>
       )}
 
-      <div className="mt-4 space-y-4 border-t border-white/10 pt-4">
+      <div className="mt-5 space-y-5 border-t border-line pt-5">
         <RangeField
           label="Max monthly payment"
           value={filters.maxPayment}
@@ -176,15 +173,11 @@ function Select({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-zinc-500">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white outline-none"
-      >
+      <span className="field-label">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="select">
         {options.map((opt) => (
           <option key={opt} value={opt}>
-            {opt === "All" ? `All ${label}` : `${opt}${suffix}`}
+            {opt === "All" ? `Any ${label.toLowerCase()}` : `${opt}${suffix}`}
           </option>
         ))}
       </select>
@@ -209,11 +202,12 @@ function RangeField({
   display: string;
   onChange: (v: number) => void;
 }) {
+  const pct = ((value - min) / (max - min)) * 100;
   return (
     <div>
-      <div className="mb-1 flex justify-between text-xs">
-        <span className="font-semibold text-zinc-500">{label}</span>
-        <span className="font-bold text-white">{display}</span>
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <span className="text-[13px] font-medium text-fg-secondary">{label}</span>
+        <span className="text-[13px] font-semibold text-fg">{display}</span>
       </div>
       <input
         type="range"
@@ -221,8 +215,10 @@ function RangeField({
         max={max}
         step={step}
         value={value}
+        aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-white"
+        className="range"
+        style={{ "--range-pct": `${pct}%` } as React.CSSProperties}
       />
     </div>
   );

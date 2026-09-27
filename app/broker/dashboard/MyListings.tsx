@@ -26,17 +26,21 @@ import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 // secondary sub-field (like the tax-rate hint under Payment) always stacks
 // under the main value instead of sitting inline and overflowing into the
 // next column when the column is narrow.
+// (The borderless/hover/focus/"block" styling lives in the `input-cell`
+// component class in app/globals.css; the spinner strip stays here.)
 const noSpinner =
   "[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-const cellInputClass =
-  `block w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xs text-white placeholder:text-zinc-600 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
+const cellInputClass = `input-cell ${noSpinner}`;
 const cellSelectClass = cellInputClass + " appearance-none cursor-pointer";
-const cellSubInputClass =
-  `mt-0.5 block w-full min-w-0 rounded border border-transparent bg-transparent px-1 py-0.5 text-[10px] text-zinc-400 placeholder:text-zinc-700 transition hover:bg-white/[0.05] focus:border-white/15 focus:bg-white/[0.07] focus:outline-none ${noSpinner}`;
-const inputClass =
-  `w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none ${noSpinner}`;
-const labelClass = "mb-1 block text-xs font-semibold text-zinc-400";
-const selectClass = inputClass + " appearance-none";
+const cellSubInputClass = `input-cell input-cell-sub ${noSpinner}`;
+const inputClass = `input input-sm ${noSpinner}`;
+const labelClass = "field-label";
+const selectClass = "select input-sm";
+const textareaClass = "textarea input-sm";
+// Save is a filled blue button only while its row has unsaved edits; a
+// clean (disabled) row falls back to a quiet neutral pill, so a long list
+// never turns into a column of blue buttons.
+const saveDisabledClass = "disabled:bg-hover-strong disabled:text-fg-secondary disabled:shadow-none";
 
 const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
@@ -94,7 +98,7 @@ const UTILITY_WIDTHS = {
 };
 
 const COLUMN_COUNT = 7 + COLUMNS.length; // utility columns + resizable columns
-const th = "relative select-none px-2 py-1.5 text-left text-[11px] font-bold uppercase tracking-wide text-zinc-500";
+const th = "relative select-none px-2 py-1.5 text-left text-[11px] font-medium text-fg-muted";
 const td = "px-2 py-1.5 align-top overflow-hidden";
 
 interface RowDraft {
@@ -229,7 +233,7 @@ export default function MyListings({
 
   if (deals.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-zinc-500">
+      <div className="card p-8 text-center text-sm text-fg-muted">
         You don&apos;t have any live listings yet — use the form above to add one.
       </div>
     );
@@ -282,29 +286,33 @@ export default function MyListings({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-fg-muted">
           Click any field to edit it, then hit Save on that row. Drag a column&apos;s right edge to
           resize it, or{" "}
-          <button type="button" onClick={resetWidths} className="underline decoration-dotted hover:text-white">
+          <button
+            type="button"
+            onClick={resetWidths}
+            className="link-quiet underline decoration-dotted underline-offset-4"
+          >
             reset column widths
           </button>
           . Expand a row (chevron) for everything else.
         </p>
         <div className="flex items-center gap-2">
-          {bulkError && <p className="text-xs text-red-400">{bulkError}</p>}
+          {bulkError && <p className="text-xs text-danger">{bulkError}</p>}
           <button
             type="button"
             onClick={handleBulkDelete}
             disabled={selected.size === 0 || bulkDeleting}
-            className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn btn-danger btn-sm"
           >
-            {bulkDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            {bulkDeleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
             Delete selected {selected.size > 0 && `(${selected.size})`}
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02] p-1">
+      <div className="overflow-x-auto rounded-xl border border-line bg-hover p-1">
         <table className="table-fixed border-separate text-sm [border-spacing:0_2px]">
           <colgroup>
             <col style={{ width: UTILITY_WIDTHS.select }} />
@@ -325,7 +333,7 @@ export default function MyListings({
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className="rounded border-white/20 bg-white/5"
+                  className="checkbox"
                   aria-label="Select all listings"
                 />
               </th>
@@ -334,7 +342,7 @@ export default function MyListings({
                   <span className="block truncate pr-2">{c.label}</span>
                   <div
                     onMouseDown={(e) => startResize(c.key, e)}
-                    className="absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-white/20 active:bg-white/30"
+                    className="absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-line-hover active:bg-line-strong"
                     title="Drag to resize"
                   />
                 </th>
@@ -384,7 +392,7 @@ function ListingRow({
   const [error, setError] = useState<string | null>(null);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
-  const rowBg = dirty ? "bg-amber-500/[0.07]" : "bg-white/[0.025]";
+  const rowBg = dirty ? "bg-warning-soft" : "bg-hover";
   const firstCell = `${td} ${rowBg} rounded-l-lg`;
   const cell = `${td} ${rowBg}`;
   const lastCell = `${td} ${rowBg} rounded-r-lg`;
@@ -493,7 +501,7 @@ function ListingRow({
             type="checkbox"
             checked={selected}
             onChange={onToggleSelect}
-            className="mt-1 rounded border-white/20 bg-white/5"
+            className="checkbox mt-1"
             aria-label={`Select ${draft.year} ${draft.make} ${draft.model}`}
           />
         </td>
@@ -551,7 +559,7 @@ function ListingRow({
             placeholder="65000 or 65,xxx"
             className={cellInputClass}
           />
-          <p className="mt-1 truncate text-[10px] text-zinc-600" title="Type x's to hide digits, e.g. 65,xxx">
+          <p className="mt-1 truncate text-[11px] text-fg-muted" title="Type x's to hide digits, e.g. 65,xxx">
             x&apos;s = hidden
           </p>
         </td>
@@ -621,7 +629,7 @@ function ListingRow({
             type="checkbox"
             checked={draft.onePay}
             onChange={(e) => set("onePay", e.target.checked)}
-            className="mt-1 rounded border-white/20 bg-white/5"
+            className="checkbox mt-1"
             aria-label="One-pay lease"
           />
         </td>
@@ -630,7 +638,7 @@ function ListingRow({
             type="checkbox"
             checked={draft.inStock}
             onChange={(e) => set("inStock", e.target.checked)}
-            className="mt-1 rounded border-white/20 bg-white/5"
+            className="checkbox mt-1"
             aria-label="In stock"
           />
         </td>
@@ -639,9 +647,9 @@ function ListingRow({
             type="button"
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-default disabled:bg-white/10 disabled:text-zinc-600"
+            className={`btn btn-primary btn-sm gap-1.5 px-3 ${saveDisabledClass}`}
           >
-            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            {saving ? <Loader2 className="animate-spin" /> : <Save />}
             Save
           </button>
         </td>
@@ -649,18 +657,19 @@ function ListingRow({
           <Link
             href={`/deals/${deal.slug}`}
             target="_blank"
-            className="flex items-center gap-1 text-xs font-semibold text-zinc-300 hover:text-white hover:underline"
+            className="link-arrow min-h-9 whitespace-nowrap"
           >
-            See card <ExternalLink size={11} />
+            See card <ExternalLink />
           </Link>
         </td>
         <td className={cell}>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
+            aria-expanded={expanded}
+            className="btn btn-secondary btn-sm gap-1 px-3"
           >
-            {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            {expanded ? <ChevronDown /> : <ChevronRight />}
             More
           </button>
         </td>
@@ -669,10 +678,10 @@ function ListingRow({
             type="button"
             onClick={handleDelete}
             disabled={deleting}
-            className="text-red-400 transition hover:text-red-300 disabled:opacity-50"
+            className="btn btn-ghost btn-icon btn-sm text-danger"
             aria-label="Delete listing"
           >
-            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
           </button>
         </td>
       </tr>
@@ -680,14 +689,16 @@ function ListingRow({
       {error && (
         <tr>
           <td colSpan={COLUMN_COUNT} className="px-2.5 py-1">
-            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p>
+            <p role="alert" className="alert alert-danger px-3 py-2 text-xs leading-5">
+              {error}
+            </p>
           </td>
         </tr>
       )}
 
       {expanded && (
         <tr>
-          <td colSpan={COLUMN_COUNT} className="rounded-xl bg-white/[0.03] p-4 sm:p-5">
+          <td colSpan={COLUMN_COUNT} className="rounded-xl border border-line bg-hover p-4 sm:p-5">
             {/* Local <form> is not submitted directly — it just gives
                 IncentivesEditor's "Suggest with AI" button a form context to
                 read year/make/model/trim from, matching how it's used in the
@@ -700,8 +711,11 @@ function ListingRow({
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <label className={labelClass}>Body style</label>
+                  <label htmlFor={`listing-${deal.id}-body-style`} className={labelClass}>
+                    Body style
+                  </label>
                   <select
+                    id={`listing-${deal.id}-body-style`}
                     value={draft.bodyStyle}
                     onChange={(e) => set("bodyStyle", e.target.value)}
                     className={selectClass}
@@ -715,8 +729,11 @@ function ListingRow({
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>Fuel type</label>
+                  <label htmlFor={`listing-${deal.id}-fuel`} className={labelClass}>
+                    Fuel type
+                  </label>
                   <select
+                    id={`listing-${deal.id}-fuel`}
                     value={draft.fuel}
                     onChange={(e) => set("fuel", e.target.value)}
                     className={selectClass}
@@ -730,8 +747,11 @@ function ListingRow({
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>Exterior color</label>
+                  <label htmlFor={`listing-${deal.id}-exterior`} className={labelClass}>
+                    Exterior color
+                  </label>
                   <input
+                    id={`listing-${deal.id}-exterior`}
                     type="text"
                     value={draft.exterior}
                     onChange={(e) => set("exterior", e.target.value)}
@@ -739,8 +759,11 @@ function ListingRow({
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Interior color</label>
+                  <label htmlFor={`listing-${deal.id}-interior`} className={labelClass}>
+                    Interior color
+                  </label>
                   <input
+                    id={`listing-${deal.id}-interior`}
                     type="text"
                     value={draft.interior}
                     onChange={(e) => set("interior", e.target.value)}
@@ -751,8 +774,11 @@ function ListingRow({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className={labelClass}>Selling price (optional)</label>
+                  <label htmlFor={`listing-${deal.id}-selling-price`} className={labelClass}>
+                    Selling price (optional)
+                  </label>
                   <input
+                    id={`listing-${deal.id}-selling-price`}
                     type="number"
                     value={draft.sellingPrice}
                     onChange={(e) => set("sellingPrice", e.target.value)}
@@ -769,69 +795,73 @@ function ListingRow({
 
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <label className={labelClass}>Photo URLs (one per line, optional)</label>
+                  <label htmlFor={`listing-${deal.id}-images`} className={labelClass}>
+                    Photo URLs (one per line, optional)
+                  </label>
                   <button
                     type="button"
                     onClick={handleRepullPhoto}
                     disabled={repulling || !draft.year || !draft.make.trim() || !draft.model.trim()}
-                    className="mb-1 flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-white/10 px-2.5 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    className="btn btn-secondary btn-sm mb-1.5"
                   >
-                    {repulling ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <RefreshCw size={12} />
-                    )}
+                    {repulling ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                     Re-pull photo
                   </button>
                 </div>
                 {draft.images.split("\n")[0]?.trim() && (
-                  <img
-                    src={draft.images.split("\n")[0].trim()}
-                    alt="Current primary photo"
-                    className="mb-2 aspect-[4/3] w-full max-w-[160px] rounded-lg border border-white/10 bg-zinc-900 object-contain"
-                  />
+                  <div className="media-stage mb-2 aspect-[4/3] w-full max-w-[160px] rounded-lg">
+                    <img
+                      src={draft.images.split("\n")[0].trim()}
+                      alt="Current primary photo"
+                      className="media-img"
+                    />
+                  </div>
                 )}
                 <textarea
+                  id={`listing-${deal.id}-images`}
                   value={draft.images}
                   onChange={(e) => set("images", e.target.value)}
                   placeholder="https://example.com/photo1.jpg"
-                  className={`${inputClass} min-h-16 resize-y font-mono text-xs`}
+                  className={`${textareaClass} min-h-16 resize-y font-mono`}
                 />
-                <p className="mt-1 text-[11px] text-zinc-600">
+                <p className="field-hint">
                   &quot;Re-pull photo&quot; looks up a fresh stock photo for this exact
                   year/make/model/trim and puts it first — review it, then hit Save to keep it.
                 </p>
               </div>
 
               <div>
-                <label className={labelClass}>Notes</label>
+                <label htmlFor={`listing-${deal.id}-notes`} className={labelClass}>
+                  Notes
+                </label>
                 <textarea
+                  id={`listing-${deal.id}-notes`}
                   value={draft.notes}
                   onChange={(e) => set("notes", e.target.value)}
-                  className={`${inputClass} min-h-20 resize-y`}
+                  className={`${textareaClass} min-h-20 resize-y`}
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <button
                   type="button"
                   onClick={handleSave}
                   disabled={!dirty || saving}
-                  className="flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-default disabled:bg-white/10 disabled:text-zinc-600"
+                  className={`btn btn-primary btn-sm ${saveDisabledClass}`}
                 >
-                  {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                  {saving ? <Loader2 className="animate-spin" /> : <Save />}
                   Save changes
                 </button>
                 <button
                   type="button"
                   onClick={() => setExpanded(false)}
-                  className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
+                  className="btn btn-secondary btn-sm"
                   title="Collapse this row's edit panel — any unsaved changes stick around until you reopen it"
                 >
-                  <Minimize2 size={13} />
+                  <Minimize2 />
                   Minimize
                 </button>
-                <span className="text-xs text-zinc-600">Goes live immediately</span>
+                <span className="text-xs text-fg-muted">Goes live immediately</span>
               </div>
             </form>
           </td>

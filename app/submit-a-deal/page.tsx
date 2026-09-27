@@ -11,27 +11,26 @@ export const metadata: Metadata = {
 
 export default function SubmitADealPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
-      <Link
-        href="/"
-        className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 transition hover:text-white"
-      >
-        <ArrowLeft size={16} /> Back to all deals
+    <main className="container-prose py-8 sm:py-12">
+      <Link href="/" className="link-arrow mb-6 min-h-9">
+        <ArrowLeft /> Back to all deals
       </Link>
 
-      <p className="mb-3 text-sm font-medium text-blue-400">For Dealers &amp; Brokers</p>
-      <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Submit a Deal</h1>
-      <p className="mt-3 max-w-2xl leading-7 text-zinc-400">
-        Fill out the details below and hit send — it opens a pre-filled email straight to our
-        team. We review every submission before it goes live, then reach out to confirm details
-        and get real photos before it&apos;s posted.
-      </p>
+      <header>
+        <p className="eyebrow">For dealers &amp; brokers</p>
+        <h1 className="type-page mt-4 text-3xl sm:text-4xl">Submit a deal</h1>
+        <p className="lede mt-4 max-w-2xl">
+          Fill out the details below and hit send — it opens a pre-filled email straight to our
+          team. We review every submission before it goes live, then reach out to confirm details
+          and get real photos before it&apos;s posted.
+        </p>
+      </header>
 
-      <div className="mt-6 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-6 text-zinc-400">
-        <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald-400" />
+      <div className="card mt-6 flex items-start gap-3 p-5 text-sm leading-6 text-fg-secondary">
+        <ShieldCheck size={18} className="mt-0.5 shrink-0 text-success" />
         <p>
-          Nothing is posted automatically. This just gets your deal in front of us fast — we
-          &apos;ll follow up by phone or email to verify it before it appears on Drive.
+          Nothing is posted automatically. This just gets your deal in front of us fast —
+          we&apos;ll follow up by phone or email to verify it before it appears on Drive.
         </p>
       </div>
 

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="Drive">
+  <title>Drive</title>
+  <g transform="translate(31.65 0) matrix(1 0 -0.21256 1 0 0)">
+    <path fill="#2F7BFF" d="M76 0H100V41H76Z"/>
+    <path fill="#F2F4F7" fill-rule="evenodd" d="M34 40H76V40H100V140H34A34 34 0 0 1 0 106V74A34 34 0 0 1 34 40ZM34 64H66A10 10 0 0 1 76 74V106A10 10 0 0 1 66 116H34A10 10 0 0 1 24 106V74A10 10 0 0 1 34 64Z"/>
+  </g>
+</svg>

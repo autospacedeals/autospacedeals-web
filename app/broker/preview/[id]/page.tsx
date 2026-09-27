@@ -33,10 +33,12 @@ export default async function BrokerDealPreviewPage({
       backLabel="Back to dashboard"
       isPreview
       previewBanner={
-        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 text-sm font-semibold text-amber-200">
-          <CircleAlert size={16} className="shrink-0" />
-          Preview only — shoppers can&apos;t see this{" "}
-          {deal.status === "draft" ? "until you confirm & publish it" : "in your dashboard view"}.
+        <div className="alert alert-warning mb-6 font-medium">
+          <CircleAlert />
+          <p>
+            Preview only — shoppers can&apos;t see this{" "}
+            {deal.status === "draft" ? "until you confirm & publish it" : "in your dashboard view"}.
+          </p>
         </div>
       }
     />

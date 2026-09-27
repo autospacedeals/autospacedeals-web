@@ -11,12 +11,14 @@ const LAST_UPDATED = "August 19, 2026";
 export default function TermsOfServicePage() {
   return (
     <main>
-      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
-        <p className="mb-3 text-sm font-medium text-blue-400">Legal</p>
-        <h1 className="mb-2 text-4xl font-bold tracking-tight">Terms of Service</h1>
-        <p className="mb-10 text-sm text-zinc-500">Last updated: {LAST_UPDATED}</p>
+      <header className="container-prose pt-12 pb-8 sm:pt-16">
+        <p className="eyebrow">Legal</p>
+        <h1 className="type-page mt-4">Terms of Service</h1>
+        <p className="label mt-3">Last updated: {LAST_UPDATED}</p>
+      </header>
 
-        <div className="space-y-10">
+      <div className="container-prose pb-16">
+        <div className="mt-10">
           <Section title="Agreement to Terms">
             <p>
               These Terms of Service govern your use of {SITE_NAME} ({"idriveus.com"}). By
@@ -103,7 +105,7 @@ export default function TermsOfServicePage() {
 
           <Section title="Disclaimer of Warranties">
             <p>
-              {SITE_NAME} is provided "as is" and "as available," without warranties of any kind,
+              {SITE_NAME} is provided &quot;as is&quot; and &quot;as available,&quot; without warranties of any kind,
               express or implied. We don&apos;t guarantee that listings are accurate, current, or
               available, or that the site will be uninterrupted or error-free.
             </p>
@@ -143,25 +145,23 @@ export default function TermsOfServicePage() {
           <Section title="Contact Us">
             <p>
               Questions about these terms? Email{" "}
-              <a href="mailto:rob@idriveus.com" className="text-white underline">
+              <a href="mailto:rob@idriveus.com" className="link">
                 rob@idriveus.com
               </a>
               .
             </p>
           </Section>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      <h2 className="mb-4 text-2xl font-semibold">{title}</h2>
-      <div className="space-y-4 leading-7 text-zinc-300 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6">
-        {children}
-      </div>
+    <section className="border-t border-line py-10">
+      <h2 className="type-section text-2xl sm:text-2xl">{title}</h2>
+      <div className="prose-drive mt-4">{children}</div>
     </section>
   );
 }

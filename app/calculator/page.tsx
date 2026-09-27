@@ -13,40 +13,46 @@ export const metadata: Metadata = {
 export default function CalculatorPage() {
   return (
     <main>
-      <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12">
-        <p className="mb-3 text-sm font-medium text-blue-400">Drive Tools</p>
-        <h1 className="mb-3 text-4xl font-bold tracking-tight">Lease Calculator</h1>
-        <p className="mb-8 text-lg leading-8 text-zinc-300">
+      <header className="container-page max-w-4xl pt-12 pb-8 sm:pt-16">
+        <p className="eyebrow">Drive tools</p>
+        <h1 className="type-page mt-4">Lease Calculator</h1>
+        <p className="lede mt-4 max-w-2xl">
           Work out a real monthly payment and due-at-signing total for any car — not just deals
           listed on Drive.
         </p>
+      </header>
 
+      <section className="container-page max-w-4xl pb-16">
         {/* LeaseCalculator reads a shareable-link query param via
             useSearchParams, which requires a Suspense boundary so this
             route doesn't get forced fully dynamic. */}
-        <Suspense fallback={<div className="text-sm text-zinc-500">Loading calculator…</div>}>
+        <Suspense
+          fallback={
+            <div className="skeleton h-96 w-full">
+              <span className="sr-only">Loading calculator…</span>
+            </div>
+          }
+        >
           <LeaseCalculator />
         </Suspense>
 
         <Link
           href="/lease-end"
-          className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:bg-white/[0.07] sm:flex-row"
+          className="card-interactive group mt-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
         >
-          <span className="flex items-center gap-3 text-center sm:text-left">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">
+          <span className="flex items-center gap-4">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-fg">
               <Scale size={18} />
             </span>
             <span>
-              <span className="block text-sm font-bold text-white">
-                Lease ending soon instead?
-              </span>
-              <span className="block text-xs text-zinc-400">
+              <span className="block text-sm font-semibold text-fg">Lease ending soon instead?</span>
+              <span className="mt-0.5 block text-[13px] text-fg-muted">
                 Try the Lease-End Calculator — buy out vs. return vs. what the car&apos;s worth.
               </span>
             </span>
           </span>
-          <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-white">
-            Open calculator <ArrowRight size={15} />
+          <span className="link-arrow shrink-0">
+            Open calculator <ArrowRight />
           </span>
         </Link>
       </section>

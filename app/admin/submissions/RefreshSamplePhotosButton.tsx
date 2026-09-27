@@ -31,17 +31,21 @@ export default function RefreshSamplePhotosButton() {
   }
 
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="card mt-4 flex flex-wrap items-center gap-3 p-4">
       <button
         type="button"
         onClick={handleClick}
         disabled={running}
-        className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white disabled:opacity-60"
+        className="btn btn-secondary btn-sm"
       >
-        {running ? <Loader2 size={14} className="animate-spin" /> : <ImageDown size={14} />}
+        {running ? <Loader2 className="animate-spin" /> : <ImageDown />}
         {running ? "Refreshing sample photos..." : "Refresh sample listing photos"}
       </button>
-      {result && <p className="text-xs text-zinc-500">{result}</p>}
+      {result && (
+        <p className={`text-xs ${result.startsWith("Failed") ? "text-danger" : "text-success"}`}>
+          {result}
+        </p>
+      )}
     </div>
   );
 }

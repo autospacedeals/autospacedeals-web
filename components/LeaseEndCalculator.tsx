@@ -24,10 +24,10 @@ export default function LeaseEndCalculator() {
   const result = useMemo(() => computeLeaseEndEstimate(input), [input]);
 
   return (
-    <div className="space-y-6 pb-32 sm:pb-36">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-        <p className="mb-3 text-sm font-semibold text-zinc-300">Buyout</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="space-y-6">
+      <div className="panel">
+        <p className="mb-3 text-sm font-medium text-fg">Buyout</p>
+        <div className="grid grid-cols-2 items-end gap-4 lg:grid-cols-4">
           <NumberField
             label="Residual payoff"
             value={input.residualPayoff}
@@ -57,15 +57,15 @@ export default function LeaseEndCalculator() {
             step={250}
           />
         </div>
-        <p className="mt-2 text-[11px] text-zinc-500">
+        <p className="mt-2 text-[11px] text-fg-muted">
           Check what the car is actually worth right now (a dealer trade-in quote or a private-
           sale listing site) — that number is what makes this comparison meaningful.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-        <p className="mb-3 text-sm font-semibold text-zinc-300">Return</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="panel">
+        <p className="mb-3 text-sm font-medium text-fg">Return</p>
+        <div className="grid grid-cols-2 items-end gap-4 lg:grid-cols-4">
           <NumberField
             label="Disposition fee"
             value={input.dispositionFee}
@@ -94,7 +94,7 @@ export default function LeaseEndCalculator() {
             step={0.01}
           />
         </div>
-        <div className="mt-3">
+        <div className="mt-4">
           <NumberField
             label="Estimated wear & tear charges (if any)"
             value={input.estimatedWearAndTear}
@@ -103,13 +103,13 @@ export default function LeaseEndCalculator() {
             step={25}
           />
         </div>
-        <p className="mt-2 text-[11px] text-zinc-500">
+        <p className="mt-2 text-[11px] text-fg-muted">
           Full-term allowance is the whole lease&apos;s mileage limit (e.g. 10,000/yr × 3 years =
           30,000), not the annual figure — compare it against your actual odometer reading.
         </p>
       </div>
 
-      <div className="flex items-start gap-2 text-xs leading-5 text-zinc-500">
+      <div className="flex items-start gap-2 text-xs leading-5 text-fg-muted">
         <CircleAlert size={14} className="mt-0.5 shrink-0" />
         <p>
           This is an estimate for comparison only — your lender&apos;s exact payoff quote, actual
@@ -118,11 +118,12 @@ export default function LeaseEndCalculator() {
         </p>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-zinc-950/95 backdrop-blur">
-        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
+      <div data-results-bar="lease-end" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/85 backdrop-blur-xl">
+        <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
+        <div className="container-page max-w-4xl py-3 sm:py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="flex items-center gap-2 text-sm font-bold">
-              <Scale size={16} />
+            <p className="panel-title text-sm">
+              <Scale />
               {result.recommendation === "close" ? (
                 <>It&apos;s close either way</>
               ) : result.recommendation === "buyout" ? (
@@ -131,13 +132,13 @@ export default function LeaseEndCalculator() {
                 <>Returning it looks better</>
               )}
             </p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-fg-secondary">
               {result.recommendation === "close" ? "Within" : "By about"}{" "}
-              <span className="font-bold text-white">{formatCurrency(result.netAdvantage)}</span>
+              <span className="font-semibold text-fg">{formatCurrency(result.netAdvantage)}</span>
             </p>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/10 pt-3 text-xs sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-xs sm:grid-cols-4">
             <Result label="Buyout total cost" value={formatCurrency(result.buyoutTotalCost)} />
             <Result
               label="Net cost of buyout"
@@ -170,17 +171,16 @@ function NumberField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-zinc-500">{label}</span>
-      <div className="flex items-center rounded-xl border border-white/10 bg-zinc-900 px-3 py-2.5">
-        {prefix && <span className="mr-1 text-sm text-zinc-500">{prefix}</span>}
+      <span className="field-label">{label}</span>
+      <div className="input-group">
+        {prefix && <span className="input-affix">{prefix}</span>}
         <input
           type="number"
           value={Number.isFinite(value) ? value : 0}
           onChange={(e) => onChange(Number(e.target.value))}
           step={step}
-          className="w-full bg-transparent text-sm text-white outline-none"
         />
-        {suffix && <span className="ml-1 text-sm text-zinc-500">{suffix}</span>}
+        {suffix && <span className="input-affix">{suffix}</span>}
       </div>
     </label>
   );
@@ -189,9 +189,9 @@ function NumberField({
 function Result({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div>
-      <p className="text-zinc-500">{label}</p>
-      <p className="mt-0.5 font-bold text-white">{value}</p>
-      {note && <p className="text-[10px] text-zinc-600">{note}</p>}
+      <p className="text-fg-muted">{label}</p>
+      <p className="mt-0.5 font-semibold text-fg">{value}</p>
+      {note && <p className="text-[11px] text-fg-muted">{note}</p>}
     </div>
   );
 }

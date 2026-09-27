@@ -67,91 +67,82 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-bold">
-          <Calculator size={18} /> Estimate Your Payment
+    <section className="panel mt-6">
+      {/* Row reserves the Reset button's height (36px, 44px on touch) so the
+          slider doesn't jump down when Reset appears mid-drag. */}
+      <div className="flex min-h-9 items-center justify-between gap-3 pointer-coarse:min-h-11">
+        <h2 className="panel-title">
+          <Calculator /> Estimate your payment
         </h2>
         {!isDefault && (
-          <button
-            type="button"
-            onClick={reset}
-            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-white"
-          >
-            <RotateCcw size={12} /> Reset
+          <button type="button" onClick={reset} className="btn btn-ghost btn-sm -mr-2 px-3">
+            <RotateCcw /> Reset
           </button>
         )}
       </div>
-      <p className="mt-1 text-sm text-zinc-400">
+      <p className="mt-1.5 text-sm text-fg-muted">
         Put more or less down, or apply an incentive below, to see how it changes your{" "}
         {deal.onePay ? "one-pay total" : "monthly payment"}.
       </p>
 
-      <div className="mt-4">
-        <div className="flex items-center justify-between">
-          <label className="block text-sm font-semibold text-zinc-300">
+      <div className="mt-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <label htmlFor="estimator-das" className="text-[13px] font-medium text-fg-secondary">
             {deal.onePay ? "One-pay amount" : "Due at signing"}
           </label>
-          <span className="text-lg font-black text-white">{formatCurrency(dueAtSigning)}</span>
+          <span className="stat-value text-lg">{formatCurrency(dueAtSigning)}</span>
         </div>
         <input
+          id="estimator-das"
           type="range"
           min={0}
           max={sliderMax}
           step={100}
           value={dueAtSigning}
           onChange={(e) => setDueAtSigningInput(e.target.value)}
-          className="mt-2 w-full accent-white"
+          className="range mt-2"
+          style={{ "--range-pct": `${Math.min(100, (dueAtSigning / sliderMax) * 100)}%` } as React.CSSProperties}
         />
-        <div className="flex items-center justify-between text-[11px] text-zinc-600">
+        <div className="flex items-center justify-between text-[11px] text-fg-muted">
           <span>$0</span>
           <span>{formatCurrency(sliderMax)}</span>
         </div>
-        <p className="mt-1 text-xs text-zinc-600">
+        <p className="mt-1.5 text-xs leading-5 text-fg-muted">
           Advertised as {formatCurrency(deal.dueAtSigning)}. Putting more down lowers your{" "}
           {deal.onePay ? "total" : "monthly payment"}; putting less down raises it.
         </p>
       </div>
 
       {incentives.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-1.5 text-sm font-semibold text-zinc-300">
-            Incentives you might qualify for
-          </p>
-          <p className="mb-2 text-xs text-zinc-600">
+        <div className="mt-6">
+          <p className="field-label">Incentives you might qualify for</p>
+          <p className="mb-2.5 text-xs leading-5 text-fg-muted">
             Checked incentives already included in the advertised numbers below — uncheck any
             you don&apos;t qualify for. Check any others you do qualify for to see the effect.
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {incentives.map((inc, idx) => {
               const checked = selected.has(idx);
               const delta = (checked ? inc.amount : 0) - (inc.includedInPrice ? inc.amount : 0);
               return (
-                <label
-                  key={idx}
-                  className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
-                >
-                  <span className="flex items-center gap-2">
+                <label key={idx} className="choice justify-between">
+                  <span className="flex min-w-0 items-center gap-2.5">
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleIncentive(idx)}
-                      className="rounded border-white/20 bg-white/5"
+                      className="checkbox"
                     />
-                    {inc.name}
-                    {inc.includedInPrice && (
-                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-zinc-400">
-                        Included in price
-                      </span>
-                    )}
+                    {/* Only the name + pill wrap, so a long name never drops
+                        onto its own line away from its checkbox. */}
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+                      {inc.name}
+                      {inc.includedInPrice && <span className="pill pill-neutral">Included in price</span>}
+                    </span>
                   </span>
                   <span
-                    className={`font-semibold ${
-                      delta > 0
-                        ? "text-emerald-400"
-                        : delta < 0
-                          ? "text-amber-400"
-                          : "text-zinc-500"
+                    className={`shrink-0 font-semibold ${
+                      delta > 0 ? "text-success" : delta < 0 ? "text-warning" : "text-fg-muted"
                     }`}
                   >
                     {delta === 0
@@ -162,37 +153,37 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
               );
             })}
           </div>
-          <p className="mt-1.5 text-xs text-zinc-600">
+          <p className="mt-2 text-xs leading-5 text-fg-muted">
             Not everyone qualifies for every program — confirm eligibility with{" "}
             {deal.sellerName} before counting on one.
           </p>
         </div>
       )}
 
-      <div className="mt-5 rounded-xl bg-zinc-950 p-4">
+      <div className="well mt-5">
         {deal.onePay ? (
           <>
-            <p className="text-xs text-zinc-500">Estimated one-pay total</p>
-            <p className="mt-1 text-2xl font-black text-white">{formatCurrency(estimate.total)}</p>
+            <p className="label">Estimated one-pay total</p>
+            <p className="stat-value mt-2">{formatCurrency(estimate.total)}</p>
           </>
         ) : (
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs text-zinc-500">Estimated monthly payment</p>
-              <p className="mt-1 text-2xl font-black text-white">
-                {formatCurrency(estimate.monthly)}
-                <span className="text-sm font-medium text-zinc-500">/mo + tax</span>
+              <p className="label">Estimated monthly payment</p>
+              <p className="mt-2 flex items-baseline gap-1">
+                <span className="stat-value">{formatCurrency(estimate.monthly)}</span>
+                <span className="price-unit">/mo + tax</span>
               </p>
             </div>
-            <div>
-              <p className="text-xs text-zinc-500">Due at signing</p>
-              <p className="mt-1 text-lg font-bold text-white">{formatCurrency(estimate.total)}</p>
+            <div className="text-right">
+              <p className="label">Due at signing</p>
+              <p className="mt-2 text-lg font-semibold text-fg">{formatCurrency(estimate.total)}</p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-zinc-500">
+      <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-fg-muted">
         <CircleAlert size={14} className="mt-0.5 shrink-0" />
         <p>
           These numbers are estimates for comparison only — actual payment depends on lender
@@ -201,13 +192,10 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
         </p>
       </div>
 
-      <Link
-        href="/calculator"
-        className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-white"
-      >
-        <Calculator size={13} /> Want to dig into residual value and money factor? Try the full
-        Lease Calculator <ArrowRight size={13} />
+      <Link href="/calculator" className="link-arrow mt-4 w-full justify-center text-center">
+        <Calculator /> Want to dig into residual value and money factor? Try the full Lease
+        Calculator <ArrowRight />
       </Link>
-    </div>
+    </section>
   );
 }

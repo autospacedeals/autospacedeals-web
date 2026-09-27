@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { LogOut, UserCircle2, MapPin, Heart, Bell } from "lucide-react";
+import { LogOut, MapPin, Heart, Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "../actions";
 import ProfileEditor from "./ProfileEditor";
@@ -61,46 +61,41 @@ export default async function CustomerDashboardPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <main className="container-page max-w-5xl py-10 sm:py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold text-zinc-400">
-            <UserCircle2 size={16} /> My Account
-          </p>
-          <h1 className="mt-1 text-3xl font-black">
+          <p className="eyebrow">My account</p>
+          <h1 className="type-page mt-3 text-3xl sm:text-4xl">
             Welcome{firstName ? `, ${firstName}` : ""}
           </h1>
         </div>
         <form action={signOutAction}>
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-white/10 hover:text-white"
-          >
-            <LogOut size={15} /> Sign out
+          <button type="submit" className="btn btn-secondary btn-sm">
+            <LogOut /> Sign out
           </button>
         </form>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* Profile */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8 lg:col-span-1">
-          <h2 className="text-lg font-bold">Profile</h2>
-          <dl className="mt-4 space-y-4 text-sm">
+        <div className="panel sm:p-8 lg:col-span-1">
+          <h2 className="type-title">Profile</h2>
+          <dl className="mt-5 space-y-4 text-sm">
             <div>
-              <dt className="text-zinc-500">Name</dt>
-              <dd className="mt-0.5 font-semibold text-white">
+              <dt className="label">Name</dt>
+              <dd className="mt-1 font-medium text-fg">
                 {firstName} {lastName}
               </dd>
             </div>
             <div>
-              <dt className="flex items-center gap-1.5 text-zinc-500">
-                <MapPin size={13} /> Zip code
+              <dt className="label flex items-center gap-1.5">
+                <MapPin size={13} className="text-fg-faint" /> Zip code
               </dt>
-              <dd className="mt-0.5 font-semibold text-white">{customer?.zip_code ?? "—"}</dd>
+              <dd className="mt-1 font-medium text-fg">{customer?.zip_code ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-zinc-500">Email</dt>
-              <dd className="mt-0.5 font-semibold text-white">{user.email}</dd>
+              <dt className="label">Email</dt>
+              <dd className="mt-1 font-medium wrap-anywhere text-fg">{user.email}</dd>
             </div>
           </dl>
 
@@ -119,20 +114,20 @@ export default async function CustomerDashboardPage() {
 
         {/* Placeholder sections for upcoming features */}
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-            <h2 className="flex items-center gap-2 text-lg font-bold">
-              <Heart size={18} /> Saved deals
+          <div className="panel sm:p-8">
+            <h2 className="panel-title">
+              <Heart /> Saved deals
             </h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              Coming soon — save deals you're interested in and come back to them anytime.
+            <p className="mt-2 text-sm text-fg-muted">
+              Coming soon — save deals you&apos;re interested in and come back to them anytime.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-            <h2 className="flex items-center gap-2 text-lg font-bold">
-              <Bell size={18} /> Saved searches &amp; alerts
+          <div className="panel sm:p-8">
+            <h2 className="panel-title">
+              <Bell /> Saved searches &amp; alerts
             </h2>
-            <p className="mt-2 text-sm text-zinc-500">
+            <p className="mt-2 text-sm text-fg-muted">
               Coming soon — set your filters once and we&apos;ll email you when a matching deal
               gets posted.
             </p>

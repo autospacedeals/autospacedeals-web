@@ -6,7 +6,7 @@
 // duplicating this whole layout in two places and letting them drift.
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Store, Flag, CircleAlert, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin, Flag, CircleAlert, Phone, MessageSquare } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 import type { Deal } from "@/lib/deals-data";
@@ -17,18 +17,23 @@ import {
   formatCurrency,
   isNewlyPosted,
   msrpDiscountPercent,
+  phoneDigits,
   reportIssueMailtoHref,
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
 
-const CONDITION_STYLES: Record<string, string> = {
-  New: "bg-blue-500 text-white",
-  CPO: "bg-emerald-500 text-white",
-  Loaner: "bg-amber-500 text-zinc-950",
-  Demo: "bg-amber-500 text-zinc-950",
-  Used: "bg-zinc-700 text-white",
-};
+// Up to two initials for the seller avatar in the contact card. Guarded like
+// every other deal-derived value below — a missing name just renders an
+// empty avatar instead of throwing.
+function initials(label: string | null | undefined) {
+  return String(label ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join("");
+}
 
 export default function DealDetailView({
   deal,
@@ -61,138 +66,121 @@ export default function DealDetailView({
   const packages = Array.isArray(deal.packages)
     ? deal.packages.filter((p): p is string => typeof p === "string" && p.length > 0)
     : [];
+  const phone = phoneDigits(deal.sellerPhone);
+  const headline = formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+    <main className="container-page max-w-6xl pt-8 pb-12 sm:pt-12">
       {previewBanner}
 
-      <Link
-        href={backHref}
-        className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 transition hover:text-white"
-      >
-        <ArrowLeft size={16} /> {backLabel}
+      <Link href={backHref} className="link-arrow mb-6 min-h-9">
+        <ArrowLeft /> {backLabel}
       </Link>
 
-      <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* Left column: photo + details */}
-        <div>
+        <div className="min-w-0">
           <DealPhotoGallery images={deal.images} alt={dealTitle(deal)}>
-            <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+            {/* When a condition tag sits top-right, stop the left tags short of
+                it so they wrap instead of running underneath it on phones. */}
+            <div className={`absolute top-4 left-4 flex flex-wrap gap-2 ${deal.condition ? "right-24" : "right-4"}`}>
               {isNewlyPosted(deal) && (
-                <span className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-3 py-1 text-xs font-bold text-white">
-                  <Clock size={12} /> Just Listed
+                <span className="tag">
+                  <span className="tag-dot" /> Just listed
                 </span>
               )}
-              {deal.badge && BADGE_STYLES[deal.badge] && (
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-950">
-                  {deal.badge}
-                </span>
-              )}
+              {deal.badge && BADGE_STYLES[deal.badge] && <span className="tag">{deal.badge}</span>}
               {!deal.inStock && (
-                <span className="rounded-full bg-zinc-950/90 px-3 py-1 text-xs font-bold text-zinc-300">
-                  Pending / Call to confirm
+                <span className="tag">
+                  <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
                 </span>
               )}
             </div>
-            {deal.condition && (
-              <span
-                className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-bold ${
-                  CONDITION_STYLES[deal.condition] ?? "bg-zinc-950/90 text-zinc-300"
-                }`}
-              >
-                {deal.condition}
-              </span>
-            )}
+            {deal.condition && <span className="tag absolute top-4 right-4">{deal.condition}</span>}
             {deal.sample ? (
-              <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-amber-500/90 px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-950">
-                <CircleAlert size={14} /> Sample listing — photo is a stock image, not the exact vehicle
-              </span>
+              <p className="media-note media-note-warning pb-3 text-xs">
+                <CircleAlert /> Sample listing — photo is a stock image, not the exact vehicle
+              </p>
             ) : (
               deal.photoAutoSourced && (
-                <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-zinc-950/85 px-3 py-2 text-xs font-semibold text-zinc-300">
-                  <CircleAlert size={14} /> Stock photo — may not be the exact vehicle
-                </span>
+                <p className="media-note pb-3 text-xs">
+                  <CircleAlert /> Stock photo — may not be the exact vehicle
+                </p>
               )
             )}
           </DealPhotoGallery>
 
-          <div className="mt-6">
-            <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-              {[deal.dealType, deal.fuel, deal.bodyStyle].filter(Boolean).join(" · ")}
-            </p>
-            <h1 className="mt-1 text-3xl font-black sm:text-4xl">{dealTitle(deal)}</h1>
-            <p className="mt-2 flex items-center gap-2 text-zinc-400">
-              <MapPin size={16} /> {deal.city}, {deal.state}
+          <div className="mt-8">
+            <p className="label">{[deal.dealType, deal.fuel, deal.bodyStyle].filter(Boolean).join(" · ")}</p>
+            <h1 className="type-page mt-2 text-3xl sm:text-4xl">{dealTitle(deal)}</h1>
+            <p className="mt-3 flex items-center gap-2 text-sm text-fg-muted">
+              <MapPin size={15} className="text-fg-faint" /> {deal.city}, {deal.state}
             </p>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-            <h2 className="text-lg font-bold">Payment Breakdown</h2>
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Stat
+          <section className="panel mt-8">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 className="type-title">Payment breakdown</h2>
+              <p className="text-xs text-fg-muted">Advertised by the seller</p>
+            </div>
+
+            {/* Key figures: always three cells */}
+            <dl className="spec-grid mt-5 sm:grid-cols-3">
+              <KeyFigure
+                className="col-span-2 sm:col-span-1"
                 label={deal.onePay ? "One-pay lease total" : "Monthly payment"}
-                value={
-                  deal.onePay
-                    ? formatCurrency(deal.dueAtSigning)
-                    : `${formatCurrency(deal.payment)}/mo${deal.paymentTaxRate ? "" : " + tax"}`
-                }
-                note={
-                  !deal.onePay && deal.paymentTaxRate
-                    ? `Includes ~${deal.paymentTaxRate}% tax`
-                    : undefined
-                }
-                big
+                value={headline}
+                unit={deal.onePay ? undefined : deal.paymentTaxRate ? "/mo" : "/mo + tax"}
+                note={!deal.onePay && deal.paymentTaxRate ? `Includes ~${deal.paymentTaxRate}% tax` : undefined}
               />
-              <Stat
+              <KeyFigure
                 label="Due at signing"
                 value={formatCurrency(deal.dueAtSigning)}
                 note={deal.dueAtSigningTaxRate ? `Assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
-                big
               />
-              <Stat label="Term" value={`${deal.term} months`} big />
+              <KeyFigure label="Term" value={`${deal.term} months`} />
+            </dl>
+
+            {/* Everything else as statement rows */}
+            <dl className="statement mt-2">
               {deal.brokerFee != null && (
-                <Stat
-                  label="Broker fee"
-                  value={formatCurrency(deal.brokerFee)}
-                  note="Separate from due at signing"
-                  big
-                />
+                <Row label="Broker fee" note="Separate from due at signing" value={formatCurrency(deal.brokerFee)} />
               )}
-              <Stat label="MSRP" value={displayMsrp(deal)} />
-              {deal.sellingPrice != null && (
-                <Stat label="Selling price" value={formatCurrency(deal.sellingPrice)} />
-              )}
-              {discount > 0 && <Stat label="Discount off MSRP" value={`${discount.toFixed(1)}%`} />}
+              <Row label="MSRP" value={displayMsrp(deal)} />
+              {deal.sellingPrice != null && <Row label="Selling price" value={formatCurrency(deal.sellingPrice)} />}
+              {discount > 0 && <Row label="Discount off MSRP" value={`${discount.toFixed(1)}%`} positive />}
               {deal.milesPerYear ? (
-                <Stat
+                <Row
                   label="Mileage allowance"
                   value={`${deal.milesPerYear.toLocaleString()}/yr`}
                   note={`Contact ${deal.sellerName} for more/less mileage`}
                 />
               ) : (
-                <Stat label="Mileage allowance" value="Not specified" />
+                <Row label="Mileage allowance" value="Not specified" />
               )}
-              {deal.apr != null && <Stat label="APR" value={`${deal.apr}%`} />}
-            </div>
+              {deal.apr != null && <Row label="APR" value={`${deal.apr}%`} />}
+            </dl>
 
-            <div className="mt-5 rounded-xl bg-zinc-950 p-4 text-sm text-zinc-300">
-              <p className="font-semibold text-white">Effective monthly cost</p>
-              <p className="mt-1 text-zinc-400">
-                Spreads due-at-signing across the term so you can compare deals with different
-                upfront amounts fairly.
-              </p>
-              <p className="mt-2 text-2xl font-black text-white">
-                {formatCurrency(effectiveMonthly(deal))}
-                <span className="text-sm font-medium text-zinc-500">/mo effective</span>
+            <div className="callout mt-5 flex flex-wrap items-end justify-between gap-4">
+              <div className="max-w-sm">
+                <p className="text-sm font-semibold text-fg">Effective monthly cost</p>
+                <p className="mt-1 text-[13px] leading-5 text-fg-secondary">
+                  Spreads due-at-signing across the term so you can compare deals with different
+                  upfront amounts fairly.
+                </p>
+              </div>
+              <p className="flex items-baseline gap-1.5">
+                <span className="price">{formatCurrency(effectiveMonthly(deal))}</span>
+                <span className="price-unit">/mo effective</span>
               </p>
             </div>
-          </div>
+          </section>
 
           <PaymentEstimator deal={deal} />
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-            <h2 className="text-lg font-bold">Vehicle Details</h2>
-            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm text-zinc-300 sm:grid-cols-3">
+          <section className="panel mt-6">
+            <h2 className="type-title">Vehicle details</h2>
+            <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
               {deal.exterior && <Detail label="Exterior" value={deal.exterior} />}
               {deal.interior && <Detail label="Interior" value={deal.interior} />}
               {deal.fuel && <Detail label="Fuel type" value={deal.fuel} />}
@@ -200,26 +188,29 @@ export default function DealDetailView({
             </dl>
 
             {packages.length > 0 && (
-              <div className="mt-5">
-                <p className="text-sm font-semibold text-zinc-400">Packages</p>
+              <div className="mt-6">
+                <p className="label">Packages</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {packages.map((item) => (
-                    <span key={item} className="rounded-full bg-white/10 px-3 py-1 text-sm">
+                    // Package names are free text from the seller: let a long
+                    // one wrap (same 20px height on one line) instead of
+                    // .pill's nowrap pushing the page wider than the phone.
+                    <span key={item} className="pill pill-neutral max-w-full py-0.5 leading-4 break-words whitespace-normal">
                       {item}
                     </span>
                   ))}
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-            <h2 className="text-lg font-bold">Seller Notes</h2>
-            <p className="mt-3 leading-7 text-zinc-300">{deal.notes}</p>
-          </div>
+          <section className="panel mt-6">
+            <h2 className="type-title">Seller notes</h2>
+            <p className="mt-3 text-[15px] leading-7 break-words text-fg-secondary">{deal.notes}</p>
+          </section>
 
-          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5 text-sm leading-6 text-amber-200/90">
-            <CircleAlert size={18} className="mt-0.5 shrink-0" />
+          <div className="alert alert-warning mt-6">
+            <CircleAlert />
             <p>
               This deal is subject to availability and credit approval.{" "}
               {deal.brokerFee != null
@@ -233,11 +224,8 @@ export default function DealDetailView({
           </div>
 
           {!isPreview && (
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-              <a
-                href={reportIssueMailtoHref(deal)}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 transition hover:text-white"
-              >
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] font-medium">
+              <a href={reportIssueMailtoHref(deal)} className="link-quiet inline-flex min-h-9 items-center gap-2">
                 <Flag size={15} /> Report inaccurate deal
               </a>
 
@@ -246,7 +234,7 @@ export default function DealDetailView({
                   href={deal.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-semibold text-zinc-500 underline decoration-dotted transition hover:text-white"
+                  className="link-quiet inline-flex min-h-9 items-center underline decoration-dotted underline-offset-4"
                 >
                   View original posting
                 </a>
@@ -255,79 +243,140 @@ export default function DealDetailView({
           )}
         </div>
 
-        {/* Right column: contact card */}
-        <div className="lg:sticky lg:top-24 lg:h-fit">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-            <p className="flex items-center gap-2 text-sm font-semibold text-zinc-400">
-              <Store size={16} /> {deal.sellerType}
-            </p>
-            {deal.brokerId ? (
-              <Link
-                href={`/brokers/${deal.brokerId}`}
-                className="mt-1 block text-xl font-black hover:underline"
-              >
-                {deal.sellerName}
-              </Link>
-            ) : (
-              <p className="mt-1 text-xl font-black">{deal.sellerName}</p>
-            )}
-            {deal.sellerDealership && (
-              <p className="text-sm text-zinc-400">at {deal.sellerDealership}</p>
-            )}
-            <p className="mt-1 text-sm text-zinc-500">
-              {deal.city}, {deal.state} · {deal.sellerPhone}
-            </p>
-            {deal.brokerId && (
-              <Link
-                href={`/brokers/${deal.brokerId}`}
-                className="mt-1 inline-block text-sm font-semibold text-zinc-400 underline decoration-dotted hover:text-white"
-              >
-                View seller profile
-              </Link>
-            )}
-            <div className="mt-5 border-t border-white/10 pt-5">
-              <ContactActionsFull deal={deal} />
+        {/* Right column: contact card (repeats the headline numbers so the
+            price and the Call button stay in view while scrolling) */}
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="card relative overflow-hidden">
+            <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
+            <div className="p-6">
+              <p className="label">{deal.onePay ? "One-pay lease total" : "Monthly payment"}</p>
+              <p className="mt-2 flex flex-wrap items-baseline gap-x-1.5">
+                <span className="price-lg">{headline}</span>
+                {!deal.onePay && (
+                  <span className="price-unit text-base">/mo{deal.paymentTaxRate ? "" : " + tax"}</span>
+                )}
+              </p>
+              <p className="mt-3 text-sm text-fg-secondary">
+                {!deal.onePay && `${formatCurrency(deal.dueAtSigning)} due at signing · `}
+                {deal.term} mo
+                {deal.milesPerYear ? ` · ${deal.milesPerYear.toLocaleString()} mi/yr` : ""}
+              </p>
             </div>
 
-            <p className="mt-4 text-xs leading-5 text-zinc-500">
+            <div className="border-t border-line p-6">
+              <div className="flex items-start gap-3">
+                <span aria-hidden="true" className="avatar">
+                  {initials(deal.sellerName)}
+                </span>
+                <div className="min-w-0">
+                  <p className="label">{deal.sellerType}</p>
+                  {deal.brokerId ? (
+                    <Link
+                      href={`/brokers/${deal.brokerId}`}
+                      className="mt-0.5 block font-semibold text-fg transition-colors hover:text-accent-fg"
+                    >
+                      {deal.sellerName}
+                    </Link>
+                  ) : (
+                    <p className="mt-0.5 font-semibold text-fg">{deal.sellerName}</p>
+                  )}
+                  {deal.sellerDealership && <p className="text-sm text-fg-muted">at {deal.sellerDealership}</p>}
+                  <p className="mt-1 text-sm text-fg-muted">
+                    {deal.city}, {deal.state} · {deal.sellerPhone}
+                  </p>
+                  {deal.brokerId && (
+                    <Link href={`/brokers/${deal.brokerId}`} className="link-arrow mt-2 min-h-9">
+                      View seller profile <ArrowRight />
+                    </Link>
+                  )}
+                </div>
+              </div>
+              <div className="mt-5">
+                <ContactActionsFull deal={deal} />
+              </div>
+            </div>
+
+            <p className="border-t border-line px-6 py-4 text-xs leading-5 text-fg-muted">
               Contacting the seller connects you directly — Drive does not process
               payments or negotiate on your behalf.
             </p>
           </div>
-        </div>
+        </aside>
       </div>
 
       {/* Similar deals */}
       {similar.length > 0 && (
-        <section className="mt-14">
-          <h2 className="mb-5 text-2xl font-black">Similar Deals</h2>
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="mt-20 border-t border-line pt-12">
+          <h2 className="type-section mb-8">Similar deals</h2>
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {similar.map((d) => (
               <DealCard key={d.id} deal={d} />
             ))}
           </div>
         </section>
       )}
+
+      {/* Phones/tablets: price + Call/Text stay reachable. Sticky (not fixed)
+          at the end of <main>, so it scrolls away before the footer. */}
+      {!isPreview && (
+        <div className="sticky bottom-0 z-40 -mx-4 mt-10 border-t border-line bg-canvas/90 backdrop-blur-xl sm:-mx-6 lg:hidden">
+          <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
+          <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
+            <div className="min-w-0 flex-1">
+              <p className="flex items-baseline gap-1">
+                <span className="price text-xl">{headline}</span>
+                {!deal.onePay && <span className="price-unit">/mo</span>}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-fg-muted">
+                {deal.onePay ? "One-pay total" : `${formatCurrency(deal.dueAtSigning)} due`} · {deal.term} mo
+              </p>
+            </div>
+            <a href={`tel:${phone}`} className="btn btn-primary btn-sm">
+              <Phone /> Call
+            </a>
+            <a href={`sms:${phone}`} className="btn btn-secondary btn-sm">
+              <MessageSquare /> Text
+            </a>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
 
-function Stat({
+function KeyFigure({
   label,
   value,
-  big,
+  unit,
   note,
+  className = "",
 }: {
   label: string;
   value: string;
-  big?: boolean;
+  unit?: string;
   note?: string;
+  className?: string;
 }) {
   return (
-    <div>
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className={big ? "text-xl font-black" : "font-bold text-zinc-200"}>{value}</p>
-      {note && <p className="text-[11px] text-zinc-600">{note}</p>}
+    <div className={`spec p-4 ${className}`}>
+      <dt className="spec-label">{label}</dt>
+      <dd className="mt-2 flex flex-wrap items-baseline gap-x-1">
+        <span className="stat-value whitespace-nowrap max-sm:text-xl">{value}</span>
+        {unit && <span className="price-unit">{unit}</span>}
+      </dd>
+      {note && <dd className="spec-note mt-1">{note}</dd>}
+    </div>
+  );
+}
+
+function Row({ label, value, note, positive }: { label: string; value: string; note?: string; positive?: boolean }) {
+  return (
+    <div className="statement-row">
+      <dt>
+        {label}
+        {note && <span className="mt-0.5 block text-xs text-fg-muted">{note}</span>}
+      </dt>
+      <dd className={positive ? "text-success" : undefined}>{value}</dd>
     </div>
   );
 }
@@ -335,8 +384,8 @@ function Stat({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-zinc-500">{label}</dt>
-      <dd className="font-semibold text-zinc-200">{value}</dd>
+      <dt className="label">{label}</dt>
+      <dd className="mt-1 text-sm font-medium text-fg">{value}</dd>
     </div>
   );
 }

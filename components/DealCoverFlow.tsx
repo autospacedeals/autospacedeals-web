@@ -44,6 +44,7 @@ export default function DealCoverFlow({
   // Clamp if the underlying (filtered/sorted) deal list shrinks out from
   // under the current index.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (activeIndex > deals.length - 1) setActiveIndex(Math.max(0, deals.length - 1));
   }, [deals.length, activeIndex]);
 
@@ -120,9 +121,15 @@ export default function DealCoverFlow({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        className="relative h-[320px] touch-pan-y overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent outline-none focus-visible:ring-2 focus-visible:ring-white/30 sm:h-[380px]"
+        className="media-stage h-[340px] touch-pan-y rounded-3xl border border-line sm:h-[400px]"
         style={{ perspective: "1400px" }}
       >
+        {/* reflective floor line (w-auto: let inset-x size it, not .light-bar's w-full) */}
+        <div
+          aria-hidden="true"
+          className="light-bar absolute inset-x-[10%] bottom-[18%] w-auto opacity-40"
+        />
+
         {visibleItems.map(({ deal, index, offset }) => {
           const absOffset = Math.abs(offset);
           const isCenter = offset === 0;
@@ -137,7 +144,7 @@ export default function DealCoverFlow({
             <div
               key={deal.id}
               onClick={() => handleCoverClick(index)}
-              className="absolute left-1/2 top-1/2 cursor-pointer"
+              className="absolute top-1/2 left-1/2 cursor-pointer"
               style={{
                 width: ITEM_WIDTH,
                 marginLeft: -ITEM_WIDTH / 2,
@@ -149,18 +156,18 @@ export default function DealCoverFlow({
               }}
             >
               <div
-                className="relative overflow-hidden rounded-lg bg-zinc-900 shadow-2xl shadow-black/60"
+                className="relative overflow-hidden rounded-xl bg-raised shadow-[0_30px_60px_-20px_rgb(0_0_0/0.9)]"
                 style={{ height: ITEM_HEIGHT }}
               >
                 {image ? (
                   <img
                     src={image}
                     alt={`${deal.year} ${deal.make} ${deal.model}`}
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-cover object-[50%_58%]"
                     draggable={false}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-zinc-600">
+                  <div className="flex h-full w-full items-center justify-center text-fg-faint">
                     <Car size={48} />
                   </div>
                 )}
@@ -168,14 +175,12 @@ export default function DealCoverFlow({
                     only on the centered card so the side cards stay clean. */}
                 {isCenter &&
                   (deal.sample ? (
-                    <span className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-zinc-950">
+                    <span className="media-note media-note-warning">
                       Sample listing — not exact vehicle
                     </span>
                   ) : (
                     deal.photoAutoSourced && (
-                      <span className="absolute inset-x-0 bottom-0 bg-zinc-950/85 px-2 py-1 text-center text-[10px] font-semibold text-zinc-300">
-                        Stock photo — may not be exact vehicle
-                      </span>
+                      <span className="media-note">Stock photo — may not be exact vehicle</span>
                     )
                   ))}
               </div>
@@ -185,7 +190,7 @@ export default function DealCoverFlow({
                   this shorter overflow-hidden wrapper; scaleY(-1) is what
                   flips "bottom of the photo" up to sit right under it. */}
               <div
-                className="w-full overflow-hidden rounded-lg bg-zinc-900"
+                className="w-full overflow-hidden rounded-xl bg-raised"
                 style={{
                   height: ITEM_HEIGHT * 0.5,
                   transform: "scaleY(-1)",
@@ -198,7 +203,7 @@ export default function DealCoverFlow({
                     src={image}
                     alt=""
                     aria-hidden="true"
-                    className="w-full object-contain"
+                    className="w-full object-cover object-[50%_58%]"
                     style={{ height: ITEM_HEIGHT }}
                     draggable={false}
                   />
@@ -213,35 +218,37 @@ export default function DealCoverFlow({
           onClick={prev}
           aria-label="Previous car"
           disabled={activeIndex === 0}
-          className="absolute left-3 top-1/2 z-[200] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-zinc-950/80 text-zinc-300 backdrop-blur transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          className="btn btn-secondary btn-icon absolute top-1/2 left-3 z-[200] -translate-y-1/2 bg-canvas/70 backdrop-blur"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft />
         </button>
         <button
           type="button"
           onClick={next}
           aria-label="Next car"
           disabled={activeIndex === deals.length - 1}
-          className="absolute right-3 top-1/2 z-[200] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-zinc-950/80 text-zinc-300 backdrop-blur transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          className="btn btn-secondary btn-icon absolute top-1/2 right-3 z-[200] -translate-y-1/2 bg-canvas/70 backdrop-blur"
         >
-          <ChevronRight size={20} />
+          <ChevronRight />
         </button>
       </div>
 
       {activeDeal && (
         <div className="mt-6 flex flex-col items-center text-center">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <p className="label">
             {activeIndex + 1} of {deals.length}
           </p>
-          <h3 className="mt-1 text-2xl font-black">
+          <h3 className="type-section mt-2 text-2xl sm:text-2xl">
             {activeDeal.year} {activeDeal.make} {activeDeal.model}
-            {activeDeal.trim && <span className="text-zinc-400"> {activeDeal.trim}</span>}
+            {activeDeal.trim && <span className="text-fg-muted"> {activeDeal.trim}</span>}
           </h3>
-          <p className="mt-1 text-lg font-bold text-white">
-            {formatCurrency(activeDeal.onePay ? activeDeal.dueAtSigning : activeDeal.payment)}
-            {!activeDeal.onePay && <span className="text-sm font-medium text-zinc-500">/mo</span>}
+          <p className="mt-2 flex items-baseline gap-1">
+            <span className="price">
+              {formatCurrency(activeDeal.onePay ? activeDeal.dueAtSigning : activeDeal.payment)}
+            </span>
+            {!activeDeal.onePay && <span className="price-unit">/mo</span>}
           </p>
-          <p className="mt-1 text-sm font-medium text-zinc-500">
+          <p className="mt-2 text-sm text-fg-muted">
             {!activeDeal.onePay && <>Due at signing {formatCurrency(activeDeal.dueAtSigning)} · </>}
             {activeDeal.term} mo · {activeDeal.city}, {activeDeal.state}
             {activeDeal.brokerFee != null && (
@@ -251,11 +258,11 @@ export default function DealCoverFlow({
           <Link
             href={`/deals/${activeDeal.slug}`}
             onClick={() => markDealViewed(activeDeal.id)}
-            className="mt-4 flex items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+            className="btn btn-primary mt-5"
           >
-            View Full Details <ArrowRight size={15} />
+            View full details <ArrowRight />
           </Link>
-          <p className="mt-3 text-xs text-zinc-600">
+          <p className="mt-3 text-xs text-fg-muted">
             Drag, click a side car, or use the arrow keys to flip through
           </p>
         </div>

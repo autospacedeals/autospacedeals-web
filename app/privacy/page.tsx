@@ -11,15 +11,17 @@ const LAST_UPDATED = "August 19, 2026";
 export default function PrivacyPolicyPage() {
   return (
     <main>
-      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
-        <p className="mb-3 text-sm font-medium text-blue-400">Legal</p>
-        <h1 className="mb-2 text-4xl font-bold tracking-tight">Privacy Policy</h1>
-        <p className="mb-10 text-sm text-zinc-500">Last updated: {LAST_UPDATED}</p>
+      <header className="container-prose pt-12 pb-8 sm:pt-16">
+        <p className="eyebrow">Legal</p>
+        <h1 className="type-page mt-4">Privacy Policy</h1>
+        <p className="label mt-3">Last updated: {LAST_UPDATED}</p>
+      </header>
 
-        <div className="space-y-10">
+      <div className="container-prose pb-16">
+        <div className="mt-10">
           <Section title="Overview">
             <p>
-              {SITE_NAME} ({"idriveus.com"}, "we," "us," or "our") is a marketplace that connects
+              {SITE_NAME} ({"idriveus.com"}, &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is a marketplace that connects
               car shoppers with dealers and brokers listing lease and finance deals. This policy
               explains what information we collect from customers and dealers/brokers who use the
               site, how we use it, and the choices you have.
@@ -33,7 +35,7 @@ export default function PrivacyPolicyPage() {
 
           <Section title="Information We Collect">
             <p>
-              <strong className="text-white">Account information.</strong> If you create a
+              <strong>Account information.</strong> If you create a
               customer account, we collect your first and last name, zip code, and email address
               (required), and optionally your address, current vehicle, and photos of your
               driver&apos;s license and insurance or AAA card. If you create a dealer/broker
@@ -41,17 +43,17 @@ export default function PrivacyPolicyPage() {
               email address.
             </p>
             <p>
-              <strong className="text-white">Listing content.</strong> Dealers and brokers submit
+              <strong>Listing content.</strong> Dealers and brokers submit
               vehicle listing details — pricing, terms, photos, and descriptions — either directly
               or by uploading a spreadsheet, pasting text, or uploading a screenshot of their
               inventory.
             </p>
             <p>
-              <strong className="text-white">Communications.</strong> If you email us or contact
+              <strong>Communications.</strong> If you email us or contact
               a dealer/broker through the site, we (and they) receive whatever you send.
             </p>
             <p>
-              <strong className="text-white">Automatically collected information.</strong> Like
+              <strong>Automatically collected information.</strong> Like
               most websites, our hosting provider logs standard technical information (IP
               address, browser type, pages visited) for security and reliability. We use a small
               number of essential cookies to keep you signed in — we don&apos;t use advertising or
@@ -88,7 +90,7 @@ export default function PrivacyPolicyPage() {
             <p>We don&apos;t sell your personal information. We share it only:</p>
             <ul>
               <li>
-                <strong className="text-white">With service providers</strong> who host our
+                <strong>With service providers</strong> who host our
                 infrastructure and help the site function — currently Supabase (database,
                 authentication, and file storage), Vercel (hosting), Anthropic (AI processing of
                 submitted spreadsheets/text/screenshots into listing data), and CarsXE (vehicle
@@ -96,18 +98,18 @@ export default function PrivacyPolicyPage() {
                 CarsXE)
               </li>
               <li>
-                <strong className="text-white">With the dealer/broker you contact</strong> — if
+                <strong>With the dealer/broker you contact</strong> — if
                 you reach out about a listing, we and the dealer/broker exchange whatever contact
                 information is needed for that conversation. A dealer/broker&apos;s business name,
                 city/state, and phone number are shown publicly on their listings and profile.
               </li>
               <li>
-                <strong className="text-white">If required by law</strong> — to comply with legal
+                <strong>If required by law</strong> — to comply with legal
                 process, or to protect the rights, property, or safety of {SITE_NAME}, our users,
                 or others
               </li>
               <li>
-                <strong className="text-white">In a business transfer</strong> — if {SITE_NAME}{" "}
+                <strong>In a business transfer</strong> — if {SITE_NAME}{" "}
                 is ever involved in a merger, acquisition, or sale of assets, your information may
                 transfer as part of that
               </li>
@@ -140,7 +142,7 @@ export default function PrivacyPolicyPage() {
             <p>
               To exercise any of these rights, or if you&apos;re in another state with similar
               privacy protections, email{" "}
-              <a href="mailto:rob@idriveus.com" className="text-white underline">
+              <a href="mailto:rob@idriveus.com" className="link">
                 rob@idriveus.com
               </a>
               . We won&apos;t discriminate against you for exercising these rights.
@@ -165,25 +167,23 @@ export default function PrivacyPolicyPage() {
           <Section title="Contact Us">
             <p>
               Questions about this policy or your information? Email{" "}
-              <a href="mailto:rob@idriveus.com" className="text-white underline">
+              <a href="mailto:rob@idriveus.com" className="link">
                 rob@idriveus.com
               </a>
               .
             </p>
           </Section>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      <h2 className="mb-4 text-2xl font-semibold">{title}</h2>
-      <div className="space-y-4 leading-7 text-zinc-300 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6">
-        {children}
-      </div>
+    <section className="border-t border-line py-10">
+      <h2 className="type-section text-2xl sm:text-2xl">{title}</h2>
+      <div className="prose-drive mt-4">{children}</div>
     </section>
   );
 }

@@ -20,14 +20,11 @@ export default function DeleteSubmissionButton({ id }: { id: string }) {
         }}
       >
         <input type="hidden" name="id" value={id} />
-        <button
-          type="submit"
-          className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-red-400"
-        >
-          <Trash2 size={12} /> Delete
+        <button type="submit" className="btn btn-danger btn-sm">
+          <Trash2 /> Delete
         </button>
       </form>
-      {error && <p className="mt-1 max-w-[160px] text-right text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 max-w-[160px] text-right text-xs text-danger">{error}</p>}
     </div>
   );
 }

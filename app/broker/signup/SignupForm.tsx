@@ -2,14 +2,14 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { MailCheck, UserPlus } from "lucide-react";
+import { CircleAlert, MailCheck, UserPlus } from "lucide-react";
 import { signUpAction, type AuthState } from "../actions";
 
 const initialState: AuthState = { error: null };
 
-const inputClass =
-  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
-const labelClass = "mb-1.5 block text-sm font-semibold text-zinc-300";
+const inputClass = "input";
+const selectClass = "select";
+const labelClass = "field-label";
 
 export default function SignupForm() {
   const [state, formAction, pending] = useActionState(signUpAction, initialState);
@@ -19,16 +19,13 @@ export default function SignupForm() {
   if (state.needsConfirmation) {
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-center">
-        <MailCheck size={32} className="text-emerald-400" />
-        <p className="text-lg font-bold">Check your email</p>
-        <p className="max-w-sm text-sm text-zinc-400">
+        <MailCheck size={32} className="text-success" />
+        <p className="type-title">Check your email</p>
+        <p className="max-w-sm text-sm text-fg-secondary">
           We sent a confirmation link to finish setting up your account. Once confirmed, come back
           and sign in.
         </p>
-        <Link
-          href="/broker/login"
-          className="mt-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-        >
+        <Link href="/broker/login" className="btn btn-primary mt-2">
           Go to sign in
         </Link>
       </div>
@@ -36,28 +33,42 @@ export default function SignupForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className={labelClass}>I am a</label>
+          <label htmlFor="broker-signup-seller-type" className={labelClass}>
+            I am a
+          </label>
           <select
+            id="broker-signup-seller-type"
             name="sellerType"
             value={sellerType}
             onChange={(e) => setSellerType(e.target.value)}
-            className={inputClass}
+            className={selectClass}
           >
             <option value="Broker">Broker</option>
             <option value="Salesperson">Dealership salesperson</option>
           </select>
         </div>
         <div>
-          <label className={labelClass}>Your name</label>
-          <input required name="contactName" placeholder="Jordan Smith" className={inputClass} />
+          <label htmlFor="broker-signup-contact-name" className={labelClass}>
+            Your name
+          </label>
+          <input
+            id="broker-signup-contact-name"
+            required
+            name="contactName"
+            placeholder="Jordan Smith"
+            className={inputClass}
+          />
         </div>
         {isSalesperson ? (
           <div>
-            <label className={labelClass}>Dealership you work at</label>
+            <label htmlFor="broker-signup-dealership-name" className={labelClass}>
+              Dealership you work at
+            </label>
             <input
+              id="broker-signup-dealership-name"
               required
               name="dealershipName"
               placeholder="AutoNation Toyota Irvine"
@@ -66,31 +77,70 @@ export default function SignupForm() {
           </div>
         ) : (
           <div>
-            <label className={labelClass}>Business name</label>
-            <input required name="businessName" placeholder="Chrome Stallions" className={inputClass} />
+            <label htmlFor="broker-signup-business-name" className={labelClass}>
+              Business name
+            </label>
+            <input
+              id="broker-signup-business-name"
+              required
+              name="businessName"
+              placeholder="Chrome Stallions"
+              className={inputClass}
+            />
           </div>
         )}
         <div>
-          <label className={labelClass}>Contact phone</label>
-          <input required name="contactPhone" placeholder="949-555-1234" className={inputClass} />
+          <label htmlFor="broker-signup-contact-phone" className={labelClass}>
+            Contact phone
+          </label>
+          <input
+            id="broker-signup-contact-phone"
+            required
+            name="contactPhone"
+            placeholder="949-555-1234"
+            className={inputClass}
+          />
         </div>
         <div>
-          <label className={labelClass}>City</label>
-          <input required name="city" className={inputClass} />
+          <label htmlFor="broker-signup-city" className={labelClass}>
+            City
+          </label>
+          <input id="broker-signup-city" required name="city" className={inputClass} />
         </div>
         <div>
-          <label className={labelClass}>State</label>
-          <input required name="state" maxLength={2} placeholder="CA" className={inputClass} />
+          <label htmlFor="broker-signup-state" className={labelClass}>
+            State
+          </label>
+          <input
+            id="broker-signup-state"
+            required
+            name="state"
+            maxLength={2}
+            placeholder="CA"
+            className={inputClass}
+          />
         </div>
       </div>
 
-      <div className="border-t border-white/10 pt-4">
-        <label className={labelClass}>Email</label>
-        <input required type="email" name="email" autoComplete="email" className={inputClass} />
+      <div className="border-t border-line pt-5">
+        <label htmlFor="broker-signup-email" className={labelClass}>
+          Email
+        </label>
+        <input
+          id="broker-signup-email"
+          required
+          type="email"
+          name="email"
+          autoComplete="email"
+          className={inputClass}
+        />
       </div>
       <div>
-        <label className={labelClass}>Password</label>
+        <label htmlFor="broker-signup-password" className={labelClass}>
+          Password
+        </label>
         <input
+          id="broker-signup-password"
           required
           type="password"
           name="password"
@@ -98,30 +148,31 @@ export default function SignupForm() {
           autoComplete="new-password"
           className={inputClass}
         />
-        <p className="mt-1 text-xs text-zinc-600">At least 8 characters.</p>
+        <p className="field-hint">At least 8 characters.</p>
       </div>
 
-      <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3.5 py-3 text-xs leading-5 text-amber-200/90">
-        Every listing must show the full due-at-signing amount — if tax is assumed, disclose the
-        rate (e.g. &quot;based on 7.75% tax&quot;). Accounts with repeated false or misleading
-        advertising will be removed.
+      <div className="alert alert-warning text-xs leading-5">
+        <CircleAlert />
+        <p>
+          Every listing must show the full due-at-signing amount — if tax is assumed, disclose the
+          rate (e.g. &quot;based on 7.75% tax&quot;). Accounts with repeated false or misleading
+          advertising will be removed.
+        </p>
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="alert alert-danger">
+          {state.error}
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
-      >
-        <UserPlus size={16} /> {pending ? "Creating account..." : "Create account"}
+      <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
+        <UserPlus /> {pending ? "Creating account..." : "Create account"}
       </button>
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-fg-muted">
         Already have an account?{" "}
-        <Link href="/broker/login" className="font-semibold text-white hover:underline">
+        <Link href="/broker/login" className="font-medium text-fg transition-colors hover:text-accent-fg">
           Sign in
         </Link>
       </p>

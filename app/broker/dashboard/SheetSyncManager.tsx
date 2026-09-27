@@ -59,40 +59,44 @@ export default function SheetSyncManager({ syncs }: { syncs: SheetSync[] }) {
   }
 
   return (
-    <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-      <h2 className="text-lg font-bold">Synced sheets</h2>
-      <p className="mt-1 text-sm text-zinc-400">
+    <div className="panel mt-8 sm:p-8">
+      <h2 className="type-title">Synced sheets</h2>
+      <p className="mt-1 text-sm text-fg-secondary">
         These Google Sheets get checked automatically every ~30 minutes for new or removed cars.
       </p>
 
-      {error && <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
+      {error && (
+        <p role="alert" className="alert alert-danger mt-3">
+          {error}
+        </p>
+      )}
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-5 space-y-3">
         {syncs.map((sync) => (
-          <div key={sync.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <div key={sync.id} className="rounded-xl border border-line bg-hover p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <a
                   href={sync.sheetUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="truncate text-sm font-semibold text-white hover:underline"
+                  className="link break-all text-sm"
                 >
                   {shortUrl(sync.sheetUrl)}
                 </a>
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
-                  <RefreshCw size={12} /> Last checked: {formatSyncedAt(sync.lastSyncedAt)}
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-fg-muted">
+                  <RefreshCw size={12} className="shrink-0" /> Last checked: {formatSyncedAt(sync.lastSyncedAt)}
                   {sync.lastSyncedAt &&
                     (sync.lastSyncAdded > 0 || sync.lastSyncRemoved > 0) &&
                     ` — added ${sync.lastSyncAdded}, removed ${sync.lastSyncRemoved}`}
                 </p>
                 {sync.lastSyncError && (
-                  <p className="mt-1 flex items-start gap-1.5 text-xs text-amber-300/80">
+                  <p className="mt-1 flex items-start gap-1.5 text-xs text-warning">
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" /> {sync.lastSyncError}
                   </p>
                 )}
                 {!sync.active && (
-                  <p className="mt-1 text-xs font-semibold text-zinc-500">Paused</p>
+                  <p className="pill pill-neutral mt-2">Paused</p>
                 )}
               </div>
 
@@ -101,14 +105,14 @@ export default function SheetSyncManager({ syncs }: { syncs: SheetSync[] }) {
                   type="button"
                   disabled={busyId === sync.id}
                   onClick={() => run(sync.id, () => toggleSheetSyncActiveAction(sync.id, !sync.active))}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="btn btn-secondary btn-sm"
                 >
                   {busyId === sync.id ? (
-                    <Loader2 size={13} className="animate-spin" />
+                    <Loader2 className="animate-spin" />
                   ) : sync.active ? (
-                    <Pause size={13} />
+                    <Pause />
                   ) : (
-                    <Play size={13} />
+                    <Play />
                   )}
                   {sync.active ? "Pause" : "Resume"}
                 </button>
@@ -116,14 +120,14 @@ export default function SheetSyncManager({ syncs }: { syncs: SheetSync[] }) {
                   type="button"
                   disabled={busyId === sync.id}
                   onClick={() => run(sync.id, () => deleteSheetSyncAction(sync.id))}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-red-500/10 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="btn btn-danger btn-sm"
                 >
-                  <Trash2 size={13} /> Unlink
+                  <Trash2 /> Unlink
                 </button>
               </div>
             </div>
 
-            <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
+            <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-xs text-fg-secondary has-[:disabled]:cursor-not-allowed">
               <input
                 type="checkbox"
                 checked={sync.autoPublish}
@@ -131,7 +135,7 @@ export default function SheetSyncManager({ syncs }: { syncs: SheetSync[] }) {
                 onChange={(e) =>
                   run(sync.id, () => toggleSheetSyncAutoPublishAction(sync.id, e.target.checked))
                 }
-                className="rounded border-white/20 bg-white/5"
+                className="checkbox"
               />
               Auto-publish new listings found on future checks (off = they land as drafts for you
               to confirm)

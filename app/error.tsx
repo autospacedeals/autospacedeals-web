@@ -21,29 +21,24 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 text-center">
-      <CircleAlert size={32} className="text-amber-400" />
-      <h1 className="mt-4 text-2xl font-black">Something went wrong</h1>
-      <p className="mt-2 text-sm text-zinc-400">
+    <main className="container-prose flex min-h-[60vh] flex-col items-center justify-center py-16 text-center">
+      <div className="grid size-12 place-items-center rounded-full border border-warning/25 bg-warning-soft text-warning">
+        <CircleAlert size={22} />
+      </div>
+      <h1 className="type-page mt-6 text-3xl sm:text-4xl">Something went wrong</h1>
+      <p className="lede mt-4 max-w-md">
         This page hit an unexpected error. It&apos;s been logged — try again, or head back to
         the homepage.
       </p>
-      <div className="mt-6 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={reset}
-          className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-        >
-          <RotateCcw size={15} /> Try again
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+        <button type="button" onClick={reset} className="btn btn-primary">
+          <RotateCcw /> Try again
         </button>
-        <Link
-          href="/"
-          className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
-        >
+        <Link href="/" className="btn btn-secondary">
           Back to homepage
         </Link>
       </div>
-      {error.digest && <p className="mt-6 text-xs text-zinc-700">Error ref: {error.digest}</p>}
+      {error.digest && <p className="mt-8 font-mono text-xs text-fg-muted">Error ref: {error.digest}</p>}
     </main>
   );
 }

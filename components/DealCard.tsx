@@ -8,7 +8,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, ArrowRight, Store, Clock } from "lucide-react";
+import { MapPin, ArrowRight, Store, CircleAlert } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import {
   displayMsrp,
@@ -23,18 +23,11 @@ import { ContactActionsCompact } from "./ContactActions";
 // clean look he wants. Only badge types listed here render at all; a
 // legacy `badge: "HOT"` value on an old row just won't match and won't
 // show anything. Exported so the deal detail page's photo badge respects
-// the same allowlist.
+// the same allowlist. Every allowed badge now renders as the same neutral
+// glass `.tag` — the value is the class to use.
 export const BADGE_STYLES: Record<string, string> = {
-  NEW: "bg-blue-500 text-white",
-  EV: "bg-teal-500 text-white",
-};
-
-const CONDITION_STYLES: Record<string, string> = {
-  New: "bg-blue-500 text-white",
-  CPO: "bg-emerald-500 text-white",
-  Loaner: "bg-amber-500 text-zinc-950",
-  Demo: "bg-amber-500 text-zinc-950",
-  Used: "bg-zinc-700 text-white",
+  NEW: "tag",
+  EV: "tag",
 };
 
 export default function DealCard({
@@ -56,166 +49,174 @@ export default function DealCard({
   const image = deal.images[0];
   const discount = msrpDiscountPercent(deal);
   const detailHref = `/deals/${deal.slug}`;
+  const title = `${deal.year} ${deal.make} ${deal.model}`;
 
   return (
-    <article className="group flex flex-col rounded-3xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-white/20 hover:bg-white/[0.07] sm:p-5">
-      <Link href={detailHref} className="block" onClick={() => markDealViewed(deal.id)}>
-        <div className="relative mb-4 overflow-hidden rounded-2xl bg-zinc-900">
-          <img
-            src={image}
-            alt={`${deal.year} ${deal.make} ${deal.model}`}
-            className="aspect-[4/3] w-full object-contain transition duration-300 group-hover:scale-105"
-          />
+    <article className="card-interactive group flex h-full flex-col overflow-hidden">
+      {/* Inset focus ring: the card clips overflow (rounded photo corners),
+          which would otherwise hide most of this full-bleed link's outline. */}
+      <Link
+        href={detailHref}
+        onClick={() => markDealViewed(deal.id)}
+        className="block focus-visible:-outline-offset-2"
+      >
+        <div className="media-stage aspect-[4/3]">
+          <img src={image} alt={title} className="media-img" />
 
-          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-            {isNewlyPosted(deal) && (
-              <span className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2.5 py-1 text-xs font-bold text-white">
-                <Clock size={11} /> Just Listed
-              </span>
-            )}
-            {deal.badge && BADGE_STYLES[deal.badge] && (
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-bold ${BADGE_STYLES[deal.badge]}`}
-              >
-                {deal.badge}
-              </span>
-            )}
-            {!deal.inStock && (
-              <span className="rounded-full bg-zinc-950/90 px-2.5 py-1 text-xs font-bold text-zinc-300">
-                Pending / Call to confirm
-              </span>
-            )}
+          {/* One row across the top: the left-hand tags wrap onto a second
+              line before they can run underneath the condition tag. */}
+          <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+            <div className="flex min-w-0 flex-wrap gap-1.5">
+              {isNewlyPosted(deal) && (
+                <span className="tag">
+                  <span className="tag-dot" /> Just listed
+                </span>
+              )}
+              {deal.badge && BADGE_STYLES[deal.badge] && (
+                <span className={BADGE_STYLES[deal.badge]}>{deal.badge}</span>
+              )}
+              {!deal.inStock && (
+                <span className="tag">
+                  <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
+                </span>
+              )}
+            </div>
+
+            {deal.condition && <span className="tag shrink-0">{deal.condition}</span>}
           </div>
 
-          {deal.condition && (
-            <span
-              className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-bold ${
-                CONDITION_STYLES[deal.condition] ?? "bg-zinc-950/90 text-zinc-300"
-              }`}
-            >
-              {deal.condition}
-            </span>
-          )}
-
           {deal.sample ? (
-            <span className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2.5 py-1 text-center text-[11px] font-bold uppercase tracking-wide text-zinc-950">
-              Sample listing — photo not exact vehicle
-            </span>
+            <p className="media-note media-note-warning">
+              <CircleAlert /> Sample listing — photo not exact vehicle
+            </p>
           ) : (
             deal.photoAutoSourced && (
-              <span className="absolute inset-x-0 bottom-0 bg-zinc-950/85 px-2.5 py-1 text-center text-[11px] font-semibold text-zinc-300">
-                Stock photo — may not be exact vehicle
-              </span>
+              <p className="media-note">Stock photo — may not be exact vehicle</p>
             )
           )}
         </div>
 
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          {[deal.dealType, deal.fuel].filter(Boolean).join(" · ")}
-        </p>
-        <h3 className="mt-1 text-xl font-black leading-tight">
-          {deal.year} {deal.make} {deal.model}
-        </h3>
-        {deal.trim && <p className="text-sm text-zinc-400">{deal.trim}</p>}
-      </Link>
-
-      <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-4">
-        <div>
-          <p className="text-xs text-zinc-500">
-            {deal.onePay ? "One-pay lease total" : "Monthly payment"}
-          </p>
-          <p className="text-3xl font-black">
-            {formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment)}
-            {!deal.onePay && (
-              <span className="text-sm font-medium text-zinc-500">
-                /mo{deal.paymentTaxRate ? ` (incl. ~${deal.paymentTaxRate}% tax)` : " + tax"}
-              </span>
-            )}
-          </p>
+        <div className="px-5 pt-5">
+          <p className="label">{[deal.dealType, deal.fuel].filter(Boolean).join(" · ")}</p>
+          <h3 className="type-card mt-1.5">{title}</h3>
+          {/* line-clamp, not truncate: nowrap text would set the card's
+              min-content width and could push the phone grid wider than
+              the screen on a long trim. */}
+          {deal.trim && <p className="mt-0.5 line-clamp-1 text-sm text-fg-secondary">{deal.trim}</p>}
         </div>
-        {discount > 0 && (
-          <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400">
-            {discount.toFixed(0)}% off MSRP
-          </span>
-        )}
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-zinc-300">
-        <Stat
-          label="Due at signing"
-          value={formatCurrency(deal.dueAtSigning)}
-          note={deal.dueAtSigningTaxRate ? `assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
-        />
-        <Stat label="Term" value={`${deal.term} mo`} />
-        <Stat
-          label="Mileage"
-          value={deal.milesPerYear ? `${(deal.milesPerYear / 1000).toFixed(1)}k/yr` : "N/A"}
-        />
-        <Stat label="MSRP" value={displayMsrp(deal)} />
-        {deal.brokerFee != null && (
-          <Stat label="Broker fee" value={formatCurrency(deal.brokerFee)} note="separate from due at signing" />
-        )}
-      </div>
-
-      <div className="mt-4 space-y-1.5 border-t border-white/10 pt-4 text-sm text-zinc-400">
-        <p className="flex items-center gap-2">
-          <MapPin size={15} /> {deal.city}, {deal.state}
-        </p>
-        <p className="flex items-center gap-2">
-          <Store size={15} />
-          {deal.brokerId ? (
-            <Link
-              href={`/brokers/${deal.brokerId}`}
-              className="font-semibold text-zinc-300 hover:text-white hover:underline"
-            >
-              {deal.sellerName}
-            </Link>
-          ) : (
-            deal.sellerName
-          )}{" "}
-          · {deal.sellerType}
-          {deal.sellerDealership && ` at ${deal.sellerDealership}`}
-        </p>
-      </div>
-
-      {onToggleCompare && (
-        <label
-          className={`mt-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
-            compareSelected
-              ? "border-white/30 bg-white/10 text-white"
-              : "border-white/10 bg-white/[0.02] text-zinc-400"
-          } ${compareDisabled && !compareSelected ? "opacity-50" : "cursor-pointer hover:border-white/20"}`}
-        >
-          <input
-            type="checkbox"
-            checked={!!compareSelected}
-            disabled={compareDisabled && !compareSelected}
-            onChange={onToggleCompare}
-            className="rounded border-white/20 bg-white/5"
-          />
-          {compareSelected ? "Added to compare" : "Compare this deal"}
-        </label>
-      )}
-
-      <ContactActionsCompact deal={deal} />
-
-      <Link
-        href={detailHref}
-        onClick={() => markDealViewed(deal.id)}
-        className="mt-2 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
-      >
-        View Full Details <ArrowRight size={15} />
       </Link>
+
+      <div className="flex flex-1 flex-col px-5 pb-5">
+        <div className="mt-4 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="label">{deal.onePay ? "One-pay lease total" : "Monthly payment"}</p>
+            <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1">
+              <span className="price">
+                {formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment)}
+              </span>
+              {!deal.onePay && (
+                <span className="price-unit">
+                  /mo{deal.paymentTaxRate ? ` (incl. ~${deal.paymentTaxRate}% tax)` : " + tax"}
+                </span>
+              )}
+            </p>
+          </div>
+          {discount > 0 && (
+            <p className="shrink-0 pb-0.5 text-[13px] font-medium text-success">
+              {discount.toFixed(0)}% off MSRP
+            </p>
+          )}
+        </div>
+
+        {/* Always exactly four cells (2 × 2) so every card's spec sheet is the
+            same height; the optional broker fee is one fine-print line below. */}
+        <dl className="spec-grid mt-4">
+          <Spec
+            label="Due at signing"
+            value={formatCurrency(deal.dueAtSigning)}
+            note={deal.dueAtSigningTaxRate ? `assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
+          />
+          <Spec label="Term" value={`${deal.term} mo`} />
+          <Spec
+            label="Mileage"
+            value={deal.milesPerYear ? `${(deal.milesPerYear / 1000).toFixed(1)}k/yr` : "N/A"}
+          />
+          <Spec label="MSRP" value={displayMsrp(deal)} />
+        </dl>
+        {deal.brokerFee != null && (
+          <p className="spec-footnote mt-2">
+            Broker fee <strong>{formatCurrency(deal.brokerFee)}</strong> · separate from due at
+            signing
+          </p>
+        )}
+
+        {/* Seller + actions are one unit anchored to the card bottom, so
+            action rows line up across a grid row. */}
+        <div className="mt-auto pt-5">
+          <div className="space-y-1.5 border-t border-line pt-4 text-[13px] text-fg-muted">
+            <p className="flex items-center gap-2">
+              <MapPin size={14} className="shrink-0 text-fg-faint" /> {deal.city}, {deal.state}
+            </p>
+            <p className="flex items-start gap-2">
+              <Store size={14} className="mt-0.5 shrink-0 text-fg-faint" />
+              <span>
+                {deal.brokerId ? (
+                  <Link
+                    href={`/brokers/${deal.brokerId}`}
+                    className="font-medium text-fg-secondary transition-colors hover:text-fg"
+                  >
+                    {deal.sellerName}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-fg-secondary">{deal.sellerName}</span>
+                )}{" "}
+                · {deal.sellerType}
+                {deal.sellerDealership && ` at ${deal.sellerDealership}`}
+              </span>
+            </p>
+          </div>
+
+          <div className="mt-4">
+            <ContactActionsCompact deal={deal} />
+          </div>
+
+          {/* Wraps onto two left-aligned lines when the card is too narrow
+              for the compare toggle and the details link side by side. */}
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3">
+            {onToggleCompare ? (
+              <label className="compare-toggle">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={!!compareSelected}
+                  disabled={compareDisabled && !compareSelected}
+                  onChange={onToggleCompare}
+                />
+                {compareSelected ? "Added to compare" : "Compare this deal"}
+              </label>
+            ) : (
+              <span />
+            )}
+            <Link
+              href={detailHref}
+              onClick={() => markDealViewed(deal.id)}
+              className="link-arrow min-h-9 pointer-coarse:min-h-11"
+            >
+              View full details <ArrowRight />
+            </Link>
+          </div>
+        </div>
+      </div>
     </article>
   );
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+function Spec({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-xl bg-white/5 px-3 py-2">
-      <p className="text-[11px] text-zinc-500">{label}</p>
-      <p className="font-bold">{value}</p>
-      {note && <p className="text-[10px] text-zinc-600">{note}</p>}
+    <div className="spec">
+      <dt className="spec-label">{label}</dt>
+      <dd className="spec-value">{value}</dd>
+      {note && <dd className="spec-note">{note}</dd>}
     </div>
   );
 }

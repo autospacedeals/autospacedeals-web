@@ -1,24 +1,977 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   DRIVE — design system (Tailwind CSS v4, CSS-first). Replaces app/globals.css.
+   --------------------------------------------------------------------------
+   1. :root tokens      raw values — the ONLY place colours are defined
+   2. @theme inline     tokens -> utilities (bg-canvas, text-fg-muted, …)
+   3. @theme static     easing, elevation, animations (always emitted)
+   4. @layer base       element defaults, focus ring, selection, icons
+   5. @layer components shared component classes (btn, input, card, …)
+                        Components sit BELOW utilities, so any Tailwind
+                        utility you add wins: `panel p-8`, `btn w-full`.
+                        Size modifiers only set CSS variables, so
+                        `btn btn-sm` / `btn-sm btn` behave identically.
+   6. @utility          tiny custom utilities (no-scrollbar)
+   7. reduced motion    unlayered, last, wins everything
+   --------------------------------------------------------------------------
+   Never use `tabular-nums`: Mona Sans's tabular figures carry a slashed
+   zero ($1Ø,ØØØ). Proportional figures are used everywhere.
+   ========================================================================== */
+
+/* 1. TOKENS ================================================================ */
 :root {
-  --background: #000000;
-  --foreground: #f4f4f5;
   color-scheme: dark;
+
+  /* Surfaces — cool near-black, four tonal steps (back -> front) */
+  --canvas: #07080a; /* page, header (75%), footer */
+  --surface: #0e1014; /* cards, panels, filter sidebar, how-it-works band */
+  --raised: #161920; /* avatars, selected segment, thumbnail wells */
+  --overlay: #1c2029; /* modals, menus, compare tray, <option> lists */
+
+  /* Lines + hover washes (use these instead of raw white alphas) */
+  --line: rgb(255 255 255 / 0.07);
+  --line-strong: rgb(255 255 255 / 0.13);
+  --line-hover: rgb(255 255 255 / 0.22);
+  --hover: rgb(255 255 255 / 0.04);
+  --hover-strong: rgb(255 255 255 / 0.08);
+
+  /* Text — contrast on canvas / surface / raised / overlay */
+  --fg: #f2f4f7; /* 18.2 / 17.3 / 16.0 / 14.8 — headings, values, prices */
+  --fg-secondary: #b4bac5; /* 10.3 /  9.8 /  9.0 /  8.4 — body copy, nav */
+  --fg-muted: #8c93a1; /*  6.5 /  6.2 /  5.7 /  5.3 — labels, meta, legal */
+  --fg-faint: #5d6471; /*  3.4 /  3.2 — icons, dividers, disabled. NEVER text */
+
+  /* Accent — one electric blue (continuity with the old logo's #2F7BFF) */
+  --brand: #2f7bff; /* logo, eyebrow/bullet parallelograms, range fill, dots */
+  --accent: #2a66f2; /* filled buttons — white text 4.9:1 */
+  --accent-hover: #2e6bf7; /* white text 4.6:1 */
+  --accent-fg: #7eabff; /* accent TEXT / icons on dark — 8.3:1 */
+  --accent-soft: rgb(47 123 255 / 0.13); /* tonal fills (Call button, callout) */
+  --accent-soft-hover: rgb(47 123 255 / 0.2);
+  --accent-line: rgb(47 123 255 / 0.42); /* tinted borders */
+  --on-accent: #ffffff;
+
+  /* Status */
+  --success: #4ade9a;
+  --success-soft: rgb(74 222 154 / 0.1);
+  --warning: #f7b955;
+  --warning-soft: rgb(247 185 85 / 0.1);
+  --danger: #ff7a7a;
+  --danger-soft: rgb(255 122 122 / 0.1);
+
+  /* Focus — 6.5:1 on canvas, 6.2:1 on surface */
+  --ring: #5b8fff;
+
+  /* Photo stage (behind car photos while loading) + glass tags on photos */
+  --stage-top: #1b2029;
+  --stage-bottom: #0b0d10;
+  --tag-bg: rgb(7 8 10 / 0.66);
+  /* Modal backdrop */
+  --scrim: rgb(3 4 6 / 0.72);
 }
 
+/* 2. UTILITY MAPPING ======================================================= */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-overlay: var(--overlay);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-hover: var(--line-hover);
+  --color-hover: var(--hover);
+  --color-hover-strong: var(--hover-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+
+  --color-brand: var(--brand);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-hover: var(--accent-soft-hover);
+  --color-accent-line: var(--accent-line);
+  --color-on-accent: var(--on-accent);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ring: var(--ring);
+  --color-scrim: var(--scrim);
+
+  /* Legacy aliases: files not yet restyled keep rendering during the sweep */
+  --color-background: var(--canvas);
+  --color-foreground: var(--fg);
+
+  /* Mona Sans (variable: wght 200–900, wdth 75–125) is the UI AND display
+     face. font-display = same family, semi-expanded (wdth 112). */
+  --font-sans: var(--font-mona), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-mona), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display--font-variation-settings: "wdth" 112;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-html,
-body {
-  background: var(--background);
-  color: var(--foreground);
+/* 3. MOTION + ELEVATION ==================================================== */
+@theme static {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --shadow-card: inset 0 1px 0 0 rgb(255 255 255 / 0.04), 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-lift: inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 24px 48px -20px rgb(0 0 0 / 0.9);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.06), 0 32px 80px -16px rgb(0 0 0 / 0.9);
+  --shadow-glow: 0 10px 30px -10px rgb(47 123 255 / 0.7);
+
+  --animate-fade-up: fade-up 0.6s var(--ease-out-expo) both;
+  --animate-fade-in: fade-in 0.2s ease-out both;
+  --animate-rise: rise 0.45s var(--ease-out-expo) both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
-body {
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+/* 4. BASE ================================================================== */
+@layer base {
+  html {
+    background-color: var(--canvas);
+    color: var(--fg);
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+    /* sticky header offset for #deals / #how / #brokers anchors */
+    scroll-padding-top: 5rem;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+  /* The calculators pin their live results bar to the bottom of the
+     viewport. Reserve that room at the very end of the page (below the
+     footer, not just below the calculator) so the bar never covers the
+     footer's legal text and Privacy/Terms links. */
+  body:has([data-results-bar="lease"]) {
+    padding-bottom: 12rem;
+    @media (width >= 40rem) {
+      padding-bottom: 13rem;
+    }
+  }
+  body:has([data-results-bar="lease-end"]) {
+    padding-bottom: 8rem;
+    @media (width >= 40rem) {
+      padding-bottom: 9rem;
+    }
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background-color: rgb(47 123 255 / 0.35);
+    color: #fff;
+  }
+  /* One focus style for everything that isn't a text field (fields use a
+     ring-coloured border + soft halo instead, see .input). */
+  :where(a, button, summary, [tabindex], [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Tailwind v4 preflight resets buttons to cursor:default. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  select option,
+  select optgroup {
+    background-color: var(--overlay);
+    color: var(--fg);
+  }
+  /* Every lucide-react icon gets the lighter, more refined stroke. */
+  svg.lucide {
+    stroke-width: 1.75;
+  }
+  hr {
+    border-color: var(--line);
+  }
+}
+
+/* 5. COMPONENTS ============================================================ */
+@layer components {
+  /* ---------- Layout ---------- */
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .container-prose {
+    @apply mx-auto w-full max-w-3xl px-4 sm:px-6;
+  }
+  .section {
+    @apply py-16 sm:py-24;
+  }
+
+  /* ---------- Type (colour included; override with any text-* utility) ---------- */
+  .type-hero {
+    @apply font-display text-[2.625rem] leading-[1] font-semibold tracking-[-0.035em] text-fg sm:text-6xl lg:text-[4.25rem];
+    font-variation-settings: "wdth" 112;
+  }
+  .type-page {
+    @apply font-display text-4xl leading-[1.05] font-semibold tracking-[-0.03em] text-fg sm:text-5xl;
+    font-variation-settings: "wdth" 112;
+  }
+  .type-section {
+    @apply font-display text-2xl leading-tight font-semibold tracking-[-0.025em] text-fg sm:text-3xl;
+    font-variation-settings: "wdth" 112;
+  }
+  .type-title {
+    @apply text-lg leading-snug font-semibold tracking-[-0.01em] text-fg;
+  }
+  .type-card {
+    @apply font-display text-lg leading-snug font-semibold tracking-[-0.015em] text-fg;
+    font-variation-settings: "wdth" 108;
+  }
+  .lede {
+    @apply text-base leading-7 text-fg-secondary sm:text-lg sm:leading-8;
+  }
+  .label {
+    @apply text-xs font-medium text-fg-muted;
+  }
+  /* Section kicker. Sentence case. The brand parallelogram echoes the logo's i-dot. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2.5 text-[13px] font-medium text-fg-secondary;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply h-1.5 w-2.5 shrink-0 rounded-[1px] bg-brand;
+    transform: skewX(-12deg);
+  }
+  .price {
+    @apply font-display text-[1.75rem] leading-none font-semibold tracking-[-0.03em] text-fg;
+    font-variation-settings: "wdth" 112;
+  }
+  .price-lg {
+    @apply font-display text-4xl leading-none font-semibold tracking-[-0.035em] text-fg sm:text-[2.75rem];
+    font-variation-settings: "wdth" 112;
+  }
+  .price-unit {
+    @apply text-sm font-normal tracking-normal text-fg-muted;
+    font-variation-settings: normal;
+  }
+  .stat-value {
+    @apply font-display text-2xl leading-none font-semibold tracking-[-0.02em] text-fg;
+    font-variation-settings: "wdth" 112;
+  }
+  .link {
+    @apply font-medium text-accent-fg underline decoration-accent-line underline-offset-4 transition-colors hover:decoration-accent-fg;
+  }
+  .link-quiet {
+    @apply text-fg-muted transition-colors hover:text-fg;
+  }
+  .link-arrow {
+    @apply inline-flex items-center gap-1.5 text-[13px] font-medium text-fg-secondary transition-colors hover:text-fg [&_svg]:size-3.5;
+  }
+  .link-arrow svg {
+    transition: transform 0.25s var(--ease-out-expo);
+  }
+
+  /* ---------- Buttons: "btn btn-<variant> [btn-sm|btn-lg] [btn-icon]" ---------- */
+  .btn {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: var(--btn-h, 2.75rem); /* 44px */
+    padding-inline: var(--btn-px, 1.25rem);
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    font-size: var(--btn-fs, 0.875rem);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    user-select: none;
+    transition-property: background-color, border-color, color, box-shadow, scale;
+    transition-duration: 200ms;
+    transition-timing-function: ease-out;
+  }
+  .btn svg {
+    width: var(--btn-icon, 1rem);
+    height: var(--btn-icon, 1rem);
+    flex-shrink: 0;
+  }
+  .btn:active:not(:disabled) {
+    scale: 0.98;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    pointer-events: none;
+    opacity: 0.45;
+  }
+  .btn-sm {
+    --btn-h: 2.25rem; /* 36px (44px on touch, see below) */
+    --btn-px: 1rem;
+    --btn-fs: 0.8125rem;
+  }
+  .btn-lg {
+    --btn-h: 3rem; /* 48px */
+    --btn-px: 1.5rem;
+    --btn-fs: 0.9375rem;
+    --btn-icon: 1.125rem;
+  }
+  .btn-icon {
+    width: var(--btn-h, 2.75rem);
+    padding-inline: 0;
+  }
+  /* The ONE filled blue per screen region: main action. */
+  .btn-primary {
+    background-color: var(--accent);
+    color: var(--on-accent);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+  /* Quiet blue: a repeated "primary-ish" action, e.g. Call on every deal card. */
+  .btn-tonal {
+    background-color: var(--accent-soft);
+    color: var(--accent-fg);
+  }
+  .btn-secondary {
+    border-color: var(--line-strong);
+    background-color: var(--hover);
+    color: var(--fg);
+  }
+  .btn-ghost {
+    color: var(--fg-secondary);
+  }
+  .btn-danger {
+    border-color: rgb(255 122 122 / 0.25);
+    background-color: var(--danger-soft);
+    color: var(--danger);
+  }
+  @media (hover: hover) {
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), var(--shadow-glow);
+    }
+    .btn-tonal:hover {
+      background-color: var(--accent-soft-hover);
+    }
+    .btn-secondary:hover {
+      border-color: var(--line-hover);
+      background-color: var(--hover-strong);
+    }
+    .btn-ghost:hover {
+      background-color: var(--hover-strong);
+      color: var(--fg);
+    }
+    .btn-danger:hover {
+      background-color: rgb(255 122 122 / 0.18);
+    }
+  }
+
+  /* ---------- Form fields ---------- */
+  .field-label {
+    @apply mb-1.5 block text-[13px] font-medium text-fg-secondary;
+  }
+  .field-hint {
+    @apply mt-1.5 text-xs leading-5 text-fg-muted;
+  }
+  .field-error {
+    @apply mt-1.5 text-xs leading-5 text-danger;
+  }
+  .input,
+  .select,
+  .textarea,
+  .input-group {
+    width: 100%;
+    height: var(--input-h, 2.75rem);
+    padding-inline: var(--input-px, 0.875rem);
+    border: 1px solid var(--line-strong);
+    border-radius: 0.75rem;
+    background-color: rgb(255 255 255 / 0.03);
+    color: var(--fg);
+    font-size: 1rem; /* 16px below sm: stops iOS Safari zooming on focus */
+    transition-property: border-color, background-color, box-shadow;
+    transition-duration: 150ms;
+    @media (width >= 40rem) {
+      font-size: var(--input-fs, 0.875rem);
+    }
+  }
+  .input::placeholder,
+  .textarea::placeholder,
+  .input-group input::placeholder {
+    color: var(--fg-muted);
+  }
+  @media (hover: hover) {
+    .input:hover,
+    .select:hover,
+    .textarea:hover,
+    .input-group:hover {
+      border-color: var(--line-hover);
+    }
+  }
+  .input:focus,
+  .select:focus,
+  .textarea:focus,
+  .input-group:focus-within {
+    outline: none;
+    border-color: var(--ring);
+    background-color: rgb(255 255 255 / 0.05);
+    box-shadow: 0 0 0 3px rgb(91 143 255 / 0.25);
+  }
+  .input[aria-invalid="true"],
+  .select[aria-invalid="true"],
+  .textarea[aria-invalid="true"] {
+    border-color: var(--danger);
+  }
+  .input:disabled,
+  .select:disabled,
+  .textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .textarea {
+    height: auto;
+    min-height: 7rem;
+    padding-block: 0.75rem;
+    line-height: 1.5rem;
+  }
+  .select {
+    cursor: pointer;
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238c93a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.875rem center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+  }
+  /* Compact field for dense back-office forms/tables: "input input-sm" */
+  .input-sm {
+    --input-h: 2.25rem;
+    --input-px: 0.75rem;
+    --input-fs: 0.8125rem;
+    border-radius: 0.625rem;
+  }
+  /* Compact pill select for toolbars (sort): "select select-sm" */
+  .select-sm {
+    --input-h: 2.25rem;
+    --input-fs: 0.8125rem;
+    width: auto;
+    border-radius: 9999px;
+    padding-left: 1rem;
+    padding-right: 2.25rem;
+    font-weight: 500;
+    background-position: right 0.75rem center;
+  }
+  /* Field with prefix/suffix or stepper buttons. The wrapper looks like an
+     .input; the <input> inside is bare.
+     <div className="input-group"><span className="input-affix">$</span><input … /></div> */
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  .input-group > input,
+  .input-group > select {
+    height: 100%;
+    min-width: 0;
+    flex: 1 1 0%;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    outline: none;
+  }
+  .input-affix {
+    @apply pointer-events-none shrink-0 text-sm text-fg-muted;
+  }
+  .stepper-btn {
+    @apply -mx-1.5 grid size-8 shrink-0 place-items-center rounded-lg text-fg-muted transition-colors hover:bg-hover-strong hover:text-fg [&_svg]:size-4;
+  }
+  /* Inline-editable table cell (broker MyListings). Transparent until hover/focus. */
+  .input-cell {
+    @apply block w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xs text-fg transition-colors placeholder:text-fg-muted hover:bg-hover focus:border-accent-line focus:bg-hover-strong focus:outline-none;
+  }
+  .input-cell-sub {
+    @apply mt-0.5 rounded px-1 py-0.5 text-[11px] text-fg-muted;
+  }
+  /* Selectable row/card that wraps a checkbox or radio (incentive rows,
+     source-type pickers). Selected state comes from the input itself
+     (:has(:checked)) — no conditional classes needed. */
+  .choice {
+    @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-line bg-hover px-3.5 py-2.5 text-sm text-fg-secondary transition-colors hover:border-line-strong has-[:checked]:border-accent-line has-[:checked]:bg-accent-soft has-[:checked]:text-fg has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0;
+  }
+  .choice:has(input.sr-only:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .checkbox {
+    @apply grid size-[18px] shrink-0 cursor-pointer appearance-none place-items-center rounded-[6px] border border-line-hover bg-hover transition-colors checked:border-accent checked:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .checkbox:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 12px;
+  }
+  /* Range: set style={{ "--range-pct": `${pct}%` }} for the filled track (WebKit). */
+  .range {
+    --range-pct: 100%;
+    @apply h-6 w-full cursor-pointer appearance-none bg-transparent;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, var(--brand) 0 var(--range-pct), rgb(255 255 255 / 0.1) var(--range-pct) 100%);
+  }
+  .range::-moz-range-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.1);
+  }
+  .range::-moz-range-progress {
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--brand);
+  }
+  .range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -8px;
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 9999px;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgb(47 123 255 / 0.25), 0 2px 6px rgb(0 0 0 / 0.5);
+    transition: box-shadow 0.15s;
+  }
+  .range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 9999px;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgb(47 123 255 / 0.25), 0 2px 6px rgb(0 0 0 / 0.5);
+  }
+  @media (hover: hover) {
+    .range:hover::-webkit-slider-thumb {
+      box-shadow: 0 0 0 6px rgb(47 123 255 / 0.3), 0 2px 6px rgb(0 0 0 / 0.5);
+    }
+  }
+  .file-input {
+    @apply block w-full rounded-xl border border-line-strong bg-hover p-1.5 text-sm text-fg-muted;
+  }
+  .file-input::file-selector-button {
+    @apply mr-3 cursor-pointer rounded-full border-0 bg-hover-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors;
+  }
+  @media (hover: hover) {
+    .file-input:hover::file-selector-button {
+      background-color: rgb(255 255 255 / 0.12);
+    }
+  }
+
+  /* ---------- Surfaces ---------- */
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+    box-shadow: var(--shadow-card);
+  }
+  /* Clickable surface: lifts, brightens its border and lights a blue hairline
+     on its top edge. Add `group` so .media-img inside zooms on hover. */
+  .card-interactive {
+    @apply relative rounded-2xl border border-line bg-surface transition-[translate,border-color,box-shadow] duration-500 ease-out-expo;
+    box-shadow: var(--shadow-card);
+  }
+  .card-interactive::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-6 top-0 z-10 h-px opacity-0 transition-opacity duration-500;
+    background: linear-gradient(90deg, transparent, rgb(126 171 255 / 0.7), transparent);
+  }
+  .card-interactive:has(:focus-visible) {
+    border-color: var(--line-hover);
+  }
+  @media (hover: hover) {
+    .card-interactive:hover {
+      translate: 0 -2px;
+      border-color: var(--line-strong);
+      box-shadow: var(--shadow-lift);
+    }
+    .card-interactive:hover::before {
+      opacity: 1;
+    }
+  }
+  .panel {
+    @apply rounded-2xl border border-line bg-surface p-5 sm:p-6;
+    box-shadow: var(--shadow-card);
+  }
+  .panel-title {
+    @apply flex items-center gap-2 text-base font-semibold text-fg [&_svg]:size-[18px] [&_svg]:text-accent-fg;
+  }
+  .modal {
+    @apply rounded-t-3xl border border-line-strong bg-overlay sm:rounded-3xl;
+    box-shadow: var(--shadow-pop);
+    --spec-bg: var(--overlay);
+  }
+  .well {
+    @apply rounded-xl border border-line bg-canvas/60 p-4;
+    --spec-bg: var(--canvas);
+  }
+  .callout {
+    @apply relative overflow-hidden rounded-xl border border-accent-line bg-accent-soft p-4 sm:p-5;
+  }
+  .callout::before {
+    content: "";
+    @apply absolute inset-x-0 top-0 h-px;
+    background: linear-gradient(90deg, transparent, var(--accent-fg), transparent);
+  }
+  /* Signature detail: a 1px blue gradient line (hero horizon, footer top, contact card top). */
+  .light-bar {
+    @apply pointer-events-none h-px w-full;
+    background: linear-gradient(90deg, transparent, rgb(126 171 255 / 0.55) 50%, transparent);
+  }
+  .skeleton {
+    @apply rounded-lg bg-raised;
+  }
+
+  /* ---------- Homepage hero (the only place with atmosphere) ---------- */
+  .hero {
+    @apply relative isolate overflow-hidden border-b border-line;
+  }
+  .hero-glow {
+    @apply pointer-events-none absolute inset-0 -z-10;
+    background:
+      radial-gradient(55% 70% at 88% -12%, rgb(126 171 255 / 0.13), transparent 70%),
+      radial-gradient(70% 60% at 50% 118%, rgb(47 123 255 / 0.24), transparent 70%);
+  }
+  /* Faint perspective "road grid" running to the horizon */
+  .hero-road {
+    @apply pointer-events-none absolute -inset-x-1/4 bottom-0 -z-10 h-[58%];
+    background-image:
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.055) 0 1px, transparent 1px 72px),
+      repeating-linear-gradient(0deg, rgb(255 255 255 / 0.04) 0 1px, transparent 1px 56px);
+    transform: perspective(420px) rotateX(62deg);
+    transform-origin: bottom center;
+    mask-image: linear-gradient(to top, #000 5%, transparent 80%);
+  }
+  .hero-horizon {
+    @apply pointer-events-none absolute inset-x-0 bottom-0 h-px;
+    background: linear-gradient(90deg, transparent, rgb(126 171 255 / 0.55) 50%, transparent);
+  }
+  .hero-horizon::after {
+    content: "";
+    @apply absolute inset-x-[15%] -bottom-1.5 h-3 blur-md;
+    background: linear-gradient(90deg, transparent, rgb(47 123 255 / 0.55), transparent);
+  }
+  .search-bar {
+    @apply flex items-center gap-2 rounded-full border border-line-strong bg-surface/80 py-1.5 pr-1.5 pl-5 backdrop-blur-xl transition-[border-color,box-shadow] duration-200;
+    box-shadow: var(--shadow-pop);
+  }
+  .search-bar:focus-within {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(91 143 255 / 0.25), var(--shadow-pop);
+  }
+  .search-bar input {
+    @apply h-11 min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-fg-muted sm:text-[15px];
+  }
+
+  /* ---------- Photo stage (every car photo) ---------- */
+  .media-stage {
+    @apply relative isolate overflow-hidden;
+    background: radial-gradient(120% 90% at 50% 0%, var(--stage-top), var(--stage-bottom) 70%);
+  }
+  /* Soft vignette + hairline: tames bright studio backdrops next to darker
+     dealer photos so a grid of mixed photos reads as one set. */
+  .media-stage::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 z-[1];
+    border-radius: inherit;
+    background: radial-gradient(130% 110% at 50% 42%, transparent 55%, rgb(0 0 0 / 0.22));
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.04);
+  }
+  /* tags, notes and buttons placed inside the stage sit above the vignette */
+  .media-stage > :not(img) {
+    z-index: 2;
+  }
+  /* object-contain: listing photos come in mixed ratios (mostly 4:3 studio
+     shots, but also 2:1 side profiles and tightly framed dealer photos), and
+     a shopper needs to see the whole car — cropping cut off bumpers/noses.
+     The stage gradient behind it fills any letterbox space. */
+  .media-img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    filter: brightness(0.94);
+    transition:
+      scale 0.7s var(--ease-out-expo),
+      filter 0.7s var(--ease-out-expo);
+  }
+  /* Explicit no-crop modifier (now the .media-img default; kept so existing
+     "media-img media-img-contain" usages stay valid) */
+  .media-img-contain {
+    object-fit: contain;
+    object-position: center;
+  }
+  @media (hover: hover) {
+    .group:hover .media-img {
+      scale: 1.04;
+      filter: brightness(1);
+    }
+  }
+  /* Disclosure strip on photos ("Stock photo…", "Sample listing…") */
+  .media-note {
+    @apply pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-linear-to-t from-black/80 via-black/55 to-transparent px-3 pt-8 pb-2.5 text-center text-[11px] leading-4 font-medium text-fg-secondary [&_svg]:size-3.5 [&_svg]:shrink-0;
+  }
+  .media-note-warning {
+    @apply text-warning;
+  }
+
+  /* ---------- Labels ---------- */
+  /* .tag = labels ON photos only (neutral glass, fg text, one style for all) */
+  .tag {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/12 px-2.5 py-1 text-[11px] leading-none font-medium text-fg backdrop-blur-md [&_svg]:size-3;
+    background-color: var(--tag-bg);
+  }
+  .tag-dot {
+    @apply size-1.5 shrink-0 rounded-full bg-brand;
+  }
+  .tag-dot-warning {
+    @apply bg-warning;
+  }
+  /* .pill = inline status labels on dark surfaces */
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs leading-none font-medium whitespace-nowrap [&_svg]:size-3;
+  }
+  .pill-neutral {
+    @apply bg-hover-strong text-fg-secondary;
+  }
+  .pill-accent {
+    @apply bg-accent-soft text-accent-fg;
+  }
+  .pill-success {
+    @apply bg-success-soft text-success;
+  }
+  .pill-warning {
+    @apply bg-warning-soft text-warning;
+  }
+  .pill-danger {
+    @apply bg-danger-soft text-danger;
+  }
+  /* .chip = pressable filter shortcut; state via aria-pressed */
+  .chip {
+    @apply inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-hover px-4 text-[13px] font-medium whitespace-nowrap text-fg-secondary transition-colors hover:border-line-hover hover:bg-hover-strong hover:text-fg aria-pressed:border-accent-line aria-pressed:bg-accent-soft aria-pressed:text-fg [&_svg]:size-3.5;
+  }
+
+  /* ---------- Segmented control (Grid / Cover flow) ---------- */
+  .segmented {
+    @apply inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-1;
+  }
+  .segmented-item {
+    @apply inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg [&_svg]:size-3.5;
+  }
+  .segmented-item[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1px var(--line-strong), 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+
+  /* ---------- Numbers: spec sheet, statement rows ---------- */
+  /* 2 columns by default; change with a utility (sm:grid-cols-3). Keep the
+     cell count a multiple of the column count so no empty hairline cell shows. */
+  .spec-grid {
+    @apply grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line;
+  }
+  .spec {
+    @apply px-3 py-2.5;
+    background-color: var(--spec-bg, var(--surface));
+  }
+  .spec-label {
+    @apply text-[11px] leading-4 font-medium text-fg-muted;
+  }
+  .spec-value {
+    @apply mt-0.5 text-sm font-semibold text-fg;
+  }
+  .spec-note {
+    @apply mt-0.5 text-[11px] leading-4 text-fg-muted;
+  }
+  /* one fine-print line under a spec grid (e.g. broker fee on cards) */
+  .spec-footnote {
+    @apply text-xs leading-5 text-fg-muted [&_strong]:font-semibold [&_strong]:text-fg;
+  }
+  /* statement rows: label left, value right, hairlines between */
+  .statement {
+    @apply divide-y divide-line text-sm;
+  }
+  .statement-row {
+    @apply flex items-start justify-between gap-4 py-3;
+  }
+  .statement-row > dt {
+    @apply text-fg-muted;
+  }
+  .statement-row > dd {
+    @apply text-right font-medium text-fg;
+  }
+
+  /* ---------- Navigation, misc ---------- */
+  .nav-link {
+    @apply rounded-full px-3.5 py-2 text-sm font-medium text-fg-secondary transition-colors hover:text-fg aria-[current=page]:bg-hover-strong aria-[current=page]:text-fg;
+  }
+  /* <label className="compare-toggle"><input type="checkbox" className="checkbox" /> Compare</label> */
+  .compare-toggle {
+    @apply inline-flex min-h-9 cursor-pointer items-center gap-2 text-[13px] font-medium text-fg-muted transition-colors select-none hover:text-fg has-[:checked]:text-accent-fg has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50;
+  }
+  .avatar {
+    @apply grid size-11 shrink-0 place-items-center rounded-full border border-line-strong bg-raised font-display text-sm font-semibold text-fg;
+  }
+
+  /* ---------- Alerts (first child svg is auto-sized) ---------- */
+  .alert {
+    @apply flex items-start gap-3 rounded-xl border p-4 text-sm leading-6 [&>svg]:mt-0.5 [&>svg]:size-[18px] [&>svg]:shrink-0;
+  }
+  .alert-warning {
+    @apply border-warning/20 bg-warning-soft text-fg-secondary [&>svg]:text-warning;
+  }
+  .alert-danger {
+    @apply border-danger/25 bg-danger-soft text-danger;
+  }
+  .alert-success {
+    @apply border-success/20 bg-success-soft text-success;
+  }
+  .alert-info {
+    @apply border-accent-line bg-accent-soft text-fg-secondary [&>svg]:text-accent-fg;
+  }
+
+  /* ---------- Tables (broker portal, admin) ---------- */
+  .table-drive {
+    @apply w-full border-collapse text-sm;
+  }
+  .table-drive th {
+    @apply border-b border-line px-4 py-3 text-left text-xs font-medium whitespace-nowrap text-fg-muted;
+  }
+  .table-drive td {
+    @apply border-b border-line px-4 py-3 align-middle text-fg-secondary;
+  }
+  .table-drive tbody tr {
+    @apply transition-colors hover:bg-hover;
+  }
+
+  /* ---------- Long-form content (guide, privacy, terms, seller notes) ---------- */
+  .prose-drive {
+    @apply text-base leading-7 text-fg-secondary;
+  }
+  .prose-drive > * + * {
+    @apply mt-4;
+  }
+  .prose-drive h2 {
+    @apply mt-12 font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-fg;
+    font-variation-settings: "wdth" 112;
+  }
+  .prose-drive h3 {
+    @apply mt-8 text-lg font-semibold text-fg;
+  }
+  .prose-drive strong {
+    @apply font-semibold text-fg;
+  }
+  .prose-drive a {
+    @apply font-medium text-accent-fg underline decoration-accent-line underline-offset-4 hover:decoration-accent-fg;
+  }
+  .prose-drive ul > li + li,
+  .prose-drive ol > li + li {
+    @apply mt-2;
+  }
+  .prose-drive ul > li {
+    @apply relative pl-5;
+  }
+  /* bullets = tiny brand parallelograms (the logo's i-dot) */
+  .prose-drive ul > li::before {
+    content: "";
+    @apply absolute top-[0.72em] left-0.5 h-[5px] w-2 rounded-[1px] bg-brand;
+    transform: skewX(-12deg);
+  }
+  .prose-drive ol {
+    @apply list-decimal pl-5 marker:text-fg-muted;
+  }
+  .prose-drive code {
+    @apply rounded-md bg-hover-strong px-1.5 py-0.5 font-mono text-[0.875em] text-fg;
+  }
+  .formula {
+    @apply rounded-r-xl border-l-2 border-brand bg-surface px-4 py-3 font-mono text-[13px] leading-6 text-fg;
+  }
+
+  /* ---------- Touch: compact controls grow to 44px on coarse pointers ---------- */
+  @media (pointer: coarse) {
+    .btn-sm,
+    .select-sm {
+      --btn-h: 2.75rem;
+      --input-h: 2.75rem;
+    }
+    .chip {
+      @apply h-11;
+    }
+    .segmented-item {
+      @apply h-11;
+    }
+    .compare-toggle {
+      @apply min-h-11;
+    }
+    .stepper-btn {
+      @apply size-11;
+    }
+  }
+}
+
+/* 6. UTILITIES ============================================================= */
+/* Horizontal chip rows on phones: "flex overflow-x-auto no-scrollbar" */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 7. REDUCED MOTION (unlayered, last) ====================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+  .card-interactive:hover {
+    translate: none !important;
+  }
+  .group:hover .media-img {
+    scale: none !important;
+  }
 }

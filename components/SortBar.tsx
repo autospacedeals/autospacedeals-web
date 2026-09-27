@@ -22,18 +22,19 @@ export default function SortBar({
   resultCount: number;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm text-zinc-400">
-        Showing <span className="font-semibold text-white">{resultCount}</span> deal
+    <div className="flex flex-1 flex-wrap items-center justify-between gap-3">
+      <p className="text-sm text-fg-muted" aria-live="polite">
+        Showing <span className="font-display text-base font-semibold text-fg">{resultCount}</span> deal
         {resultCount === 1 ? "" : "s"}
       </p>
 
-      <label className="flex items-center gap-2 text-sm text-zinc-400">
-        Sort by
+      <label className="flex items-center gap-2 text-[13px] text-fg-muted">
+        <span className="hidden sm:inline">Sort by</span>
+        <span className="sr-only sm:hidden">Sort by</span>
         <select
           value={sortBy}
           onChange={(e) => onSortChange(e.target.value as SortOption)}
-          className="rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white outline-none"
+          className="select select-sm"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option} value={option}>

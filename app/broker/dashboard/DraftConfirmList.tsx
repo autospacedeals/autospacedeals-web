@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { CheckSquare, Square, Pencil, X, Trash2, Loader2, Eye } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
@@ -9,10 +9,10 @@ import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { confirmDraftsAction, updateDraftDealAction, deleteDraftAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
-const inputClass =
-  "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
-const labelClass = "mb-1 block text-xs font-semibold text-zinc-400";
-const selectClass = inputClass + " appearance-none";
+const inputClass = "input input-sm";
+const labelClass = "field-label";
+const selectClass = "select input-sm";
+const textareaClass = "textarea input-sm";
 
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
@@ -49,9 +49,9 @@ export default function DraftConfirmList({
   }
 
   return (
-    <div className="rounded-3xl border border-amber-500/30 bg-amber-500/[0.06] p-6 sm:p-8">
-      <h2 className="text-lg font-bold">Cars ready for your confirmation</h2>
-      <p className="mt-1 text-sm text-zinc-400">
+    <div className="panel border-warning/25 sm:p-8">
+      <h2 className="type-title">Cars ready for your confirmation</h2>
+      <p className="mt-1 text-sm text-fg-secondary">
         We pulled these from a source you submitted. Hit &quot;Edit&quot; to fill in anything
         missing or fix something we got wrong, uncheck anything that&apos;s sold or outdated, then
         confirm to publish the rest.
@@ -73,7 +73,7 @@ export default function DraftConfirmList({
         type="button"
         onClick={handleConfirm}
         disabled={confirming}
-        className="mt-3 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
+        className="btn btn-primary mt-4"
       >
         {confirming ? "Publishing..." : `Confirm & publish selected (${checked.size})`}
       </button>
@@ -99,6 +99,7 @@ function DraftRow({
   const [incentives, setIncentives] = useState<IncentiveRow[]>(
     (deal.incentives ?? []).map((inc) => ({ ...inc, includedInPrice: inc.includedInPrice === true }))
   );
+  const uid = useId();
 
   async function handleDelete() {
     if (
@@ -121,57 +122,65 @@ function DraftRow({
 
   if (!editing) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-950/40 p-3.5">
-        <button type="button" onClick={onToggle} className="shrink-0 text-white" aria-label="Toggle selected">
-          {checked ? <CheckSquare size={20} /> : <Square size={20} className="text-zinc-500" />}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-canvas/60 p-3.5">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="btn btn-ghost btn-icon btn-sm -ml-1.5 [&_svg]:size-5"
+          aria-label="Toggle selected"
+          aria-pressed={checked}
+        >
+          {checked ? <CheckSquare className="text-accent-fg" /> : <Square className="text-fg-muted" />}
         </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{dealTitle(deal)}</p>
-          <p className="text-xs text-zinc-500">
+        <div className="min-w-0 grow basis-48">
+          <p className="truncate font-semibold text-fg">{dealTitle(deal)}</p>
+          <p className="text-xs text-fg-muted">
             {deal.onePay ? `${formatCurrency(deal.dueAtSigning)} one-pay` : `${formatCurrency(deal.payment)}/mo`}
             {" · "}
             {formatCurrency(deal.dueAtSigning)} due at signing · {deal.term}mo
           </p>
-          {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+          {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
-        <Link
-          href={`/broker/preview/${deal.id}`}
-          target="_blank"
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
-        >
-          <Eye size={12} /> View card
-        </Link>
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
-        >
-          <Pencil size={12} /> Edit
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          aria-label="Discard draft"
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
-        >
-          {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-        </button>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Link
+            href={`/broker/preview/${deal.id}`}
+            target="_blank"
+            className="btn btn-secondary btn-sm"
+          >
+            <Eye /> View card
+          </Link>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="btn btn-secondary btn-sm"
+          >
+            <Pencil /> Edit
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            aria-label="Discard draft"
+            className="btn btn-danger btn-icon btn-sm"
+          >
+            {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-white/20 bg-white/[0.05] p-4">
-      <div className="flex items-center justify-between">
-        <p className="font-semibold">{dealTitle(deal)}</p>
+    <div className="rounded-xl border border-line-strong bg-hover p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-fg">{dealTitle(deal)}</p>
         <button
           type="button"
           onClick={() => setEditing(false)}
-          className="text-zinc-500 hover:text-white"
+          className="btn btn-ghost btn-icon btn-sm -my-1 -mr-2"
           aria-label="Close"
         >
-          <X size={16} />
+          <X />
         </button>
       </div>
 
@@ -188,27 +197,27 @@ function DraftRow({
 
         <div className="grid gap-3 sm:grid-cols-4">
           <div>
-            <label className={labelClass}>Year</label>
-            <input required type="number" name="year" defaultValue={deal.year} className={inputClass} />
+            <label htmlFor={`${uid}-year`} className={labelClass}>Year</label>
+            <input required type="number" id={`${uid}-year`} name="year" defaultValue={deal.year} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Make</label>
-            <input required type="text" name="make" defaultValue={deal.make} className={inputClass} />
+            <label htmlFor={`${uid}-make`} className={labelClass}>Make</label>
+            <input required type="text" id={`${uid}-make`} name="make" defaultValue={deal.make} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Model</label>
-            <input required type="text" name="model" defaultValue={deal.model} className={inputClass} />
+            <label htmlFor={`${uid}-model`} className={labelClass}>Model</label>
+            <input required type="text" id={`${uid}-model`} name="model" defaultValue={deal.model} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Trim (optional)</label>
-            <input type="text" name="trim" defaultValue={deal.trim} className={inputClass} />
+            <label htmlFor={`${uid}-trim`} className={labelClass}>Trim (optional)</label>
+            <input type="text" id={`${uid}-trim`} name="trim" defaultValue={deal.trim} className={inputClass} />
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <div>
-            <label className={labelClass}>Condition</label>
-            <select name="condition" defaultValue={deal.condition ?? "New"} className={selectClass}>
+            <label htmlFor={`${uid}-condition`} className={labelClass}>Condition</label>
+            <select id={`${uid}-condition`} name="condition" defaultValue={deal.condition ?? "New"} className={selectClass}>
               {CONDITIONS.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -217,8 +226,8 @@ function DraftRow({
             </select>
           </div>
           <div>
-            <label className={labelClass}>Body style (optional)</label>
-            <select name="bodyStyle" defaultValue={deal.bodyStyle ?? ""} className={selectClass}>
+            <label htmlFor={`${uid}-bodyStyle`} className={labelClass}>Body style (optional)</label>
+            <select id={`${uid}-bodyStyle`} name="bodyStyle" defaultValue={deal.bodyStyle ?? ""} className={selectClass}>
               <option value="">Not specified</option>
               {BODY_STYLES.map((b) => (
                 <option key={b} value={b}>
@@ -228,8 +237,8 @@ function DraftRow({
             </select>
           </div>
           <div>
-            <label className={labelClass}>Fuel type (optional)</label>
-            <select name="fuel" defaultValue={deal.fuel ?? ""} className={selectClass}>
+            <label htmlFor={`${uid}-fuel`} className={labelClass}>Fuel type (optional)</label>
+            <select id={`${uid}-fuel`} name="fuel" defaultValue={deal.fuel ?? ""} className={selectClass}>
               <option value="">Not specified</option>
               {FUEL_TYPES.map((f) => (
                 <option key={f} value={f}>
@@ -239,56 +248,58 @@ function DraftRow({
             </select>
           </div>
           <div>
-            <label className={labelClass}>Exterior color (optional)</label>
-            <input type="text" name="exterior" defaultValue={deal.exterior} className={inputClass} />
+            <label htmlFor={`${uid}-exterior`} className={labelClass}>Exterior color (optional)</label>
+            <input type="text" id={`${uid}-exterior`} name="exterior" defaultValue={deal.exterior} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Interior color (optional)</label>
-            <input type="text" name="interior" defaultValue={deal.interior} className={inputClass} />
+            <label htmlFor={`${uid}-interior`} className={labelClass}>Interior color (optional)</label>
+            <input type="text" id={`${uid}-interior`} name="interior" defaultValue={deal.interior} className={inputClass} />
           </div>
         </div>
 
         <input type="hidden" name="dealType" value={deal.dealType} />
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className={labelClass}>MSRP</label>
+            <label htmlFor={`${uid}-msrp`} className={labelClass}>MSRP</label>
             <input
               required
               type="text"
               inputMode="numeric"
+              id={`${uid}-msrp`}
               name="msrp"
               defaultValue={msrpEditValue(deal)}
               className={inputClass}
             />
-            <p className="mt-1.5 text-xs text-zinc-500">
+            <p className="field-hint">
               Type x&apos;s for any digits to hide from shoppers (e.g. 54,xxx) — the exact number
               won&apos;t be saved.
             </p>
           </div>
           <div>
-            <label className={labelClass}>Selling price (optional)</label>
-            <input type="number" name="sellingPrice" defaultValue={deal.sellingPrice ?? ""} className={inputClass} />
+            <label htmlFor={`${uid}-sellingPrice`} className={labelClass}>Selling price (optional)</label>
+            <input type="number" id={`${uid}-sellingPrice`} name="sellingPrice" defaultValue={deal.sellingPrice ?? ""} className={inputClass} />
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-400">
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-fg-secondary">
           <input
             type="checkbox"
             name="onePay"
             checked={onePay}
             onChange={(e) => setOnePay(e.target.checked)}
-            className="rounded border-white/20 bg-white/5"
+            className="checkbox"
           />
           One-pay lease (single upfront lump sum, no monthly bill)
         </label>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}</label>
+            <label htmlFor={`${uid}-payment`} className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}</label>
             <input
               required={!onePay}
               disabled={onePay}
               type="number"
+              id={`${uid}-payment`}
               name="payment"
               defaultValue={deal.payment || ""}
               className={inputClass}
@@ -300,50 +311,52 @@ function DraftRow({
                 name="paymentTaxRate"
                 defaultValue={deal.paymentTaxRate ?? ""}
                 placeholder="If tax is included, assumed tax % (optional)"
-                className={`${inputClass} mt-1.5 text-xs`}
+                className={`${inputClass} mt-1.5`}
               />
             )}
           </div>
           <div>
-            <label className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>
-            <input required type="number" name="dueAtSigning" defaultValue={deal.dueAtSigning} className={inputClass} />
+            <label htmlFor={`${uid}-dueAtSigning`} className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>
+            <input required type="number" id={`${uid}-dueAtSigning`} name="dueAtSigning" defaultValue={deal.dueAtSigning} className={inputClass} />
             <input
               type="number"
               step="0.01"
               name="dueAtSigningTaxRate"
               defaultValue={deal.dueAtSigningTaxRate ?? ""}
               placeholder="Assumed tax % (optional)"
-              className={`${inputClass} mt-1.5 text-xs`}
+              className={`${inputClass} mt-1.5`}
             />
           </div>
           <div>
-            <label className={labelClass}>Term (months)</label>
-            <input required type="number" name="term" defaultValue={deal.term} className={inputClass} />
+            <label htmlFor={`${uid}-term`} className={labelClass}>Term (months)</label>
+            <input required type="number" id={`${uid}-term`} name="term" defaultValue={deal.term} className={inputClass} />
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Miles per year</label>
+            <label htmlFor={`${uid}-milesPerYear`} className={labelClass}>Miles per year</label>
             <input
               required
               type="number"
+              id={`${uid}-milesPerYear`}
               name="milesPerYear"
               defaultValue={deal.milesPerYear ?? ""}
               className={inputClass}
             />
           </div>
           <div>
-            <label className={labelClass}>Broker fee (optional)</label>
+            <label htmlFor={`${uid}-brokerFee`} className={labelClass}>Broker fee (optional)</label>
             <input
               type="number"
               step="0.01"
+              id={`${uid}-brokerFee`}
               name="brokerFee"
               defaultValue={deal.brokerFee ?? ""}
               placeholder="595"
               className={inputClass}
             />
-            <p className="mt-1.5 text-xs text-zinc-500">
+            <p className="field-hint">
               Shown to shoppers as its own line item, separate from due at signing.
             </p>
           </div>
@@ -352,30 +365,32 @@ function DraftRow({
         <IncentivesEditor value={incentives} onChange={setIncentives} brokerState={brokerState} />
 
         <div>
-          <label className={labelClass}>Photo URLs (one per line, optional)</label>
+          <label htmlFor={`${uid}-images`} className={labelClass}>Photo URLs (one per line, optional)</label>
           <textarea
+            id={`${uid}-images`}
             name="images"
             defaultValue={deal.images.filter((i) => i !== PLACEHOLDER_IMAGE).join("\n")}
             placeholder="https://example.com/photo1.jpg"
-            className={`${inputClass} min-h-16 resize-y font-mono text-xs`}
+            className={`${textareaClass} min-h-16 resize-y font-mono`}
           />
-          <p className="mt-1 text-xs text-zinc-600">
+          <p className="field-hint">
             Leave blank and we&apos;ll try to automatically find a matching stock photo, but we
             can&apos;t guarantee it&apos;ll be the exact year/trim/color.
           </p>
         </div>
 
         <div>
-          <label className={labelClass}>Notes</label>
-          <textarea name="notes" defaultValue={deal.notes} className={`${inputClass} min-h-16 resize-y`} />
+          <label htmlFor={`${uid}-notes`} className={labelClass}>Notes</label>
+          <textarea id={`${uid}-notes`} name="notes" defaultValue={deal.notes} className={`${textareaClass} min-h-16 resize-y`} />
         </div>
 
-        {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
+        {error && (
+          <p role="alert" className="alert alert-danger">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="submit"
-          className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-        >
+        <button type="submit" className="btn btn-primary btn-sm">
           Save changes
         </button>
       </form>

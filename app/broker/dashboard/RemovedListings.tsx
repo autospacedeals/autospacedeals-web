@@ -34,53 +34,56 @@ export default function RemovedListings({ deals }: { deals: Deal[] }) {
   }
 
   return (
-    <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02]">
+    <div className="card mt-8">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left"
+        aria-expanded={open}
+        className="flex min-h-12 w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl px-5 py-4 text-left"
       >
-        <span className="flex items-center gap-2 text-sm font-bold text-zinc-300">
+        <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-fg-secondary">
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           Removed listings ({deals.length})
         </span>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-fg-muted">
           {open ? "Hide" : "Show"} — listings you&apos;ve taken down, with when they were listed and removed
         </span>
       </button>
 
       {open && (
-        <div className="border-t border-white/10 px-5 pb-5 pt-3">
+        <div className="border-t border-line px-1 pb-1">
           {error && (
-            <p className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p>
+            <p role="alert" className="alert alert-danger mx-4 mt-4 px-3 py-2 text-xs leading-5">
+              {error}
+            </p>
           )}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-left text-sm">
+            <table className="table-drive min-w-[520px] [&_tbody_tr:last-child_td]:border-b-0">
               <thead>
-                <tr className="text-[11px] font-bold uppercase tracking-wide text-zinc-500">
-                  <th className="py-2 pr-3">Vehicle</th>
-                  <th className="py-2 pr-3">Listed</th>
-                  <th className="py-2 pr-3">Removed</th>
-                  <th className="py-2 pr-3"></th>
+                <tr>
+                  <th>Vehicle</th>
+                  <th>Listed</th>
+                  <th>Removed</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {deals.map((deal) => (
-                  <tr key={deal.id} className="border-t border-white/5 text-zinc-300">
-                    <td className="py-2.5 pr-3">{dealTitle(deal)}</td>
-                    <td className="py-2.5 pr-3 text-zinc-400">{formatDate(deal.datePosted)}</td>
-                    <td className="py-2.5 pr-3 text-zinc-400">{formatRemovedAt(deal.removedAt)}</td>
-                    <td className="py-2.5 pr-3 text-right">
+                  <tr key={deal.id}>
+                    <td>{dealTitle(deal)}</td>
+                    <td>{formatDate(deal.datePosted)}</td>
+                    <td>{formatRemovedAt(deal.removedAt)}</td>
+                    <td className="text-right">
                       <button
                         type="button"
                         onClick={() => handleRestore(deal.id)}
                         disabled={restoringId === deal.id}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className="btn btn-secondary btn-sm"
                       >
                         {restoringId === deal.id ? (
-                          <Loader2 size={13} className="animate-spin" />
+                          <Loader2 className="animate-spin" />
                         ) : (
-                          <RotateCcw size={13} />
+                          <RotateCcw />
                         )}
                         Restore
                       </button>

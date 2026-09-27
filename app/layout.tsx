@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Mona_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { type HeaderAccount } from "@/components/SiteHeader";
 import SiteChrome from "@/components/SiteChrome";
@@ -8,15 +8,26 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { withTimeout } from "@/lib/supabase/with-timeout";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Mona Sans is both the UI face and (semi-expanded, wdth 112) the display
+// face — one variable file. The width axis must be requested explicitly.
+const monaSans = Mona_Sans({
   subsets: ["latin"],
+  axes: ["wdth"],
+  variable: "--font-mona",
+  display: "swap",
 });
 
+// Formulas (leasing guide) and step numbers only.
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
 });
+
+export const viewport: Viewport = {
+  themeColor: "#07080a",
+  colorScheme: "dark",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -94,11 +105,8 @@ export default async function RootLayout({
   const account = await getHeaderAccount();
 
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full bg-black antialiased`}
-    >
-      <body className="flex min-h-full flex-col bg-black text-white">
+    <html lang="en" className={`${monaSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col bg-canvas font-sans text-fg">
         <SiteChrome account={account}>{children}</SiteChrome>
       </body>
     </html>

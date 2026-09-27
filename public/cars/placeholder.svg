@@ -1,12 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
-  <rect width="640" height="480" fill="#18181b"/>
-  <g fill="none" stroke="#52525b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M120 300 L160 220 Q175 200 200 200 L440 200 Q465 200 480 220 L520 300" />
-    <rect x="100" y="300" width="440" height="70" rx="16" />
-    <circle cx="180" cy="380" r="28" />
-    <circle cx="460" cy="380" r="28" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480" role="img" aria-label="Photo coming soon">
+  <defs>
+    <radialGradient id="stage" cx="0.5" cy="0" r="1.1">
+      <stop offset="0" stop-color="#1B2029"/>
+      <stop offset="0.7" stop-color="#0B0D10"/>
+    </radialGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7EABFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#7EABFF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#7EABFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="480" fill="url(#stage)"/>
+  <rect x="96" y="362" width="448" height="1.5" fill="url(#floor)"/>
+  <g fill="none" stroke="#5D6471" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -40)">
+    <path d="M150 318 L186 250 Q199 230 224 230 L416 230 Q441 230 454 250 L490 318"/>
+    <rect x="130" y="318" width="380" height="58" rx="16"/>
+    <circle cx="206" cy="378" r="24"/>
+    <circle cx="434" cy="378" r="24"/>
   </g>
-  <text x="320" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#71717a">
-    Photo coming soon
-  </text>
+  <g fill="#8C93A1" transform="translate(262 396)">
+    <!-- "Photo coming soon" is intentionally NOT text (no font dependency): a small camera glyph instead -->
+    <rect x="44" y="4" width="28" height="20" rx="4" fill="none" stroke="#8C93A1" stroke-width="2.5"/>
+    <circle cx="58" cy="14" r="5" fill="none" stroke="#8C93A1" stroke-width="2.5"/>
+    <rect x="50" y="0" width="10" height="5" rx="1.5"/>
+  </g>
 </svg>

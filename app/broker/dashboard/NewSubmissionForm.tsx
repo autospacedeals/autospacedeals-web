@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 import {
   Link as LinkIcon,
   Sheet,
@@ -21,10 +21,11 @@ import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 
 const initialState: SubmissionState = { error: null };
 
-const inputClass =
-  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-white/30 focus:outline-none";
-const labelClass = "mb-1.5 block text-sm font-semibold text-zinc-300";
-const selectClass = inputClass + " appearance-none";
+const inputClass = "input";
+const labelClass = "field-label";
+const selectClass = "select";
+// Subsection heading inside the manual form (Vehicle, Deal terms, …).
+const sectionHeadingClass = "mb-3 text-sm font-semibold text-fg";
 
 const CATEGORIES = [
   {
@@ -71,16 +72,13 @@ export default function NewSubmissionForm({ brokerState }: { brokerState?: strin
               key={value}
               type="button"
               onClick={() => setCategory(value)}
-              className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
-                category === value
-                  ? "border-white bg-white/10 text-white"
-                  : "border-white/10 text-zinc-400 hover:border-white/20"
-              }`}
+              aria-pressed={category === value}
+              className="choice items-start px-4 py-3 text-left aria-pressed:border-accent-line aria-pressed:bg-accent-soft aria-pressed:text-fg"
             >
-              <Icon size={18} className="mt-0.5 shrink-0" />
+              <Icon className="mt-0.5 shrink-0" />
               <span>
-                <span className="block font-semibold">{label}</span>
-                <span className="block text-xs text-zinc-500">{description}</span>
+                <span className="block font-medium">{label}</span>
+                <span className="mt-0.5 block text-xs leading-5 text-fg-muted">{description}</span>
               </span>
             </button>
           ))}
@@ -111,6 +109,7 @@ function LinkForm({
     "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot"
   >("link");
   const [keepSynced, setKeepSynced] = useState(false);
+  const uid = useId();
 
   // Jump straight to the new drafts instead of making the broker scroll up
   // to find them — the section only exists once there's at least one
@@ -127,8 +126,8 @@ function LinkForm({
     const parsedCount = state.parsedCount ?? 0;
     const skippedCount = state.skippedCount ?? 0;
     return (
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4 sm:p-5">
-        <p className="text-sm font-semibold text-emerald-300">
+      <div className="rounded-2xl border border-success/20 bg-success/5 p-4 sm:p-5">
+        <p className="text-sm font-semibold text-success">
           {parsedCount > 0
             ? `Source saved — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it. Take a look above to review and publish them.`
             : "Source saved."}
@@ -136,12 +135,12 @@ function LinkForm({
             ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}
         </p>
         {state.sheetSynced && (
-          <p className="mt-2 text-sm text-emerald-300/80">
+          <p className="mt-2 text-sm text-success">
             This sheet is now set to check for updates automatically — manage it below under
             &quot;Synced sheets.&quot;
           </p>
         )}
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-fg-secondary">
           {parsedCount > 0
             ? "Need to add more? You can also enter cars one at a time below."
             : "Now add the car(s) from it below — each one publishes as soon as you submit it, and you can add as many as you need."}
@@ -149,22 +148,18 @@ function LinkForm({
 
         {state.skippedDeals && state.skippedDeals.length > 0 ? (
           <div className="mt-4 space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-3.5 py-2.5">
-              <p className="text-xs text-zinc-400">
+            <div className="alert alert-warning flex-wrap items-center justify-between gap-2 px-3.5 py-2.5">
+              <p className="text-xs leading-5 text-fg-secondary">
                 Rather retry the source itself than fix these by hand? A re-upload sometimes reads
                 a row correctly the second time.
               </p>
-              <button
-                type="button"
-                onClick={onStartOver}
-                className="shrink-0 whitespace-nowrap rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white"
-              >
+              <button type="button" onClick={onStartOver} className="btn btn-secondary btn-sm">
                 Try uploading again
               </button>
             </div>
             {state.skippedDeals.map((partial, i) => (
               <div key={i} className="space-y-2">
-                <p className="text-xs font-semibold text-amber-300/90">
+                <p className="text-xs font-semibold text-warning">
                   {state.skipReasons?.[i] ?? "Couldn't fully read this row"} — everything else we
                   could read is already filled in below, just fix what&apos;s missing.
                 </p>
@@ -175,8 +170,8 @@ function LinkForm({
                 />
               </div>
             ))}
-            <div className="border-t border-white/10 pt-5">
-              <p className="mb-2 text-sm text-zinc-400">Add another car from this source:</p>
+            <div className="border-t border-line pt-5">
+              <p className="mb-2 text-sm text-fg-secondary">Add another car from this source:</p>
               <ManualForm submissionId={state.submissionId} brokerState={brokerState} />
             </div>
           </div>
@@ -195,14 +190,7 @@ function LinkForm({
         <label className={labelClass}>Source type</label>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {LINK_TYPES.map(({ value, label, icon: Icon }) => (
-            <label
-              key={value}
-              className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
-                sourceType === value
-                  ? "border-white bg-white/10 text-white"
-                  : "border-white/10 text-zinc-400 hover:border-white/20"
-              }`}
-            >
+            <label key={value} className="choice gap-2 px-3">
               <input
                 type="radio"
                 name="sourceType"
@@ -211,7 +199,7 @@ function LinkForm({
                 onChange={() => setSourceType(value)}
                 className="sr-only"
               />
-              <Icon size={15} /> {label}
+              <Icon /> {label}
             </label>
           ))}
         </div>
@@ -219,51 +207,54 @@ function LinkForm({
 
       {sourceType === "excel_file" ? (
         <div>
-          <label className={labelClass}>Excel file (.xlsx, .xls, .csv)</label>
+          <label htmlFor={`${uid}-excelFile`} className={labelClass}>Excel file (.xlsx, .xls, .csv)</label>
           <input
             required
             type="file"
+            id={`${uid}-excelFile`}
             name="file"
             accept=".xlsx,.xls,.csv"
-            className="block w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-zinc-950 hover:file:bg-zinc-200"
+            className="file-input"
           />
-          <p className="mt-1 text-xs text-zinc-600">Max 10MB.</p>
+          <p className="field-hint">Max 10MB.</p>
         </div>
       ) : sourceType === "free_text" ? (
         <div>
-          <label className={labelClass}>Paste the deal details</label>
+          <label htmlFor={`${uid}-dealText`} className={labelClass}>Paste the deal details</label>
           <textarea
             required
+            id={`${uid}-dealText`}
             name="dealText"
             placeholder={
               "2026 BMW X5 xDrive40i, 36mo/10k, $799/mo, $4999 due, MSRP 68k\n\n" +
               "2025 Porsche Taycan Turbo S, 24mo/7.5k, $1,899/mo, $8k due at signing..."
             }
-            className={`${inputClass} min-h-40 resize-y`}
+            className="textarea min-h-40 resize-y"
           />
-          <p className="mt-1 text-xs text-zinc-600">
+          <p className="field-hint">
             Paste in as much as you&apos;ve got — pricing, terms, colors, whatever you have. Our AI
             reads it and pulls out each car as a draft for you to review before it publishes.
           </p>
         </div>
       ) : sourceType === "screenshot" ? (
         <div>
-          <label className={labelClass}>Screenshot</label>
+          <label htmlFor={`${uid}-screenshot`} className={labelClass}>Screenshot</label>
           <input
             required
             type="file"
+            id={`${uid}-screenshot`}
             name="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
-            className="block w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-zinc-950 hover:file:bg-zinc-200"
+            className="file-input"
           />
-          <p className="mt-1 text-xs text-zinc-600">
+          <p className="field-hint">
             A screenshot of a text thread, forum post, or spreadsheet. Our AI reads it and pulls
             out each car as a draft for you to review before it publishes. Max 10MB.
           </p>
         </div>
       ) : (
         <div>
-          <label className={labelClass}>
+          <label htmlFor={`${uid}-sourceUrl`} className={labelClass}>
             {sourceType === "google_sheet"
               ? "Google Sheet share link"
               : "Link to your forum post or website"}
@@ -271,6 +262,7 @@ function LinkForm({
           <input
             required
             type="url"
+            id={`${uid}-sourceUrl`}
             name="sourceUrl"
             placeholder={
               sourceType === "google_sheet"
@@ -281,21 +273,21 @@ function LinkForm({
           />
           {sourceType === "google_sheet" && (
             <>
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="field-hint">
                 Set sharing to &quot;Anyone with the link can view&quot; so we can read it.
               </p>
-              <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-                <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-300">
+              <div className="mt-3 space-y-3 rounded-xl border border-line bg-hover p-3.5">
+                <label className="flex cursor-pointer items-start gap-2.5 text-sm text-fg-secondary">
                   <input
                     type="checkbox"
                     name="keepSynced"
                     checked={keepSynced}
                     onChange={(e) => setKeepSynced(e.target.checked)}
-                    className="mt-0.5 rounded border-white/20 bg-white/5"
+                    className="checkbox mt-px"
                   />
                   <span>
                     Keep this sheet synced automatically
-                    <span className="block text-xs text-zinc-500">
+                    <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
                       We&apos;ll check it every ~30 minutes and remove listings that disappear from
                       the sheet (recoverable from your removed list). This first check still lands
                       as drafts for you either way.
@@ -303,15 +295,11 @@ function LinkForm({
                   </span>
                 </label>
                 {keepSynced && (
-                  <label className="flex cursor-pointer items-start gap-2 pl-6 text-sm text-zinc-300">
-                    <input
-                      type="checkbox"
-                      name="autoPublish"
-                      className="mt-0.5 rounded border-white/20 bg-white/5"
-                    />
+                  <label className="flex cursor-pointer items-start gap-2.5 pl-7 text-sm text-fg-secondary">
+                    <input type="checkbox" name="autoPublish" className="checkbox mt-px" />
                     <span>
                       Auto-publish new listings found during future checks
-                      <span className="block text-xs text-zinc-500">
+                      <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
                         Off = new rows land as drafts for you to confirm, same as today. On = new
                         rows go live immediately, no review.
                       </span>
@@ -325,24 +313,23 @@ function LinkForm({
       )}
 
       <div>
-        <label className={labelClass}>Notes (optional)</label>
+        <label htmlFor={`${uid}-notes`} className={labelClass}>Notes (optional)</label>
         <textarea
+          id={`${uid}-notes`}
           name="notes"
           placeholder="Anything we should know — which sections to pull, current specials, etc."
-          className={`${inputClass} min-h-24 resize-y`}
+          className="textarea min-h-24 resize-y"
         />
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="alert alert-danger">
+          {state.error}
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
-      >
-        <Upload size={16} /> {pending ? "Importing..." : "Import cars"}
+      <button type="submit" disabled={pending} className="btn btn-primary">
+        <Upload /> {pending ? "Importing..." : "Import cars"}
       </button>
     </form>
   );
@@ -364,6 +351,7 @@ function ManualForm({
   const [state, formAction, pending] = useActionState(createManualDealAction, initialState);
   const [onePay, setOnePay] = useState(initialValues?.onePay ?? false);
   const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
+  const uid = useId();
   // Bump the form's key on every successful publish so the fields clear —
   // needed here (unlike a one-shot form) because a broker submitting a
   // link may come back and publish several cars in a row from this same
@@ -388,15 +376,16 @@ function ManualForm({
   return (
     <form action={formAction} className="space-y-4" key={resetCount}>
       {submissionId && <input type="hidden" name="submissionId" value={submissionId} />}
-      <div className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="space-y-6 rounded-xl border border-line bg-hover p-4">
         <div>
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Vehicle</p>
+          <p className={sectionHeadingClass}>Vehicle</p>
           <div className="grid gap-3 sm:grid-cols-4">
             <div className="sm:col-span-1">
-              <label className={labelClass}>Year</label>
+              <label htmlFor={`${uid}-year`} className={labelClass}>Year</label>
               <input
                 required
                 type="number"
+                id={`${uid}-year`}
                 name="year"
                 defaultValue={initialValues?.year}
                 placeholder="2026"
@@ -404,10 +393,11 @@ function ManualForm({
               />
             </div>
             <div className="sm:col-span-1">
-              <label className={labelClass}>Make</label>
+              <label htmlFor={`${uid}-make`} className={labelClass}>Make</label>
               <input
                 required
                 type="text"
+                id={`${uid}-make`}
                 name="make"
                 defaultValue={initialValues?.make}
                 placeholder="BMW"
@@ -415,10 +405,11 @@ function ManualForm({
               />
             </div>
             <div className="sm:col-span-1">
-              <label className={labelClass}>Model</label>
+              <label htmlFor={`${uid}-model`} className={labelClass}>Model</label>
               <input
                 required
                 type="text"
+                id={`${uid}-model`}
                 name="model"
                 defaultValue={initialValues?.model}
                 placeholder="X5"
@@ -426,9 +417,10 @@ function ManualForm({
               />
             </div>
             <div className="sm:col-span-1">
-              <label className={labelClass}>Trim (optional)</label>
+              <label htmlFor={`${uid}-trim`} className={labelClass}>Trim (optional)</label>
               <input
                 type="text"
+                id={`${uid}-trim`}
                 name="trim"
                 defaultValue={initialValues?.trim ?? undefined}
                 placeholder="xDrive40i"
@@ -438,8 +430,8 @@ function ManualForm({
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div>
-              <label className={labelClass}>Condition</label>
-              <select name="condition" defaultValue="New" className={selectClass}>
+              <label htmlFor={`${uid}-condition`} className={labelClass}>Condition</label>
+              <select id={`${uid}-condition`} name="condition" defaultValue="New" className={selectClass}>
                 {CONDITIONS.map((c) => (
                   <option key={c} value={c}>
                     {c}
@@ -448,8 +440,8 @@ function ManualForm({
               </select>
             </div>
             <div>
-              <label className={labelClass}>Body style (optional)</label>
-              <select name="bodyStyle" defaultValue="" className={selectClass}>
+              <label htmlFor={`${uid}-bodyStyle`} className={labelClass}>Body style (optional)</label>
+              <select id={`${uid}-bodyStyle`} name="bodyStyle" defaultValue="" className={selectClass}>
                 <option value="">Not specified</option>
                 {BODY_STYLES.map((b) => (
                   <option key={b} value={b}>
@@ -459,8 +451,8 @@ function ManualForm({
               </select>
             </div>
             <div>
-              <label className={labelClass}>Fuel type (optional)</label>
-              <select name="fuel" defaultValue="" className={selectClass}>
+              <label htmlFor={`${uid}-fuel`} className={labelClass}>Fuel type (optional)</label>
+              <select id={`${uid}-fuel`} name="fuel" defaultValue="" className={selectClass}>
                 <option value="">Not specified</option>
                 {FUEL_TYPES.map((f) => (
                   <option key={f} value={f}>
@@ -470,9 +462,10 @@ function ManualForm({
               </select>
             </div>
             <div>
-              <label className={labelClass}>Exterior color (optional)</label>
+              <label htmlFor={`${uid}-exterior`} className={labelClass}>Exterior color (optional)</label>
               <input
                 type="text"
+                id={`${uid}-exterior`}
                 name="exterior"
                 defaultValue={initialValues?.exterior ?? undefined}
                 placeholder="Alpine White"
@@ -480,9 +473,10 @@ function ManualForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Interior color (optional)</label>
+              <label htmlFor={`${uid}-interior`} className={labelClass}>Interior color (optional)</label>
               <input
                 type="text"
+                id={`${uid}-interior`}
                 name="interior"
                 defaultValue={initialValues?.interior ?? undefined}
                 placeholder="Black"
@@ -493,48 +487,50 @@ function ManualForm({
         </div>
 
         <div>
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Deal terms</p>
+          <p className={sectionHeadingClass}>Deal terms</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label className={labelClass}>MSRP</label>
+              <label htmlFor={`${uid}-msrp`} className={labelClass}>MSRP</label>
               <input
                 required
                 type="text"
                 inputMode="numeric"
+                id={`${uid}-msrp`}
                 name="msrp"
                 defaultValue={initialValues?.msrp ?? undefined}
                 placeholder="65000, or 65,xxx to hide part of it"
                 className={inputClass}
               />
-              <p className="mt-1.5 text-xs text-zinc-500">
+              <p className="field-hint">
                 Type x&apos;s for any digits to hide from shoppers (e.g. 54,xxx) — the exact number
                 won&apos;t be saved.
               </p>
             </div>
             <div>
-              <label className={labelClass}>Selling price (optional)</label>
-              <input type="number" name="sellingPrice" placeholder="61000" className={inputClass} />
+              <label htmlFor={`${uid}-sellingPrice`} className={labelClass}>Selling price (optional)</label>
+              <input type="number" id={`${uid}-sellingPrice`} name="sellingPrice" placeholder="61000" className={inputClass} />
             </div>
           </div>
 
-          <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-zinc-400">
+          <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-sm text-fg-secondary">
             <input
               type="checkbox"
               name="onePay"
               checked={onePay}
               onChange={(e) => setOnePay(e.target.checked)}
-              className="rounded border-white/20 bg-white/5"
+              className="checkbox"
             />
             This is a one-pay lease (single upfront lump sum, no monthly bill)
           </label>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
-              <label className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}</label>
+              <label htmlFor={`${uid}-payment`} className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}</label>
               <input
                 required={!onePay}
                 disabled={onePay}
                 type="number"
+                id={`${uid}-payment`}
                 name="payment"
                 defaultValue={initialValues?.payment ?? undefined}
                 placeholder={onePay ? "0 — see due at signing" : "799"}
@@ -546,15 +542,16 @@ function ManualForm({
                   step="0.01"
                   name="paymentTaxRate"
                   placeholder="If tax is included, assumed tax % (optional)"
-                  className={`${inputClass} mt-1.5 text-xs`}
+                  className={`${inputClass} mt-1.5`}
                 />
               )}
             </div>
             <div>
-              <label className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>
+              <label htmlFor={`${uid}-dueAtSigning`} className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>
               <input
                 required
                 type="number"
+                id={`${uid}-dueAtSigning`}
                 name="dueAtSigning"
                 defaultValue={initialValues?.dueAtSigning ?? undefined}
                 placeholder={onePay ? "55999" : "4999"}
@@ -565,14 +562,15 @@ function ManualForm({
                 step="0.01"
                 name="dueAtSigningTaxRate"
                 placeholder="Assumed tax % (optional)"
-                className={`${inputClass} mt-1.5 text-xs`}
+                className={`${inputClass} mt-1.5`}
               />
             </div>
             <div>
-              <label className={labelClass}>Term (months)</label>
+              <label htmlFor={`${uid}-term`} className={labelClass}>Term (months)</label>
               <input
                 required
                 type="number"
+                id={`${uid}-term`}
                 name="term"
                 defaultValue={initialValues?.term}
                 placeholder="36"
@@ -583,10 +581,11 @@ function ManualForm({
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
-              <label className={labelClass}>Miles per year</label>
+              <label htmlFor={`${uid}-milesPerYear`} className={labelClass}>Miles per year</label>
               <input
                 required
                 type="number"
+                id={`${uid}-milesPerYear`}
                 name="milesPerYear"
                 defaultValue={initialValues?.milesPerYear ?? undefined}
                 placeholder="10000"
@@ -594,16 +593,17 @@ function ManualForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Broker fee (optional)</label>
+              <label htmlFor={`${uid}-brokerFee`} className={labelClass}>Broker fee (optional)</label>
               <input
                 type="number"
                 step="0.01"
+                id={`${uid}-brokerFee`}
                 name="brokerFee"
                 defaultValue={initialValues?.brokerFee ?? undefined}
                 placeholder="595"
                 className={inputClass}
               />
-              <p className="mt-1.5 text-xs text-zinc-500">
+              <p className="field-hint">
                 Shown to shoppers as its own line item, separate from due at signing.
               </p>
             </div>
@@ -611,21 +611,20 @@ function ManualForm({
         </div>
 
         <div>
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">Incentives</p>
+          <p className={sectionHeadingClass}>Incentives</p>
           <IncentivesEditor value={incentives} onChange={setIncentives} brokerState={brokerState} />
         </div>
 
         <div>
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-zinc-500">
-            Photos (optional)
-          </p>
-          <label className={labelClass}>Photo URLs (one per line)</label>
+          <p className={sectionHeadingClass}>Photos (optional)</p>
+          <label htmlFor={`${uid}-images`} className={labelClass}>Photo URLs (one per line)</label>
           <textarea
+            id={`${uid}-images`}
             name="images"
             placeholder={"https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg"}
-            className={`${inputClass} min-h-20 resize-y font-mono text-xs`}
+            className="textarea min-h-20 resize-y font-mono"
           />
-          <p className="mt-1 text-xs text-zinc-600">
+          <p className="field-hint">
             Links to real photos of this vehicle — a manufacturer site, your own listing, etc. No
             attachments yet, just links for now. Leave this blank and we&apos;ll try to automatically
             find a matching stock photo, but we can&apos;t guarantee it&apos;ll be the exact
@@ -635,20 +634,23 @@ function ManualForm({
       </div>
 
       <div>
-        <label className={labelClass}>Notes</label>
+        <label htmlFor={`${uid}-notes`} className={labelClass}>Notes</label>
         <textarea
+          id={`${uid}-notes`}
           name="notes"
           defaultValue={initialValues?.notes ?? undefined}
           placeholder="Any packages/features, current specials, or anything else worth knowing."
-          className={`${inputClass} min-h-24 resize-y`}
+          className="textarea min-h-24 resize-y"
         />
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="alert alert-danger">
+          {state.error}
+        </p>
       )}
       {state.success && (
-        <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+        <p className="alert alert-success">
           Published — this listing is live on the site now.{" "}
           {submissionId
             ? "Add another car from the same source below, or head to “Your live listings” when you're done."
@@ -656,12 +658,8 @@ function ManualForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending || publishedAndLocked}
-        className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
-      >
-        <Upload size={16} />
+      <button type="submit" disabled={pending || publishedAndLocked} className="btn btn-primary">
+        <Upload />
         {pending ? "Publishing..." : publishedAndLocked ? "Published" : "Publish this car"}
       </button>
     </form>
