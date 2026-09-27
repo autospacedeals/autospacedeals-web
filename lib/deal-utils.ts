@@ -300,7 +300,7 @@ export const SORT_LABELS: Record<SortOption, string> = {
   paymentLow: "Lowest monthly payment",
   dueLow: "Lowest due at signing",
   effectiveLow: "Best effective monthly cost",
-  newest: "Newest deals",
+  newest: "Just listed",
   discountHigh: "Highest MSRP discount",
   closest: "Closest to my location",
 };
