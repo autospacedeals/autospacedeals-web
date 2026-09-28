@@ -70,6 +70,7 @@ export interface DealRow {
   msrp_masked_label: string | null;
   broker_fee: number | null;
   removed_at: string | null;
+  sheet_sync_id?: string | null;
 }
 
 export function mapRowToDeal(row: DealRow): Deal {
@@ -124,6 +125,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     brokerFee: row.broker_fee ?? null,
     status: row.status,
     removedAt: row.removed_at ?? null,
+    sheetSyncId: row.sheet_sync_id ?? null,
   };
 }
 

@@ -52,7 +52,8 @@ export default async function BrokerDashboardPage() {
     "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
-    "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at";
+    "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at, " +
+    "sheet_sync_id";
 
   const { data: myDealRows, error: dealsError } = await supabase
     .from("deals")
@@ -96,6 +97,20 @@ export default async function BrokerDashboardPage() {
         last_sync_error: string | null;
       }[]
     >();
+
+  // Cars a live sheet created are shown under that sheet, apart from the
+  // ones added by hand. A listing whose sheet was unlinked has its
+  // sheet_sync_id cleared, so it falls back into "Added manually".
+  const syncIds = new Set((sheetSyncRows ?? []).map((s) => s.id));
+  const syncedListingsBySync: Record<string, typeof publishedListings> = {};
+  const manualListings: typeof publishedListings = [];
+  for (const deal of publishedListings) {
+    if (deal.sheetSyncId && syncIds.has(deal.sheetSyncId)) {
+      (syncedListingsBySync[deal.sheetSyncId] ??= []).push(deal);
+    } else {
+      manualListings.push(deal);
+    }
+  }
 
   const sheetSyncs: SheetSync[] = (sheetSyncRows ?? []).map((s) => ({
     id: s.id,
@@ -145,12 +160,32 @@ export default async function BrokerDashboardPage() {
         </div>
       )}
 
-      <SheetSyncManager syncs={sheetSyncs} />
+      {sheetSyncs.length > 0 ? (
+        <>
+          <SheetSyncManager
+            syncs={sheetSyncs}
+            listingsBySync={syncedListingsBySync}
+            brokerState={broker?.state}
+          />
 
-      <div className="mt-8">
-        <h2 className="type-title mb-4">Your live listings</h2>
-        <MyListings deals={publishedListings} brokerState={broker?.state} />
-      </div>
+          <section className="mt-10">
+            <h2 className="type-title">Added manually</h2>
+            <p className="mt-1 mb-4 text-sm text-fg-secondary">
+              Cars you added by hand, from photos or pasted text, or from a one-time upload.
+            </p>
+            <MyListings
+              deals={manualListings}
+              brokerState={broker?.state}
+              emptyMessage="No manually added cars — everything live is coming from your sheet."
+            />
+          </section>
+        </>
+      ) : (
+        <div className="mt-8">
+          <h2 className="type-title mb-4">Your live listings</h2>
+          <MyListings deals={publishedListings} brokerState={broker?.state} />
+        </div>
+      )}
 
       <RemovedListings deals={removedListings} />
 

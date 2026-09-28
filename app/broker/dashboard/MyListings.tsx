@@ -165,9 +165,11 @@ function deriveDraft(deal: Deal): RowDraft {
 export default function MyListings({
   deals,
   brokerState,
+  emptyMessage = "You don't have any live listings yet — use the form below to add one.",
 }: {
   deals: Deal[];
   brokerState?: string;
+  emptyMessage?: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -233,9 +235,7 @@ export default function MyListings({
 
   if (deals.length === 0) {
     return (
-      <div className="card p-8 text-center text-sm text-fg-muted">
-        You don&apos;t have any live listings yet — use the form above to add one.
-      </div>
+      <div className="card p-8 text-center text-sm text-fg-muted">{emptyMessage}</div>
     );
   }
 

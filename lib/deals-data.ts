@@ -129,6 +129,11 @@ export interface Deal {
   status?: "draft" | "published" | "removed";
   removedAt?: string | null;
 
+  // The live Google Sheet sync that created this listing (null for cars
+  // added by hand, from photos/pasted text, or a one-off upload). Only
+  // loaded on the broker dashboard, which groups listings by it.
+  sheetSyncId?: string | null;
+
   // Set when the seller is a dealership salesperson (sellerType
   // "Salesperson") rather than an independent broker — the dealership
   // they work at, shown alongside their own name wherever the seller is
