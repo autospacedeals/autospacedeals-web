@@ -7,7 +7,7 @@ import { getPublishedDealsByBroker } from "@/lib/supabase/deals";
 import { getMyReview, getReviewsForBroker, type ReviewViewer } from "@/lib/supabase/reviews";
 import { phoneDigits } from "@/lib/deal-utils";
 import { formatAverageRating, reviewCountLabel, reviewDateLabel, reviewFullDate } from "@/lib/reviews";
-import DealCard from "@/components/DealCard";
+import BrokerListings from "@/components/BrokerListings";
 import StarRating, { RatingBadge } from "@/components/StarRating";
 import ReviewForm from "./ReviewForm";
 
@@ -118,11 +118,7 @@ export default async function BrokerProfilePage({
           {listings.length > 0 ? `${broker.businessName}'s current deals` : "No live listings right now"}
         </h2>
         {listings.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {listings.map((deal) => (
-              <DealCard key={deal.id} deal={deal} />
-            ))}
-          </div>
+          <BrokerListings deals={listings} />
         ) : (
           <div className="card p-8 text-center text-sm text-fg-muted">
             Check back soon, or contact them directly above.
