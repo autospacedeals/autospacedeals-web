@@ -7,8 +7,6 @@ import {
   ArrowRight,
   SlidersHorizontal,
   Users,
-  LayoutGrid,
-  GalleryHorizontal,
   CircleAlert,
 } from "lucide-react";
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
@@ -25,7 +23,6 @@ import {
 } from "@/lib/deal-utils";
 import DealCard from "@/components/DealCard";
 import CompareModal from "@/components/CompareModal";
-import DealCoverFlow from "@/components/DealCoverFlow";
 import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
 import SaveSearchButton from "@/components/SaveSearchButton";
@@ -38,14 +35,6 @@ import { nearestState } from "@/lib/us-geo";
 
 const ALL_BODY_STYLES: BodyStyle[] = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const ALL_FUEL_TYPES: FuelType[] = ["Gas", "Hybrid", "PHEV", "EV"];
-
-// Clicking into a deal card and using "Back to all deals" is a full page
-// navigation back to "/", which remounts HomeClient from scratch — so
-// viewMode's default ("grid") was winning every time even if the shopper
-// had switched to coverflow, regardless of how they navigated back.
-// localStorage survives that remount and follows the same pattern used for
-// MyListings' column widths (see app/broker/dashboard/MyListings.tsx).
-const VIEW_MODE_STORAGE_KEY = "asd_home_view_mode_v1";
 
 // Hero shortcuts. Each one only sets existing DealFilters fields (the same
 // ones the filter panel controls) and scrolls to the grid; pressing an
@@ -79,12 +68,10 @@ export default function HomeClient({
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewModeState] = useState<"grid" | "coverflow">("grid");
-  const [viewModeLoaded, setViewModeLoaded] = useState(false);
   // The deal a shopper clicked into last visit (see markDealViewed) — used to
   // reopen on the same car instead of resetting to the top of the list.
-  // Consumed (cleared) once it's been applied so it doesn't stick around and
-  // hijack a later manual grid/coverflow toggle in the same visit.
+  // "Back to all deals" is a full navigation that remounts this component, so
+  // it's carried in localStorage and consumed (cleared) once applied.
   const [restoreDealId, setRestoreDealId] = useState<string | null>(null);
   const restoredScrollRef = useRef(false);
 
@@ -100,20 +87,13 @@ export default function HomeClient({
     });
   }
 
-  // Load any saved view mode + last-viewed deal once the page is hydrated
-  // (avoids an SSR hydration mismatch, since the server always renders the
-  // "grid" default with nothing to restore).
+  // Load the last-viewed deal once the page is hydrated (avoids an SSR
+  // hydration mismatch, since the server renders with nothing to restore).
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved === "grid" || saved === "coverflow") setViewModeState(saved);
-    } catch {
-      // Ignore — just fall back to the default.
-    }
     try {
       const lastDeal = localStorage.getItem(LAST_VIEWED_DEAL_KEY);
       if (lastDeal) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setRestoreDealId(lastDeal);
         localStorage.removeItem(LAST_VIEWED_DEAL_KEY);
       }
@@ -138,30 +118,18 @@ export default function HomeClient({
     } catch {
       // Ignore — just falls back to the default filters.
     }
-    setViewModeLoaded(true);
   }, []);
 
-  // Grid view: once we know the real view mode and have a deal to restore,
-  // scroll it into view. Runs once per visit (restoredScrollRef guards it) —
-  // coverflow's restore instead happens via the initialDealId prop below.
+  // Once there's a deal to restore (and any pending filters above have been
+  // applied), scroll it into view. Runs once per visit (restoredScrollRef
+  // guards it).
   useEffect(() => {
-    if (!viewModeLoaded || !restoreDealId || restoredScrollRef.current) return;
+    if (!restoreDealId || restoredScrollRef.current) return;
     restoredScrollRef.current = true;
-    if (viewMode === "grid") {
-      const el = document.getElementById(`deal-${restoreDealId}`);
-      el?.scrollIntoView({ block: "center" });
-    }
+    const el = document.getElementById(`deal-${restoreDealId}`);
+    el?.scrollIntoView({ block: "center" });
     setRestoreDealId(null);
-  }, [viewModeLoaded, viewMode, restoreDealId]);
-
-  function setViewMode(mode: "grid" | "coverflow") {
-    setViewModeState(mode);
-    try {
-      localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
-    } catch {
-      // Ignore storage failures — the toggle still works for this visit.
-    }
-  }
+  }, [restoreDealId]);
 
   // "Closest to my location" used to never actually ask for the shopper's
   // location at all — picking it with the Location filter left on "All"
@@ -444,25 +412,6 @@ export default function HomeClient({
             )}
             <div className="flex flex-wrap items-center gap-3 border-b border-line pb-4">
               <SortBar sortBy={sortBy} onSortChange={setSortBy} resultCount={results.length} />
-
-              <div role="group" aria-label="View" className="segmented">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("grid")}
-                  aria-pressed={viewMode === "grid"}
-                  className="segmented-item"
-                >
-                  <LayoutGrid /> Grid
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("coverflow")}
-                  aria-pressed={viewMode === "coverflow"}
-                  className="segmented-item"
-                >
-                  <GalleryHorizontal /> Cover flow
-                </button>
-              </div>
             </div>
 
             {/* Small screens, filters collapsed: the panel's Save button is
@@ -478,29 +427,23 @@ export default function HomeClient({
             )}
 
             {results.length > 0 ? (
-              viewMode === "coverflow" ? (
-                <div className="mt-6">
-                  <DealCoverFlow deals={results} initialDealId={restoreDealId} />
-                </div>
-              ) : (
-                <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                  {results.map((deal, i) => (
-                    <div
-                      key={deal.id}
-                      id={`deal-${deal.id}`}
-                      className="h-full animate-fade-up"
-                      style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                    >
-                      <DealCard
-                        deal={deal}
-                        compareSelected={compareIds.includes(deal.id)}
-                        compareDisabled={compareIds.length >= MAX_COMPARE}
-                        onToggleCompare={() => toggleCompare(deal.id)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )
+              <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {results.map((deal, i) => (
+                  <div
+                    key={deal.id}
+                    id={`deal-${deal.id}`}
+                    className="h-full animate-fade-up"
+                    style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                  >
+                    <DealCard
+                      deal={deal}
+                      compareSelected={compareIds.includes(deal.id)}
+                      compareDisabled={compareIds.length >= MAX_COMPARE}
+                      onToggleCompare={() => toggleCompare(deal.id)}
+                    />
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="card mt-6 flex flex-col items-center px-6 py-16 text-center">
                 <div className="grid size-12 place-items-center rounded-full border border-line-strong bg-raised text-fg-muted">

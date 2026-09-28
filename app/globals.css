@@ -792,7 +792,7 @@
     @apply inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-hover px-4 text-[13px] font-medium whitespace-nowrap text-fg-secondary transition-colors hover:border-line-hover hover:bg-hover-strong hover:text-fg aria-pressed:border-accent-line aria-pressed:bg-accent-soft aria-pressed:text-fg [&_svg]:size-3.5;
   }
 
-  /* ---------- Segmented control (Grid / Cover flow) ---------- */
+  /* ---------- Segmented control (e.g. the calculator's fee toggles) ---------- */
   .segmented {
     @apply inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-1;
   }
