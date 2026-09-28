@@ -192,8 +192,8 @@ export default async function BrokerDashboardPage() {
       <div className="panel mt-8 sm:p-8">
         <h2 className="type-title">Add inventory</h2>
         <p className="mt-1 text-sm text-fg-secondary">
-          Add a car directly, or link a forum thread, your website, a Google Sheet, or a
-          spreadsheet — either way, you publish it yourself and it&apos;s live right away.
+          Add a car directly, or bring in a Google Sheet, a spreadsheet file, pasted text, or a
+          screenshot — either way, you publish it yourself and it&apos;s live right away.
         </p>
         <p className="mt-2 text-xs leading-5 text-warning">
           Reminder: always show the full due-at-signing amount, and disclose your assumed tax

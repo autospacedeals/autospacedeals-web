@@ -33,8 +33,8 @@ export default async function BrokerSignupPage() {
           <p className="label mt-6">Dealer &amp; broker portal</p>
           <h1 className="type-page mt-1 text-3xl sm:text-3xl">Create your account</h1>
           <p className="mt-2 text-sm text-fg-muted">
-            Get a dashboard to submit your inventory sources — a forum thread, your website, or a
-            spreadsheet — for us to review and add to the site.
+            Get a dashboard to list your inventory — add cars directly, or bring them in from a
+            Google Sheet, a spreadsheet, pasted text, or a screenshot.
           </p>
           <div className="mt-8">
             <SignupForm />

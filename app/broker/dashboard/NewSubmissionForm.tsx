@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect, useId, useState } from "react";
 import {
-  Link as LinkIcon,
   Sheet,
   FileSpreadsheet,
   Upload,
@@ -36,14 +35,13 @@ const CATEGORIES = [
   },
   {
     value: "link",
-    label: "Link your inventory",
-    description: "Forum post, website, Google Sheet, or a file — we'll pull the cars for you to review and confirm before they go live",
+    label: "Import your inventory",
+    description: "A Google Sheet, a file, pasted text, or a screenshot — we'll pull the cars for you to review and confirm before they go live",
     icon: Link2,
   },
 ] as const;
 
 const LINK_TYPES = [
-  { value: "link", label: "Forum post / website", icon: LinkIcon },
   { value: "google_sheet", label: "Google Sheet", icon: Sheet },
   { value: "excel_file", label: "Upload Excel file", icon: FileSpreadsheet },
   { value: "free_text", label: "Type it up", icon: PenLine },
@@ -106,8 +104,8 @@ function LinkForm({
 }) {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
   const [sourceType, setSourceType] = useState<
-    "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot"
-  >("link");
+    "google_sheet" | "excel_file" | "free_text" | "screenshot"
+  >("google_sheet");
   const [keepSynced, setKeepSynced] = useState(false);
   const uid = useId();
 
@@ -136,8 +134,8 @@ function LinkForm({
         </p>
         {state.sheetSynced && (
           <p className="mt-2 text-sm text-success">
-            This sheet is now set to check for updates automatically — manage it below under
-            &quot;Synced sheets.&quot;
+            This sheet is now set to check for updates automatically — manage it above under
+            &quot;From your live Google Sheet.&quot;
           </p>
         )}
         <p className="mt-2 text-sm text-fg-secondary">
@@ -188,7 +186,7 @@ function LinkForm({
     <form action={formAction} className="space-y-4">
       <div>
         <label className={labelClass}>Source type</label>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {LINK_TYPES.map(({ value, label, icon: Icon }) => (
             <label key={value} className="choice gap-2 px-3">
               <input
@@ -248,27 +246,21 @@ function LinkForm({
             className="file-input"
           />
           <p className="field-hint">
-            A screenshot of a text thread, forum post, or spreadsheet. Our AI reads it and pulls
+            A screenshot of a text thread, post, or spreadsheet. Our AI reads it and pulls
             out each car as a draft for you to review before it publishes. Max 10MB.
           </p>
         </div>
       ) : (
         <div>
           <label htmlFor={`${uid}-sourceUrl`} className={labelClass}>
-            {sourceType === "google_sheet"
-              ? "Google Sheet share link"
-              : "Link to your forum post or website"}
+            Google Sheet share link
           </label>
           <input
             required
             type="url"
             id={`${uid}-sourceUrl`}
             name="sourceUrl"
-            placeholder={
-              sourceType === "google_sheet"
-                ? "https://docs.google.com/spreadsheets/..."
-                : "https://forum.leasehackr.com/t/..."
-            }
+            placeholder="https://docs.google.com/spreadsheets/..."
             className={inputClass}
           />
           {sourceType === "google_sheet" && (
@@ -288,9 +280,9 @@ function LinkForm({
                   <span>
                     Keep this sheet synced automatically
                     <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
-                      We&apos;ll check it every ~30 minutes and remove listings that disappear from
-                      the sheet (recoverable from your removed list). This first check still lands
-                      as drafts for you either way.
+                      We&apos;ll check it every ~30 minutes, update changed prices, and remove cars
+                      you delete or cross out on the sheet (recoverable from your removed list).
+                      This first check still lands as drafts for you either way.
                     </span>
                   </span>
                 </label>

@@ -162,12 +162,12 @@ function parseIncentivesField(
   }
 }
 
-// Link / Google Sheet / Excel file. For Excel files and Google Sheets, we
-// try to automatically pull individual cars out of the file into draft
-// listings the broker can review and confirm — see lib/parse-inventory.ts.
-// For a plain forum/website link (or if parsing comes up empty), the broker
-// gets the structured "add a car" form to fill in themselves instead — see
-// createManualDealAction below. Either way, nothing needs your approval.
+// Google Sheet / Excel file / pasted text / screenshot. We try to pull
+// individual cars out of the source into draft listings the broker can
+// review and confirm — see lib/parse-inventory.ts. If parsing comes up
+// empty, the broker gets the structured "add a car" form to fill in
+// themselves instead — see createManualDealAction below. Either way,
+// nothing needs your approval.
 export async function createSubmissionAction(
   _prevState: SubmissionState,
   formData: FormData
@@ -184,7 +184,13 @@ export async function createSubmissionAction(
     .eq("id", user.id)
     .single<BrokerProfile>();
 
-  const sourceType = String(formData.get("sourceType") || "link");
+  const sourceType = String(formData.get("sourceType") || "google_sheet");
+  // Forum/website links are no longer accepted — only sources we can read
+  // the cars out of directly. (Older "link" submissions stay viewable in
+  // the admin queue.)
+  if (!["google_sheet", "excel_file", "free_text", "screenshot"].includes(sourceType)) {
+    return { error: "Choose a Google Sheet, an Excel file, pasted text, or a screenshot." };
+  }
   const notes = String(formData.get("notes") || "").trim() || null;
   let sourceUrl = "";
   let parsedDeals: ParsedDeal[] = [];
@@ -232,7 +238,7 @@ export async function createSubmissionAction(
     if (uploadError) return { error: uploadError.message };
 
     sourceUrl = path;
-  } else if (sourceType === "google_sheet" || sourceType === "link") {
+  } else if (sourceType === "google_sheet") {
     sourceUrl = String(formData.get("sourceUrl") || "").trim();
     if (!sourceUrl) return { error: "Please enter a link." };
     try {
