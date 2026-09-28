@@ -5,6 +5,7 @@ import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import { getBrokerRatingSummary, type BrokerRatingSummary } from "@/lib/supabase/reviews";
 import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
 import { dealTitle, formatCurrency, getSimilarDealsFrom } from "@/lib/deal-utils";
+import { buildDealJsonLd, serializeJsonLd } from "@/lib/deal-json-ld";
 import DealDetailView from "@/components/DealDetailView";
 
 // Always fetch fresh — a broker can edit/reprice/remove their own listing at
@@ -87,12 +88,28 @@ export default async function DealDetailPage({
   }
   const [brokerRating, alertsAvailable] = await Promise.all([ratingPromise, alertsPromise]);
 
+  // schema.org Car + lease Offer for search engines, rendered server-side.
+  // Purely additive — if anything about this listing can't be described or
+  // serialized, the script is skipped and the page renders as normal.
+  let jsonLd: string | null = null;
+  try {
+    const data = buildDealJsonLd(deal);
+    jsonLd = data ? serializeJsonLd(data) : null;
+  } catch (err) {
+    console.error("DealDetailPage: JSON-LD failed for", deal.id, err);
+  }
+
   return (
-    <DealDetailView
-      deal={deal}
-      similar={similar}
-      brokerRating={brokerRating}
-      alertsAvailable={alertsAvailable}
-    />
+    <>
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      )}
+      <DealDetailView
+        deal={deal}
+        similar={similar}
+        brokerRating={brokerRating}
+        alertsAvailable={alertsAvailable}
+      />
+    </>
   );
 }
