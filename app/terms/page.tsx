@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, pageMetadata } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Terms of Service",
-  description: `The terms that govern use of ${SITE_NAME}.`,
-};
+  description:
+    `The terms that govern use of ${SITE_NAME}.`,
+  path: "/terms",
+});
 
 const LAST_UPDATED = "August 19, 2026";
 

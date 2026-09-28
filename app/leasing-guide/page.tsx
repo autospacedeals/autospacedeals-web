@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site";
 import Link from "next/link";
 import { Calculator, ArrowRight, Scale } from "lucide-react";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Leasing Guide",
   description:
     "Understand money factor, residual value, due at signing, and effective monthly cost before you sign a car lease.",
-};
+  path: "/leasing-guide",
+});
 
 export default function LeasingGuidePage() {
   return (

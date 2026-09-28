@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Scale, ArrowRight } from "lucide-react";
 import LeaseCalculator from "@/components/LeaseCalculator";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Lease Calculator",
   description:
     "Estimate any car lease payment from MSRP, selling price, residual value, money factor, and term — then see the real due-at-signing total.",
-};
+  path: "/calculator",
+});
 
 export default function CalculatorPage() {
   return (

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site";
 import LeaseEndCalculator from "@/components/LeaseEndCalculator";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Lease-End Calculator",
   description:
     "Should you buy out your lease or return it? Compare the real numbers — payoff, fees, excess mileage, and what the car is actually worth.",
-};
+  path: "/lease-end",
+});
 
 export default function LeaseEndPage() {
   return (

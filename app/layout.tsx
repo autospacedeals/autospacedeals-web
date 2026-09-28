@@ -36,17 +36,14 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
+  // Pages set their own title/description/url for share previews (see
+  // pageMetadata in lib/site.ts) — only the shared bits live here.
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Compare Dealer & Broker Lease Deals`,
-    description: SITE_DESCRIPTION,
-    url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Compare Dealer & Broker Lease Deals`,
-    description: SITE_DESCRIPTION,
   },
 };
 

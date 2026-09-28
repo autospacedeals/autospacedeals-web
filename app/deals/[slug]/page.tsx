@@ -7,6 +7,7 @@ import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
 import { dealTitle, formatCurrency, getSimilarDealsFrom } from "@/lib/deal-utils";
 import { buildDealJsonLd, serializeJsonLd } from "@/lib/deal-json-ld";
 import DealDetailView from "@/components/DealDetailView";
+import { SITE_NAME } from "@/lib/site";
 
 // Always fetch fresh — a broker can edit/reprice/remove their own listing at
 // any time, and the detail page should never show stale info.
@@ -27,15 +28,26 @@ export async function generateMetadata({
   // field access defensively rather than relying on the page body's fixes.
   try {
     const dealTypeLabel = (deal.dealType ?? "Lease").toLowerCase();
-    const title = `${dealTitle(deal)} — ${formatCurrency(deal.payment)}/mo`;
-    const description = `${dealTitle(deal)} in ${deal.city}, ${deal.state}: ${formatCurrency(
-      deal.payment
-    )}/mo, ${formatCurrency(deal.dueAtSigning)} due at signing, ${deal.term} month ${dealTypeLabel} from ${deal.sellerName}.`;
+    // A one-pay lease has no monthly payment (payment is 0 by convention) —
+    // headline its single up-front total instead of "$0/mo".
+    const price = deal.onePay
+      ? `${formatCurrency(deal.dueAtSigning)} one-pay`
+      : `${formatCurrency(deal.payment)}/mo`;
+    const title = `${dealTitle(deal)} — ${price}`;
+    const description = deal.onePay
+      ? `${dealTitle(deal)} in ${deal.city}, ${deal.state}: ${formatCurrency(deal.dueAtSigning)} one-pay, ${deal.term} month ${dealTypeLabel} from ${deal.sellerName}.`
+      : `${dealTitle(deal)} in ${deal.city}, ${deal.state}: ${formatCurrency(
+          deal.payment
+        )}/mo, ${formatCurrency(deal.dueAtSigning)} due at signing, ${deal.term} month ${dealTypeLabel} from ${deal.sellerName}.`;
 
     return {
       title,
       description,
+      alternates: { canonical: `/deals/${deal.slug}` },
       openGraph: {
+        type: "website",
+        siteName: SITE_NAME,
+        url: `/deals/${deal.slug}`,
         title,
         description,
         images: deal.images && deal.images.length > 0 ? [{ url: deal.images[0] }] : undefined,

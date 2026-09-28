@@ -8,6 +8,7 @@ import { getMyReview, getReviewsForBroker, type ReviewViewer } from "@/lib/supab
 import { phoneDigits } from "@/lib/deal-utils";
 import { formatAverageRating, reviewCountLabel, reviewDateLabel, reviewFullDate } from "@/lib/reviews";
 import BrokerListings from "@/components/BrokerListings";
+import { pageMetadata } from "@/lib/site";
 import StarRating, { RatingBadge } from "@/components/StarRating";
 import ReviewForm from "./ReviewForm";
 
@@ -21,10 +22,11 @@ export async function generateMetadata({
   const { id } = await params;
   const broker = await getBrokerProfile(id);
   if (!broker) return { title: "Broker not found" };
-  return {
+  return pageMetadata({
     title: broker.businessName,
     description: `${broker.businessName} — ${broker.sellerType} in ${broker.city}, ${broker.state} on Drive.`,
-  };
+    path: `/brokers/${id}`,
+  });
 }
 
 // Up to two initials for the decorative avatar beside the business name.

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import SubmitDealForm from "@/components/SubmitDealForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Submit a Deal",
   description:
     "Dealers and brokers: submit a lease deal for review before it's posted on Drive.",
-};
+  path: "/submit-a-deal",
+});
 
 export default function SubmitADealPage() {
   return (
