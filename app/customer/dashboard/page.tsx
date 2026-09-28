@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, MapPin, Heart, Bell } from "lucide-react";
+import { LogOut, MapPin, Heart, Bell, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSavedDeals, SAVED_DEALS_LIST_LIMIT, type SavedDeals } from "@/lib/supabase/saved-deals";
 import { signOutAction } from "../actions";
 import ProfileEditor from "./ProfileEditor";
+import SavedDealsList from "./SavedDealsList";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +30,10 @@ export default async function CustomerDashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/customer/login");
+
+  // Started now, awaited after the profile — it never throws (and reports
+  // "unavailable" before the saved_deals migration has been run).
+  const savedDealsPromise = getSavedDeals(user.id);
 
   const { data: customer } = await supabase
     .from("customers")
@@ -59,6 +66,7 @@ export default async function CustomerDashboardPage() {
           .then(({ data }) => data?.signedUrl ?? null)
       : Promise.resolve(null),
   ]);
+  const savedDeals = await savedDealsPromise;
 
   return (
     <main className="container-page max-w-5xl py-10 sm:py-12">
@@ -112,17 +120,10 @@ export default async function CustomerDashboardPage() {
           />
         </div>
 
-        {/* Placeholder sections for upcoming features */}
         <div className="space-y-6 lg:col-span-2">
-          <div className="panel sm:p-8">
-            <h2 className="panel-title">
-              <Heart /> Saved deals
-            </h2>
-            <p className="mt-2 text-sm text-fg-muted">
-              Coming soon — save deals you&apos;re interested in and come back to them anytime.
-            </p>
-          </div>
+          <SavedDealsSection savedDeals={savedDeals} />
 
+          {/* Placeholder section for an upcoming feature */}
           <div className="panel sm:p-8">
             <h2 className="panel-title">
               <Bell /> Saved searches &amp; alerts
@@ -135,5 +136,59 @@ export default async function CustomerDashboardPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+// The customer's saved deals as regular deal cards (the heart on each one
+// removes it, see SavedDealsList), two across from tablet width up. Not
+// wrapped in a panel so the cards sit on the page like everywhere else
+// instead of nesting.
+function SavedDealsSection({ savedDeals }: { savedDeals: SavedDeals }) {
+  const { deals, total, available } = savedDeals;
+
+  return (
+    <section aria-labelledby="saved-deals-heading">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <h2 id="saved-deals-heading" className="panel-title">
+          <Heart /> Saved deals
+        </h2>
+        {available && deals.length > 0 && (
+          <Link href="/#deals" className="link-arrow min-h-9 pointer-coarse:min-h-11">
+            Browse more deals <ArrowRight />
+          </Link>
+        )}
+      </div>
+
+      {!available ? (
+        <div className="panel mt-4 sm:p-8">
+          <p className="text-sm text-fg-muted">
+            Saved deals aren&apos;t available right now. Please check back soon.
+          </p>
+        </div>
+      ) : deals.length === 0 ? (
+        <div className="card mt-4 flex flex-col items-center px-6 py-12 text-center">
+          <div className="grid size-12 place-items-center rounded-full border border-line-strong bg-raised text-fg-muted">
+            <Heart size={20} />
+          </div>
+          <p className="type-title mt-5">No saved deals yet</p>
+          <p className="mt-2 max-w-sm text-sm text-fg-muted">
+            Save any deal with the heart button and it&apos;ll show up here, so you can come back to
+            it anytime.
+          </p>
+          <Link href="/#deals" className="btn btn-secondary mt-6">
+            Browse deals
+          </Link>
+        </div>
+      ) : (
+        <>
+          <SavedDealsList deals={deals} />
+          {total > SAVED_DEALS_LIST_LIMIT && (
+            <p className="mt-4 text-xs text-fg-muted">
+              Showing your {SAVED_DEALS_LIST_LIMIT} most recently saved deals.
+            </p>
+          )}
+        </>
+      )}
+    </section>
   );
 }

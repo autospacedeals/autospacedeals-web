@@ -7,6 +7,7 @@
 // page, since a Server Component can't hand a function prop to <Link>.
 "use client";
 
+import { useId } from "react";
 import Link from "next/link";
 import { MapPin, ArrowRight, Store, CircleAlert } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
@@ -18,6 +19,7 @@ import {
   msrpDiscountPercent,
 } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
+import SaveDealButton, { useShowSaveDealButton } from "./SaveDealButton";
 
 // HOT and VALUE badges were dropped per Robert — too cluttered for the
 // clean look he wants. Only badge types listed here render at all; a
@@ -35,6 +37,7 @@ export default function DealCard({
   compareSelected,
   onToggleCompare,
   compareDisabled,
+  savedHint,
 }: {
   deal: Deal;
   // Compare-mode props are all optional and only passed from the homepage
@@ -45,11 +48,15 @@ export default function DealCard({
   compareSelected?: boolean;
   onToggleCompare?: () => void;
   compareDisabled?: boolean;
+  // Passed by the dashboard's saved-deals list — see SaveDealButton.
+  savedHint?: boolean;
 }) {
   const image = deal.images[0];
   const discount = msrpDiscountPercent(deal);
   const detailHref = `/deals/${deal.slug}`;
   const title = `${deal.year} ${deal.make} ${deal.model}`;
+  const showSave = useShowSaveDealButton(deal.id);
+  const titleId = useId();
 
   return (
     <article className="card-interactive group flex h-full flex-col overflow-hidden">
@@ -64,8 +71,18 @@ export default function DealCard({
           <img src={image} alt={title} className="media-img" />
 
           {/* One row across the top: the left-hand tags wrap onto a second
-              line before they can run underneath the condition tag. */}
-          <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+              line before they can run underneath the condition tag. When
+              the save heart is shown it has the top-right corner to itself:
+              the row stops short of it (36px, or 44px on touch, plus the
+              gap) and the condition tag joins the end of the left-hand
+              group instead, wrapping as a whole tag, so the other tags keep
+              the room they had. On touch the row also moves down with the
+              heart (see below). */}
+          <div
+            className={`absolute top-3 left-3 flex items-start justify-between gap-2 ${
+              showSave ? "right-14 pointer-coarse:top-4 pointer-coarse:right-16" : "right-3"
+            }`}
+          >
             <div className="flex min-w-0 flex-wrap gap-1.5">
               {isNewlyPosted(deal) && (
                 <span className="tag">
@@ -80,9 +97,10 @@ export default function DealCard({
                   <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
                 </span>
               )}
+              {showSave && deal.condition && <span className="tag">{deal.condition}</span>}
             </div>
 
-            {deal.condition && <span className="tag shrink-0">{deal.condition}</span>}
+            {!showSave && deal.condition && <span className="tag shrink-0">{deal.condition}</span>}
           </div>
 
           {deal.sample ? (
@@ -98,13 +116,24 @@ export default function DealCard({
 
         <div className="px-5 pt-5">
           <p className="label">{[deal.dealType, deal.fuel].filter(Boolean).join(" · ")}</p>
-          <h3 className="type-card mt-1.5">{title}</h3>
+          <h3 id={titleId} className="type-card mt-1.5">{title}</h3>
           {/* line-clamp, not truncate: nowrap text would set the card's
               min-content width and could push the phone grid wider than
               the screen on a long trim. */}
           {deal.trim && <p className="mt-0.5 line-clamp-1 text-sm text-fg-secondary">{deal.trim}</p>}
         </div>
       </Link>
+
+      {/* Save heart over the photo's top-right corner. It sits outside the
+          link (a button can't be nested in an <a>) and is centered on the
+          tag row: 21px is a .tag's height. On touch the button grows to
+          44px, so it and the row move down 4px to keep the circle (and its
+          focus ring) clear of the card's top edge, as the 36px one is. */}
+      {showSave && (
+        <div className="absolute top-3 right-3 z-10 flex h-[21px] items-center pointer-coarse:top-4">
+          <SaveDealButton dealId={deal.id} savedHint={savedHint} describedBy={titleId} />
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col px-5 pb-5">
         <div className="mt-4 flex items-end justify-between gap-3">

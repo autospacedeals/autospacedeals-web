@@ -23,6 +23,7 @@ import {
 import { ContactActionsFull } from "@/components/ContactActions";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
 import { RatingBadge } from "@/components/StarRating";
+import SaveDealButton from "@/components/SaveDealButton";
 import type { BrokerRatingSummary } from "@/lib/supabase/reviews";
 
 // Up to two initials for the seller avatar in the contact card. Guarded like
@@ -124,7 +125,13 @@ export default function DealDetailView({
 
           <div className="mt-8">
             <p className="label">{[deal.dealType, deal.fuel, deal.bodyStyle].filter(Boolean).join(" · ")}</p>
-            <h1 className="type-page mt-2 text-3xl sm:text-4xl">{dealTitle(deal)}</h1>
+            {/* Save sits beside the title rather than on the photo, whose
+                corners already carry the tags. Icon-only on phones. Not
+                offered on a broker's draft preview. */}
+            <div className="mt-2 flex items-start justify-between gap-4">
+              <h1 className="type-page min-w-0 text-3xl sm:text-4xl">{dealTitle(deal)}</h1>
+              {!isPreview && <SaveDealButton dealId={deal.id} variant="labeled" />}
+            </div>
             <p className="mt-3 flex items-center gap-2 text-sm text-fg-muted">
               <MapPin size={15} className="text-fg-faint" /> {deal.city}, {deal.state}
             </p>
