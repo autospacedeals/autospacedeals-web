@@ -19,10 +19,9 @@ export default function SiteChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isBrokerPortal = pathname?.startsWith("/broker");
-  // The prefix above also matches the public broker profiles (/brokers/[id])
-  // — shopper-facing pages full of deal cards — so the customer session is
-  // decided on the portal's own routes (/broker, /broker/*) instead.
+  // Only the portal's own routes (/broker, /broker/*). A bare "/broker"
+  // prefix check would also catch the public broker profiles
+  // (/brokers/[id]), which are shopper-facing and get the consumer chrome.
   const isPortalRoute = pathname === "/broker" || pathname?.startsWith("/broker/");
 
   // Shopper-side session (saved deals, account email) for the consumer
@@ -36,7 +35,7 @@ export default function SiteChrome({
       enabled={!isPortalRoute}
       accountKey={account ? `${account.href}|${account.label}` : null}
     >
-      {isBrokerPortal ? (
+      {isPortalRoute ? (
         <>
           <BrokerHeader />
           <div className="flex-1">{children}</div>
