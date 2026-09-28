@@ -237,3 +237,35 @@ export async function getDealBySlugDb(slug: string): Promise<Deal | undefined> {
     return undefined;
   }
 }
+
+// Published deals by id, in no particular order — for the "Get matched"
+// email (app/deals/[slug]/actions.ts), which is handed deal ids by the
+// browser and must only ever include listings that are live right now.
+// Unlike the reads above, a failed read returns null rather than [] so the
+// caller can tell "not listed any more" apart from "couldn't check".
+export async function getPublishedDealsByIds(ids: string[]): Promise<Deal[] | null> {
+  if (ids.length === 0) return [];
+  try {
+    const supabase = publicClient();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("deals")
+        .select(DEAL_COLUMNS)
+        .in("id", ids)
+        .eq("status", "published")
+        .limit(ids.length)
+        .returns<DealRow[]>(),
+      10000,
+      "getPublishedDealsByIds"
+    );
+
+    if (error) {
+      console.error("getPublishedDealsByIds failed:", error.message);
+      return null;
+    }
+    return mapRowsSafely(data ?? []);
+  } catch (err) {
+    console.error("getPublishedDealsByIds threw:", err);
+    return null;
+  }
+}

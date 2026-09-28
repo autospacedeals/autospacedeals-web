@@ -39,7 +39,8 @@ export interface SavedSearches {
 
 export type CreateSavedSearchResult =
   | { ok: true; alreadySaved: boolean }
-  | { ok: false; error: string };
+  // limitReached: the customer already has SAVED_SEARCHES_PER_CUSTOMER.
+  | { ok: false; error: string; limitReached?: true };
 
 export type DeleteSavedSearchResult = { ok: true } | { ok: false; error: string };
 
@@ -206,6 +207,7 @@ export async function createSavedSearch(
       return {
         ok: false,
         error: `You can save up to ${SAVED_SEARCHES_PER_CUSTOMER} searches. Delete one from your dashboard to save another.`,
+        limitReached: true,
       };
     }
 
@@ -222,6 +224,7 @@ export async function createSavedSearch(
         return {
           ok: false,
           error: `You can save up to ${SAVED_SEARCHES_PER_CUSTOMER} searches. Delete one from your dashboard to save another.`,
+          limitReached: true,
         };
       }
       if (error.code === "42501" || error.code === "23503") return { ok: false, error: NOT_CUSTOMER_ERROR };

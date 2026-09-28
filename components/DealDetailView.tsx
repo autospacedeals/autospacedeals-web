@@ -53,6 +53,10 @@ export default function DealDetailView({
   // or before the reviews migration has been run — and only shown once the
   // seller has at least one review.
   brokerRating = null,
+  // Whether saved searches exist yet (supabase/migrations/0017), so "Get
+  // matched" can offer an alert for new matches. Off unless the page
+  // checked.
+  alertsAvailable = false,
 }: {
   deal: Deal;
   similar?: Deal[];
@@ -61,6 +65,7 @@ export default function DealDetailView({
   isPreview?: boolean;
   previewBanner?: ReactNode;
   brokerRating?: BrokerRatingSummary | null;
+  alertsAvailable?: boolean;
 }) {
   // Every value derived from the deal is computed defensively — a single
   // bad field (a stray null slipping through a type that assumes it can't
@@ -322,7 +327,14 @@ export default function DealDetailView({
                 </div>
               </div>
               <div className="mt-5">
-                <ContactActionsFull deal={deal} />
+                {/* "Get matched" emails the same similar deals shown at the
+                    bottom of this page — their ids, not a fresh lookup. */}
+                <ContactActionsFull
+                  deal={deal}
+                  similarIds={similar.map((d) => d.id)}
+                  alertsAvailable={alertsAvailable}
+                  preview={isPreview}
+                />
               </div>
             </div>
 

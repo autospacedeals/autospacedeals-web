@@ -2,13 +2,16 @@
 // supabase/migrations/0017_saved_searches.sql): validating a stored or
 // submitted filter object, and describing one in words. Shared by the
 // homepage's "Save this search" button (a Client Component), the server
-// action that stores it, the dashboard list, and the hourly alert job. The
+// action that stores it, the dashboard list, the hourly alert job, and the
+// alert "Get matched with similar deals" can set up on a deal page. The
 // Supabase reads and writes live in lib/supabase/saved-searches.ts, which is
 // server-only, so nothing here may import it.
+import type { Deal } from "./deals-data";
 import {
   DEFAULT_FILTERS,
   MAX_DAS_CEILING,
   MAX_PAYMENT_CEILING,
+  dealTitle,
   formatCurrency,
   type DealFilters,
 } from "./deal-utils";
@@ -197,6 +200,42 @@ export function savedSearchLabel(filters: DealFilters): string {
   if (filters.state !== "All") parts.push(filters.state);
 
   const label = parts.join(" · ") || "All deals";
+  return label.length > SAVED_SEARCH_LABEL_MAX
+    ? `${label.slice(0, SAVED_SEARCH_LABEL_MAX - 1).trimEnd()}…`
+    : label;
+}
+
+// The alert "Get matched with similar deals" sets up for a customer who
+// ticks "Email me when new matching deals are posted": same body style and
+// state as the deal, same kind of lease, and — for a monthly lease — a
+// payment up to about 20% above this one (rounded up to the next $50).
+// Built from the deal as read from the database, never from the request.
+// A one-pay lease, or a payment that works out at or above the slider's
+// top, gets no payment cap.
+const MATCH_PAYMENT_HEADROOM = 1.2;
+const MATCH_PAYMENT_STEP = 50;
+
+export function matchAlertFilters(deal: Deal): DealFilters {
+  let maxPayment = MAX_PAYMENT_CEILING;
+  if (!deal.onePay && Number.isFinite(deal.payment) && deal.payment > 0) {
+    const cap = Math.ceil((deal.payment * MATCH_PAYMENT_HEADROOM) / MATCH_PAYMENT_STEP) * MATCH_PAYMENT_STEP;
+    maxPayment = Math.min(cap, MAX_PAYMENT_CEILING);
+  }
+  const state = typeof deal.state === "string" ? deal.state.trim() : "";
+  return {
+    ...DEFAULT_FILTERS,
+    bodyStyle: deal.bodyStyle && BODY_STYLES.includes(deal.bodyStyle) ? deal.bodyStyle : "All",
+    paymentType: deal.onePay ? "One-pay" : "Monthly",
+    // Anything the filter panel couldn't hold (over-long) is left out
+    // rather than making the whole alert unsaveable.
+    state: state && state.length <= OPTION_MAX ? state : "All",
+    maxPayment,
+  };
+}
+
+// "Deals like 2025 BMW X5 xDrive40i", capped to the column's limit.
+export function matchAlertLabel(deal: Deal): string {
+  const label = `Deals like ${dealTitle(deal)}`.trim();
   return label.length > SAVED_SEARCH_LABEL_MAX
     ? `${label.slice(0, SAVED_SEARCH_LABEL_MAX - 1).trimEnd()}…`
     : label;

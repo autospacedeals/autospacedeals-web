@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Deal } from "@/lib/deals-data";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import { getBrokerRatingSummary, type BrokerRatingSummary } from "@/lib/supabase/reviews";
+import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
 import { dealTitle, formatCurrency, getSimilarDealsFrom } from "@/lib/deal-utils";
 import DealDetailView from "@/components/DealDetailView";
 
@@ -70,6 +71,12 @@ export default async function DealDetailPage({
         return null;
       })
     : Promise.resolve(null);
+  // Whether "Get matched" can also offer an alert for new matches (false
+  // until the saved-searches migration has been run). Never throws.
+  const alertsPromise = getSavedSearchesAvailable().catch((err) => {
+    console.error("DealDetailPage: saved searches check failed for", deal.id, err);
+    return false;
+  });
 
   let similar: Deal[] = [];
   try {
@@ -78,7 +85,14 @@ export default async function DealDetailPage({
   } catch (err) {
     console.error("DealDetailPage: similar deals failed for", deal.id, err);
   }
-  const brokerRating = await ratingPromise;
+  const [brokerRating, alertsAvailable] = await Promise.all([ratingPromise, alertsPromise]);
 
-  return <DealDetailView deal={deal} similar={similar} brokerRating={brokerRating} />;
+  return (
+    <DealDetailView
+      deal={deal}
+      similar={similar}
+      brokerRating={brokerRating}
+      alertsAvailable={alertsAvailable}
+    />
+  );
 }

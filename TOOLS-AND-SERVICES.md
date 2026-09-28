@@ -28,7 +28,7 @@ A single reference for every external tool/service this project depends on. Upda
 
 ## Transactional email
 
-- **Resend** — sends the site's own emails (currently the saved-search alert digests — see "Saved-search alerts" below). Called straight from `lib/email.ts` through Resend's REST API, so there's no extra npm package. Console: resend.com. Credentials: `RESEND_API_KEY` (required) and `RESEND_FROM_EMAIL` (optional — the "from" line, defaults to `Drive <alerts@idriveus.com>`; it must be an address on a domain verified in Resend). If `RESEND_API_KEY` isn't set, nothing breaks — the alert job just reports "email not configured" and sends nothing.
+- **Resend** — sends the site's own emails (the saved-search alert digests and the "Get matched with similar deals" emails — see "Saved-search alerts" and "Get matched emails" below). Called straight from `lib/email.ts` through Resend's REST API, so there's no extra npm package. Console: resend.com. Credentials: `RESEND_API_KEY` (required) and `RESEND_FROM_EMAIL` (optional — the "from" line, defaults to `Drive <alerts@idriveus.com>`; it must be an address on a domain verified in Resend). If `RESEND_API_KEY` isn't set, nothing breaks — the alert job just reports "email not configured" and sends nothing, and "Get matched" tells the shopper email isn't set up yet.
 - **Setup required** (one-time):
   1. Create a Resend account and **verify idriveus.com** (Resend → Domains → Add domain). Resend shows a few DNS records (SPF/DKIM, usually `TXT` and `MX` records on a `send` subdomain) — add those at your DNS provider and wait for the domain to show as verified. Until it is, Resend refuses to send from `@idriveus.com`.
   2. Resend → API Keys → create a key with "Sending access".
@@ -53,6 +53,13 @@ A signed-in customer can save their homepage filters ("Save this search", under 
 - **Trigger**: a GitHub Actions workflow (`.github/workflows/send-search-alerts.yml`) that runs hourly (at :17 past), not Vercel Cron — same reason as the sheet sync above.
 - **Setup required**: nothing new — it reuses the **same `CRON_SYNC_SECRET`** as the sheet sync (already in Vercel and in GitHub's Actions secrets), plus the Resend setup under "Transactional email" above. Without `RESEND_API_KEY` the job runs but skips sending.
 - The workflow calls `https://www.idriveus.com/api/cron/search-alerts` — update that URL in the workflow file if the domain ever changes. Links inside the emails use `NEXT_PUBLIC_SITE_URL`.
+
+## Get matched emails
+
+"Get matched with similar deals" on a deal page opens a small form that emails the shopper the similar deals shown under that listing (a one-time email, sent through Resend). Signed-in customers get it at their account email and can also tick "Email me when new matching deals are posted", which saves an alert (a saved search named "Deals like …") on their dashboard. Anyone else types an email address. See `app/deals/[slug]/actions.ts` and `supabase/migrations/0018_match_email_log.sql`.
+
+- **Setup required**: run `0018_match_email_log.sql` in the Supabase SQL editor, plus the Resend setup under "Transactional email" above. Until 0018 is run, only signed-in customers can use it — signed-out visitors are told to log in or try later.
+- **Limits**: at most 3 emails to the same address and 10 from the same IP address in any 24 hours, tracked in `match_email_log` (only the site's server can read it). The site deletes rows older than a week now and then; you can also clear the table by hand at any time.
 
 ## Domain
 
