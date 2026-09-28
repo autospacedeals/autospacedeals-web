@@ -1,8 +1,8 @@
 // Regenerates Drive's raster brand files from the SVG sources in public/brand,
 // using the repo's own `sharp` (already a dependency — nothing to install).
 //
-// The rendered files are ALSO delivered ready-made in design/final/icons/, so
-// running this is only needed if the SVGs change. Run from the repo root:
+// The rendered files are already committed, so running this is only needed
+// if the SVGs change. Run from the repo root:
 //
 //   node scripts/make-brand-assets.mjs
 //

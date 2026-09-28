@@ -149,7 +149,6 @@ export default function HomeClient({
       setGeoStatus("unavailable");
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGeoStatus("pending");
     navigator.geolocation.getCurrentPosition(
       (pos) => {

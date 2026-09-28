@@ -22,7 +22,7 @@ interface Broker {
 interface Submission {
   id: string;
   broker_id: string;
-  source_type: "link" | "google_sheet" | "excel_file";
+  source_type: "link" | "google_sheet" | "excel_file" | "free_text" | "screenshot" | "manual";
   source_url: string;
   notes: string | null;
   status: "pending" | "approved" | "rejected";
@@ -32,9 +32,13 @@ interface Submission {
 }
 
 const SOURCE_TYPE_LABELS: Record<Submission["source_type"], string> = {
+  // No longer accepted from brokers; older rows still show here.
   link: "Forum post / website",
   google_sheet: "Google Sheet",
   excel_file: "Excel file",
+  free_text: "Typed up",
+  screenshot: "Screenshot",
+  manual: "Added manually",
 };
 
 const STATUS_ORDER: Record<Submission["status"], number> = {

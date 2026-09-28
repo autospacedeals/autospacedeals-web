@@ -12,7 +12,7 @@ import {
   type SupportedImageType,
 } from "@/lib/ai-parse-inventory";
 import { suggestIncentives, resolveNamedIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
-import { extractGoogleSheetId, fetchGoogleSheetCsv } from "@/lib/google-sheet";
+import { fetchGoogleSheetCsv } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 
 // Supabase Storage rejects object keys containing spaces, colons, and other
@@ -242,7 +242,6 @@ export async function createSubmissionAction(
     sourceUrl = String(formData.get("sourceUrl") || "").trim();
     if (!sourceUrl) return { error: "Please enter a link." };
     try {
-      // eslint-disable-next-line no-new
       new URL(sourceUrl);
     } catch {
       return { error: "That doesn't look like a valid URL." };
@@ -438,7 +437,7 @@ export async function createSubmissionAction(
     return {
       error: `We read ${parsedDeals.length} car${parsedDeals.length === 1 ? "" : "s"} but couldn't save ${
         parsedDeals.length === 1 ? "it" : "them"
-      } as drafts (${stageLastError ?? "unknown error"}). This looks like a backend issue — let Robert know so he can check it, or add the car(s) manually below in the meantime.`,
+      } as drafts (${stageLastError ?? "unknown error"}). This looks like an issue on our end — contact support if it keeps happening, or add the car(s) manually below in the meantime.`,
     };
   }
 
@@ -597,7 +596,6 @@ export async function createManualDealAction(
   }
   for (const url of images) {
     try {
-      // eslint-disable-next-line no-new
       new URL(url);
     } catch {
       return { error: `"${url}" doesn't look like a valid photo URL.` };
@@ -728,7 +726,6 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   }
   for (const url of images) {
     try {
-      // eslint-disable-next-line no-new
       new URL(url);
     } catch {
       return { error: `"${url}" doesn't look like a valid photo URL.` };
@@ -977,7 +974,6 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   }
   for (const url of images) {
     try {
-      // eslint-disable-next-line no-new
       new URL(url);
     } catch {
       return { error: `"${url}" doesn't look like a valid photo URL.` };

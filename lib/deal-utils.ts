@@ -175,15 +175,6 @@ export function daysAgo(dateStr: string, today: Date = new Date()): number {
   return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function relativeDatePosted(dateStr: string, today?: Date): string {
-  if (!dateStr) return "Recently posted";
-  const days = daysAgo(dateStr, today);
-  if (days <= 0) return "Posted today";
-  if (days === 1) return "Posted 1 day ago";
-  if (days < 30) return `Posted ${days} days ago`;
-  return `Posted ${formatDate(dateStr)}`;
-}
-
 // Drives the "Just Listed" badge — true for the first couple of days after
 // a deal goes live. We show shoppers a lightweight freshness signal instead
 // of an exact date (which mostly just told people how "stale" older, still
@@ -230,9 +221,8 @@ export function slugify(parts: (string | number)[]): string {
   return `${base}-${suffix}`;
 }
 
-// Like getSimilarDeals in deals-data.ts, but works over any array (needed
-// now that the public pages fetch deals from the database instead of the
-// static file).
+// The deals most like this one (same make, body style, fuel and state
+// weigh the most) from the given pool.
 export function getSimilarDealsFrom(allDeals: Deal[], deal: Deal, count = 3): Deal[] {
   return allDeals
     .filter((d) => d.id !== deal.id)

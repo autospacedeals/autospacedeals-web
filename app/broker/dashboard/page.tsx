@@ -148,8 +148,8 @@ export default async function BrokerDashboardPage() {
 
       {dealsError && (
         <div className="alert alert-danger mt-8">
-          We couldn&apos;t load your listings right now — this looks like a backend issue, not
-          something wrong with what you uploaded. Try refreshing, and let Robert know if it keeps
+          We couldn&apos;t load your listings right now — this looks like an issue on our end, not
+          something wrong with what you uploaded. Try refreshing, and contact support if it keeps
           happening.
         </div>
       )}

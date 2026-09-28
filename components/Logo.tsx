@@ -5,7 +5,8 @@
 // - Letters use currentColor (inherit text-fg on the dark site); the blue
 //   parallelogram (wordmark i-dot / mark ascender) uses the --brand token via
 //   the `fill-brand` utility, so the logo and UI share one blue.
-// - Server- and Client-safe (no hooks). Geometry: FINAL_SPEC §7.
+// - Server- and Client-safe (no hooks). The same shapes live as standalone
+//   files in public/brand/ (sources for the icons — see scripts/make-brand-assets.mjs).
 import type { SVGProps } from "react";
 
 const SKEW = "matrix(1 0 -0.21256 1 0 0)";

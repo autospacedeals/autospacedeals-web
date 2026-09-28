@@ -292,7 +292,7 @@ function LinkForm({
                     <span>
                       Auto-publish new listings found during future checks
                       <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
-                        Off = new rows land as drafts for you to confirm, same as today. On = new
+                        Off = new rows land as drafts for you to confirm. On = new
                         rows go live immediately, no review.
                       </span>
                     </span>
