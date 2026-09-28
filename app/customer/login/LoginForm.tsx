@@ -10,11 +10,13 @@ const initialState: AuthState = { error: null };
 const inputClass = "input";
 const labelClass = "field-label";
 
-export default function LoginForm() {
+export default function LoginForm({ next = null }: { next?: string | null }) {
   const [state, formAction, pending] = useActionState(signInAction, initialState);
 
   return (
     <form action={formAction} className="space-y-5">
+      {/* Re-validated on the server — this is only a hint of where to go. */}
+      {next && <input type="hidden" name="next" value={next} />}
       <div>
         <label htmlFor="login-email" className={labelClass}>
           Email

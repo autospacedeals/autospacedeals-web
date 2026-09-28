@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 export type AuthState = {
   error: string | null;
@@ -20,6 +21,10 @@ export async function signInAction(
 ): Promise<AuthState> {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
+  // Optional post-login destination from the login page's ?next= param —
+  // client-supplied, so it's re-checked here and only a same-site path
+  // is ever followed.
+  const next = safeNextPath(formData.get("next"));
 
   if (!email || !password) {
     return { error: "Enter your email and password." };
@@ -32,7 +37,7 @@ export async function signInAction(
     return { error: error.message };
   }
 
-  redirect("/customer/dashboard");
+  redirect(next ?? "/customer/dashboard");
 }
 
 // Uploads a single optional document (driver's license or insurance/AAA

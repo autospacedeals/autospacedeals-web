@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { Deal } from "@/lib/deals-data";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
+import { getBrokerRatingSummary, type BrokerRatingSummary } from "@/lib/supabase/reviews";
 import { dealTitle, formatCurrency, getSimilarDealsFrom } from "@/lib/deal-utils";
 import DealDetailView from "@/components/DealDetailView";
 
@@ -59,6 +60,17 @@ export default async function DealDetailPage({
   const deal = await getDealBySlugDb(slug);
   if (!deal) notFound();
 
+  // The seller's average rating for the contact card's trust badge — a
+  // nice-to-have, fetched alongside the similar deals. It never throws (and
+  // is null before the reviews migration has been run); the .catch is
+  // belt and braces so it can't take the listing down either way.
+  const ratingPromise: Promise<BrokerRatingSummary | null> = deal.brokerId
+    ? getBrokerRatingSummary(deal.brokerId).catch((err) => {
+        console.error("DealDetailPage: broker rating failed for", deal.id, err);
+        return null;
+      })
+    : Promise.resolve(null);
+
   let similar: Deal[] = [];
   try {
     const allDeals = await getPublishedDeals();
@@ -66,6 +78,7 @@ export default async function DealDetailPage({
   } catch (err) {
     console.error("DealDetailPage: similar deals failed for", deal.id, err);
   }
+  const brokerRating = await ratingPromise;
 
-  return <DealDetailView deal={deal} similar={similar} />;
+  return <DealDetailView deal={deal} similar={similar} brokerRating={brokerRating} />;
 }

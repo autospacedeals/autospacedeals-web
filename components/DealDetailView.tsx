@@ -22,6 +22,8 @@ import {
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
+import { RatingBadge } from "@/components/StarRating";
+import type { BrokerRatingSummary } from "@/lib/supabase/reviews";
 
 // Up to two initials for the seller avatar in the contact card. Guarded like
 // every other deal-derived value below — a missing name just renders an
@@ -45,6 +47,11 @@ export default function DealDetailView({
   // doesn't really exist yet, doesn't make sense until it's published.
   isPreview = false,
   previewBanner,
+  // The seller's average customer rating (lib/supabase/reviews.ts). Optional
+  // — left out (or null) whenever it isn't known, e.g. in the broker preview
+  // or before the reviews migration has been run — and only shown once the
+  // seller has at least one review.
+  brokerRating = null,
 }: {
   deal: Deal;
   similar?: Deal[];
@@ -52,6 +59,7 @@ export default function DealDetailView({
   backLabel?: string;
   isPreview?: boolean;
   previewBanner?: ReactNode;
+  brokerRating?: BrokerRatingSummary | null;
 }) {
   // Every value derived from the deal is computed defensively — a single
   // bad field (a stray null slipping through a type that assumes it can't
@@ -68,6 +76,10 @@ export default function DealDetailView({
     : [];
   const phone = phoneDigits(deal.sellerPhone);
   const headline = formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment);
+  const sellerRating =
+    deal.brokerId && brokerRating && brokerRating.count > 0 && brokerRating.average != null
+      ? { average: brokerRating.average, count: brokerRating.count }
+      : null;
 
   return (
     <main className="container-page max-w-6xl pt-8 pb-12 sm:pt-12">
@@ -284,6 +296,17 @@ export default function DealDetailView({
                   <p className="mt-1 text-sm text-fg-muted">
                     {deal.city}, {deal.state} · {deal.sellerPhone}
                   </p>
+                  {/* Its own line, so the inline badge and the inline
+                      "View seller profile" link below don't run together. */}
+                  {sellerRating && (
+                    <div className="mt-1">
+                      <RatingBadge
+                        href={`/brokers/${deal.brokerId}#reviews`}
+                        average={sellerRating.average}
+                        count={sellerRating.count}
+                      />
+                    </div>
+                  )}
                   {deal.brokerId && (
                     <Link href={`/brokers/${deal.brokerId}`} className="link-arrow mt-2 min-h-9">
                       View seller profile <ArrowRight />
