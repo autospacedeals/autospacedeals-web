@@ -3,6 +3,7 @@
 // recurring Google Sheet sync job (lib/sheet-sync.ts), so both insert deals
 // the exact same way.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { classifyVehicles } from "@/lib/vehicle-classify";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
 import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
@@ -48,7 +49,11 @@ export async function stageParsedDeals(
   let failed = 0;
   let lastError: string | null = null;
 
-  for (const d of deals) {
+  // Uploads only carry year/make/model/trim — look up fuel type and body
+  // style for the whole batch in one go so they're searchable/filterable.
+  const classes = await classifyVehicles(deals);
+
+  for (const [i, d] of deals.entries()) {
     let images: string[] = [];
     const photo = await fetchCarsxePhoto({
       year: d.year,
@@ -70,8 +75,8 @@ export async function stageParsedDeals(
       make: d.make,
       model: d.model,
       trim: d.trim,
-      body_style: null,
-      fuel: null,
+      body_style: classes[i]?.bodyStyle ?? null,
+      fuel: classes[i]?.fuel ?? null,
       exterior: d.exterior,
       interior: d.interior,
       deal_type: "Lease",
