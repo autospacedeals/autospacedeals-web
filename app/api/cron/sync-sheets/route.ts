@@ -1,8 +1,9 @@
 // Recurring Google Sheet sync endpoint. Not triggered by Vercel Cron
 // directly (Vercel's Hobby plan only allows once-a-day schedules) — instead
-// a GitHub Actions workflow (.github/workflows/sync-broker-sheets.yml) hits
-// this every ~30 minutes with a shared secret. See lib/sheet-sync.ts for the
-// actual reconciliation logic.
+// Supabase's scheduler (pg_cron, see supabase/migrations/0019_schedule_cron_jobs.sql)
+// hits this every 30 minutes with a shared secret; the GitHub workflow
+// .github/workflows/sync-broker-sheets.yml can also run it by hand. See
+// lib/sheet-sync.ts for the actual reconciliation logic.
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { runSheetSync, type SheetSyncRow } from "@/lib/sheet-sync";

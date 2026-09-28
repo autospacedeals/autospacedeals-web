@@ -1,16 +1,12 @@
 name: Send saved-search alerts
 
-# Hits the site's /api/cron/search-alerts endpoint every hour, which emails
-# customers about newly posted deals matching their saved searches (see
-# app/api/cron/search-alerts/route.ts). Runs on GitHub's free scheduler for
-# the same reason as sync-broker-sheets.yml (Vercel's Hobby plan only allows
-# once-a-day cron schedules), and uses the same CRON_SYNC_SECRET. Scheduled
-# at :17 rather than on the hour, when GitHub's scheduler is busiest and
-# most likely to delay a run. Also runnable manually from the Actions tab
-# for testing.
+# Manual trigger for /api/cron/search-alerts (Actions tab → Run workflow),
+# which emails customers about newly posted deals matching their saved
+# searches (see app/api/cron/search-alerts/route.ts). The hourly schedule
+# now runs from Supabase (pg_cron — see
+# supabase/migrations/0019_schedule_cron_jobs.sql) so it isn't delayed by
+# GitHub's scheduler and can't overlap a scheduled run.
 on:
-  schedule:
-    - cron: "17 * * * *"
   workflow_dispatch: {}
 
 jobs:

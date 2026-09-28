@@ -1,13 +1,10 @@
 name: Sync broker Google Sheets
 
-# Hits the site's /api/cron/sync-sheets endpoint every ~30 minutes so it's
-# not gated by Vercel's own Cron Jobs (the free Hobby plan only allows
-# once-a-day schedules — this runs on GitHub's free scheduler instead,
-# regardless of Vercel plan). Also runnable manually from the Actions tab
-# for testing.
+# Manual trigger for /api/cron/sync-sheets (Actions tab → Run workflow).
+# The every-30-minutes schedule now runs from Supabase (pg_cron — see
+# supabase/migrations/0019_schedule_cron_jobs.sql): GitHub's free scheduler
+# delayed and skipped runs, and running both could overlap two syncs.
 on:
-  schedule:
-    - cron: "*/30 * * * *"
   workflow_dispatch: {}
 
 jobs:

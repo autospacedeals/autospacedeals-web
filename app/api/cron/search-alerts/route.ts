@@ -1,8 +1,9 @@
 // Saved-search alert emails (see supabase/migrations/0017_saved_searches.sql).
 // Like the sheet sync, not triggered by Vercel Cron directly (the Hobby plan
-// only allows once-a-day schedules) — a GitHub Actions workflow
-// (.github/workflows/send-search-alerts.yml) hits this every hour with the
-// same CRON_SYNC_SECRET.
+// only allows once-a-day schedules) — Supabase's scheduler (pg_cron, see
+// supabase/migrations/0019_schedule_cron_jobs.sql) hits this every hour with
+// the same CRON_SYNC_SECRET; .github/workflows/send-search-alerts.yml can
+// also run it by hand.
 //
 // Each run: load every saved search and every deal published in the last
 // two weeks; for each search, find deals published after the search was

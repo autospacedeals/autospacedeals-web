@@ -37,22 +37,23 @@ A single reference for every external tool/service this project depends on. Upda
 
 ## Recurring Google Sheet sync
 
-A broker can opt a linked Google Sheet into recurring auto-sync (checked every ~30 minutes), which adds new cars it finds and soft-removes ones that disappear from the sheet. See `lib/sheet-sync.ts` and `app/api/cron/sync-sheets/route.ts`.
+A broker can opt a linked Google Sheet into recurring auto-sync (checked every 30 minutes), which adds new cars it finds, updates repriced ones in place, and soft-removes ones that are deleted or crossed out on the sheet. See `lib/sheet-sync.ts`, `lib/google-sheet.ts` and `app/api/cron/sync-sheets/route.ts`.
 
-- **Trigger**: a GitHub Actions workflow (`.github/workflows/sync-broker-sheets.yml`), not Vercel Cron — Vercel's free Hobby plan only allows once-a-day cron schedules, so GitHub's free scheduler is used instead regardless of which Vercel plan you're on.
-- **Setup required** (one-time): generate a random secret string, then add it in two places with the *same* value:
-  1. Vercel → Project → Settings → Environment Variables → add `CRON_SYNC_SECRET` (Production).
-  2. GitHub repo → Settings → Secrets and variables → Actions → New repository secret → name it `CRON_SYNC_SECRET`.
-  Without this secret configured in both places, the endpoint refuses every request (including the scheduled ones) rather than running unauthenticated.
-- The workflow calls `https://www.idriveus.com/api/cron/sync-sheets` — update that URL in the workflow file if the domain ever changes.
+- **Trigger**: Supabase's scheduler (pg_cron + pg_net), set up by `supabase/migrations/0019_schedule_cron_jobs.sql`. Not Vercel Cron (the free Hobby plan only allows once-a-day schedules) and no longer GitHub Actions (its free scheduler delayed and skipped runs — "every 30 minutes" was really every 3-6 hours). The GitHub workflows (`.github/workflows/sync-broker-sheets.yml`, `send-search-alerts.yml`) are kept as manual "Run workflow" buttons for testing.
+- **Setup required** (one-time): a random secret string, stored with the *same* value in:
+  1. Vercel → Project → Settings → Environment Variables → `CRON_SYNC_SECRET` (Production).
+  2. Supabase Vault, as `cron_sync_secret` — see the header of `0019_schedule_cron_jobs.sql` for the one-line command, then run the rest of that file.
+  3. (Only for the manual GitHub buttons) GitHub repo → Settings → Secrets and variables → Actions → `CRON_SYNC_SECRET`.
+  Without a matching secret, the endpoint refuses every request (including the scheduled ones) rather than running unauthenticated.
+- The scheduled jobs call `https://www.idriveus.com/api/cron/sync-sheets` and `/api/cron/search-alerts` — if the domain ever changes, update the URLs in `0019_schedule_cron_jobs.sql` and re-run it.
 
 ## Saved-search alerts
 
 A signed-in customer can save their homepage filters ("Save this search", under the filters) and get one email per saved search when new matching deals are posted. They see and delete their saved searches on their dashboard (`/customer/dashboard#alerts`), and every alert email has a "Stop these alerts" link (`/alerts/unsubscribe?token=…`) that works without logging in. Only deals first published after the search was saved are included, and each deal is only ever emailed once per saved search. See `app/api/cron/search-alerts/route.ts` and `supabase/migrations/0017_saved_searches.sql` (run it in the Supabase SQL editor — until then the feature stays hidden).
 
-- **Trigger**: a GitHub Actions workflow (`.github/workflows/send-search-alerts.yml`) that runs hourly (at :17 past), not Vercel Cron — same reason as the sheet sync above.
+- **Trigger**: Supabase's scheduler, hourly at :17 past — same setup as the sheet sync above (`0019_schedule_cron_jobs.sql`).
 - **Setup required**: nothing new — it reuses the **same `CRON_SYNC_SECRET`** as the sheet sync (already in Vercel and in GitHub's Actions secrets), plus the Resend setup under "Transactional email" above. Without `RESEND_API_KEY` the job runs but skips sending.
-- The workflow calls `https://www.idriveus.com/api/cron/search-alerts` — update that URL in the workflow file if the domain ever changes. Links inside the emails use `NEXT_PUBLIC_SITE_URL`.
+- The scheduled job calls `https://www.idriveus.com/api/cron/search-alerts` (see the sheet-sync notes above for changing it). Links inside the emails use `NEXT_PUBLIC_SITE_URL`.
 
 ## Get matched emails
 
