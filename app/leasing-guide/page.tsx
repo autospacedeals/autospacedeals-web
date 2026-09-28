@@ -35,8 +35,7 @@ export default function LeasingGuidePage() {
                 Ready to run the numbers?
               </span>
               <span className="mt-0.5 block text-[13px] text-fg-muted">
-                Try the Lease Calculator on any car — real numbers pulled in automatically when
-                available.
+                Try the Lease Calculator on any car — plug in the numbers from any lease quote.
               </span>
             </span>
           </span>

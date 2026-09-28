@@ -37,6 +37,13 @@ const STANDARD_TERMS = [24, 27, 30, 33, 36, 39, 42, 45, 48];
 // lenders don't quote a residual for an arbitrary number like 11,000/yr.
 const MILEAGE_BRACKETS = [7500, 10000, 12000, 15000];
 
+// The "Look up a vehicle" panel (MarketCheck residual / money factor /
+// incentive prefill) is hidden for now — flip this back to true to bring it
+// back. Everything behind it (runLookup, the lookupLeaseNumbers server
+// action, lookup-driven term brackets) stays wired up, and with it hidden
+// the calculator just runs on the manual fields and standard brackets.
+const SHOW_VEHICLE_LOOKUP = false;
+
 // Standalone, anyone-can-use lease calculator — not tied to a specific
 // listing. "Look up real numbers" tries MarketCheck for actual residual/
 // money-factor/cap-cost data on the vehicle (see app/calculator/actions.ts);
@@ -189,103 +196,105 @@ export default function LeaseCalculator() {
 
   return (
     <div className="space-y-6">
-      {/* Vehicle lookup */}
-      <div className="panel">
-        <h2 className="panel-title">
-          <Search /> Look up a vehicle
-        </h2>
-        <p className="mt-1.5 text-sm text-fg-muted">
-          Optional — we&apos;ll try to prefill residual value, money factor, and current incentives
-          from real manufacturer lease programs. You can also just fill in the numbers yourself
-          below.
-        </p>
+      {/* Vehicle lookup — hidden for now, see SHOW_VEHICLE_LOOKUP */}
+      {SHOW_VEHICLE_LOOKUP && (
+        <div className="panel">
+          <h2 className="panel-title">
+            <Search /> Look up a vehicle
+          </h2>
+          <p className="mt-1.5 text-sm text-fg-muted">
+            Optional — we&apos;ll try to prefill residual value, money factor, and current incentives
+            from real manufacturer lease programs. You can also just fill in the numbers yourself
+            below.
+          </p>
 
-        <div className="mt-5 grid grid-cols-2 items-end gap-4 sm:grid-cols-5">
-          <TextField label="Year" value={year} onChange={setYear} placeholder="2026" />
-          <TextField label="Make" value={make} onChange={setMake} placeholder="Honda" />
-          <TextField label="Model" value={model} onChange={setModel} placeholder="CR-V" />
-          <TextField label="Trim (optional)" value={trim} onChange={setTrim} placeholder="EX-L" />
-          <TextField
-            label="Zip (optional)"
-            value={zip}
-            onChange={setZip}
-            placeholder="90210"
-          />
-        </div>
-        <p className="mt-2 text-xs text-fg-muted">
-          Zip helps surface region-specific lease cash — some manufacturer incentives only apply
-          in certain areas.
-        </p>
+          <div className="mt-5 grid grid-cols-2 items-end gap-4 sm:grid-cols-5">
+            <TextField label="Year" value={year} onChange={setYear} placeholder="2026" />
+            <TextField label="Make" value={make} onChange={setMake} placeholder="Honda" />
+            <TextField label="Model" value={model} onChange={setModel} placeholder="CR-V" />
+            <TextField label="Trim (optional)" value={trim} onChange={setTrim} placeholder="EX-L" />
+            <TextField
+              label="Zip (optional)"
+              value={zip}
+              onChange={setZip}
+              placeholder="90210"
+            />
+          </div>
+          <p className="mt-2 text-xs text-fg-muted">
+            Zip helps surface region-specific lease cash — some manufacturer incentives only apply
+            in certain areas.
+          </p>
 
-        <button
-          type="button"
-          onClick={runLookup}
-          disabled={lookupPending}
-          className="btn btn-primary mt-5"
-        >
-          <Search /> {lookupPending ? "Looking up…" : "Look up real numbers"}
-        </button>
-
-        {lookupError && <p className="mt-3 text-sm text-warning">{lookupError}</p>}
-
-        {lookupResult && !lookupError && (
-          <div
-            className={`alert mt-4 ${
-              lookupResult.structureSource === "verified" ? "alert-success" : "alert-info"
-            }`}
+          <button
+            type="button"
+            onClick={runLookup}
+            disabled={lookupPending}
+            className="btn btn-primary mt-5"
           >
-            {lookupResult.structureSource === "verified" ? (
-              <>
-                <CheckCircle2 />
-                <p>
-                  Prefilled MSRP, residual %, money factor, term, and acquisition fee based on{" "}
-                  <span className="font-semibold">{lookupResult.basedOn}</span> — a real advertised
-                  offer, not a lender rate sheet. Confirm before relying on it.
-                </p>
-              </>
-            ) : (
-              <>
-                <CircleAlert />
-                <p>
-                  No verified lease program found for this vehicle — enter MSRP, residual %, and
-                  money factor manually below.
-                </p>
-              </>
-            )}
-          </div>
-        )}
+            <Search /> {lookupPending ? "Looking up…" : "Look up real numbers"}
+          </button>
 
-        {suggested.length > 0 && (
-          <div>
-            <p className="field-label mt-5 flex items-center gap-1.5">
-              <Sparkles size={14} /> Incentives that may apply
-            </p>
-            <div className="space-y-2">
-              {suggested.map((inc, idx) => (
-                <label key={idx} className="choice justify-between">
-                  <span className="flex items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      checked={selectedIncentives.has(idx)}
-                      onChange={() => toggleIncentive(idx)}
-                      className="checkbox"
-                    />
-                    {inc.name}
-                    <span
-                      className={`pill ${
-                        inc.source === "verified" ? "pill-success" : "pill-neutral"
-                      }`}
-                    >
-                      {inc.source === "verified" ? "Verified" : "Estimated"}
-                    </span>
-                  </span>
-                  <span className="shrink-0 font-semibold text-fg">{formatCurrency(inc.amount)}</span>
-                </label>
-              ))}
+          {lookupError && <p className="mt-3 text-sm text-warning">{lookupError}</p>}
+
+          {lookupResult && !lookupError && (
+            <div
+              className={`alert mt-4 ${
+                lookupResult.structureSource === "verified" ? "alert-success" : "alert-info"
+              }`}
+            >
+              {lookupResult.structureSource === "verified" ? (
+                <>
+                  <CheckCircle2 />
+                  <p>
+                    Prefilled MSRP, residual %, money factor, term, and acquisition fee based on{" "}
+                    <span className="font-semibold">{lookupResult.basedOn}</span> — a real advertised
+                    offer, not a lender rate sheet. Confirm before relying on it.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <CircleAlert />
+                  <p>
+                    No verified lease program found for this vehicle — enter MSRP, residual %, and
+                    money factor manually below.
+                  </p>
+                </>
+              )}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {suggested.length > 0 && (
+            <div>
+              <p className="field-label mt-5 flex items-center gap-1.5">
+                <Sparkles size={14} /> Incentives that may apply
+              </p>
+              <div className="space-y-2">
+                {suggested.map((inc, idx) => (
+                  <label key={idx} className="choice justify-between">
+                    <span className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedIncentives.has(idx)}
+                        onChange={() => toggleIncentive(idx)}
+                        className="checkbox"
+                      />
+                      {inc.name}
+                      <span
+                        className={`pill ${
+                          inc.source === "verified" ? "pill-success" : "pill-neutral"
+                        }`}
+                      >
+                        {inc.source === "verified" ? "Verified" : "Estimated"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-semibold text-fg">{formatCurrency(inc.amount)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Editable numbers */}
       <div className="panel">
@@ -403,7 +412,7 @@ export default function LeaseCalculator() {
         <p className="mt-2 text-[11px] text-fg-muted">
           {structures.length > 0
             ? `Real programs found for ${availableTerms.join(", ")} mo — the term adjuster snaps to these and updates residual %/money factor to match.`
-            : `No vehicle looked up yet — the term adjuster steps through standard ${availableTerms[0]}–${availableTerms[availableTerms.length - 1]} mo brackets without changing residual/money factor.`}
+            : `The term adjuster steps through standard ${availableTerms[0]}–${availableTerms[availableTerms.length - 1]} mo brackets without changing residual/money factor.`}
         </p>
 
         {/* Trade-in */}

@@ -9,17 +9,17 @@ import { LogoWordmark } from "@/components/Logo";
 
 // Trimmed to destinations that actually go somewhere — "About" and
 // "Brokers" used to just scroll to homepage sections; the broker link now
-// points straight at signup instead. Calculator was previously only
-// reachable from the guide. `match` decides which link is marked current
-// (Calculator stays active on /lease-end too).
+// points straight at signup instead. The calculators deliberately aren't in
+// the nav — they're reached from the guide, so Guide stays marked current
+// on /calculator and /lease-end too. `match` decides which link is current.
 const NAV_LINKS = [
   { href: "/#deals", label: "Deals", match: (p: string) => p === "/" || p.startsWith("/deals/") },
   {
-    href: "/calculator",
-    label: "Calculator",
-    match: (p: string) => p.startsWith("/calculator") || p.startsWith("/lease-end"),
+    href: "/leasing-guide",
+    label: "Guide",
+    match: (p: string) =>
+      p.startsWith("/leasing-guide") || p.startsWith("/calculator") || p.startsWith("/lease-end"),
   },
-  { href: "/leasing-guide", label: "Guide", match: (p: string) => p.startsWith("/leasing-guide") },
   { href: "/broker/signup", label: "Brokers", match: () => false },
 ];
 

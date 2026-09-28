@@ -7,7 +7,7 @@ import LeaseCalculator from "@/components/LeaseCalculator";
 export const metadata: Metadata = {
   title: "Lease Calculator",
   description:
-    "Estimate any car lease payment from MSRP, residual value, money factor, term, and incentives — with real numbers pulled in automatically when available.",
+    "Estimate any car lease payment from MSRP, selling price, residual value, money factor, and term — then see the real due-at-signing total.",
 };
 
 export default function CalculatorPage() {

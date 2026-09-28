@@ -25,11 +25,6 @@ export default function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/calculator" className="link-quiet">
-                  Lease calculator
-                </Link>
-              </li>
-              <li>
                 <Link href="/leasing-guide" className="link-quiet">
                   Leasing guide
                 </Link>
