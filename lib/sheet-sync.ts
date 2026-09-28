@@ -2,11 +2,12 @@
 // app/api/cron/sync-sheets on a schedule). Re-fetches a broker's linked
 // sheet, re-parses it, and diffs the result against that sheet's currently
 // active listings (draft or published) by best-effort signature — see
-// computeMatchSignature in lib/parse-inventory.ts. New signatures get
-// inserted (as drafts, or published directly if the broker opted into
-// auto-publish for this sheet); signatures that disappear get soft-removed
-// the same way a manual removal works, so they're recoverable from
-// "Removed" if it comes back.
+// computeMatchSignature in lib/parse-inventory.ts. Leftover rows for the
+// same car (year/make/model/trim) are treated as a price/terms change and
+// updated in place. Anything else new gets inserted (as drafts, or
+// published directly if the broker opted into auto-publish for this sheet);
+// cars that disappear get soft-removed the same way a manual removal works,
+// so they're recoverable from "Removed" if they come back.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseInventoryCsv, computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
 import { fetchGoogleSheetCsv } from "@/lib/google-sheet";
@@ -23,13 +24,27 @@ export interface SheetSyncResult {
   syncId: string;
   added: number;
   removed: number;
+  updated: number;
   error: string | null;
 }
 
-interface ActiveDealRow {
+export interface ActiveDealRow {
   id: string;
   match_signature: string | null;
   created_at: string;
+  year: number;
+  make: string;
+  model: string;
+  trim: string | null;
+}
+
+// The car itself, without its price — the signature includes payment and
+// due-at-signing, so a repriced row would otherwise look like "old car
+// removed, new car added" (the listing vanishing into drafts, or showing
+// twice when the large-drop guard below skipped the removal).
+function vehicleKey(d: { year: number; make: string; model: string; trim: string | null }): string {
+  const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return [d.year, norm(d.make), norm(d.model), norm(d.trim)].join("|");
 }
 
 // If a single sync cycle would remove more than this many listings — and
@@ -39,6 +54,69 @@ interface ActiveDealRow {
 // the broker actually pulling most of their inventory in one shot.
 // Additions still go through either way.
 const MAX_UNFLAGGED_REMOVALS = 3;
+
+// Pure reconciliation of a sheet read against the sheet's active listings —
+// no I/O, so it can be exercised on its own.
+export function planSheetSync(
+  parsedDeals: ParsedDeal[],
+  existingRows: ActiveDealRow[]
+): { toInsert: ParsedDeal[]; toUpdate: { id: string; deal: ParsedDeal }[]; toRemoveIds: string[] } {
+  // Group the freshly-parsed sheet rows and the currently active listings by
+  // signature, then reconcile counts per signature — this also handles a
+  // broker listing several identical units at the same price reasonably
+  // well (matched up to the smaller count, extras added/removed as needed).
+  const sheetBySignature = new Map<string, ParsedDeal[]>();
+  for (const d of parsedDeals) {
+    const sig = computeMatchSignature(d);
+    const list = sheetBySignature.get(sig) ?? [];
+    list.push(d);
+    sheetBySignature.set(sig, list);
+  }
+
+  const dbBySignature = new Map<string, ActiveDealRow[]>();
+  for (const row of existingRows) {
+    const sig = row.match_signature ?? "";
+    const list = dbBySignature.get(sig) ?? [];
+    list.push(row);
+    dbBySignature.set(sig, list);
+  }
+
+  const unmatchedSheet: ParsedDeal[] = [];
+  const unmatchedDb: ActiveDealRow[] = [];
+
+  const allSignatures = new Set([...sheetBySignature.keys(), ...dbBySignature.keys()]);
+  for (const sig of allSignatures) {
+    const sheetList = sheetBySignature.get(sig) ?? [];
+    const dbList = dbBySignature.get(sig) ?? [];
+    if (sheetList.length > dbList.length) {
+      unmatchedSheet.push(...sheetList.slice(dbList.length));
+    } else if (dbList.length > sheetList.length) {
+      // Oldest-first so the listing that's genuinely been there longest is
+      // the one assumed sold/removed first.
+      const sorted = [...dbList].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+      unmatchedDb.push(...sorted.slice(0, dbList.length - sheetList.length));
+    }
+  }
+
+  // Pair leftovers for the same car: that's a repriced (or re-termed)
+  // listing, so update it in place instead of remove + re-add.
+  const dbByVehicle = new Map<string, ActiveDealRow[]>();
+  for (const row of unmatchedDb) {
+    const key = vehicleKey(row);
+    const list = dbByVehicle.get(key) ?? [];
+    list.push(row);
+    dbByVehicle.set(key, list);
+  }
+  const toUpdate: { id: string; deal: ParsedDeal }[] = [];
+  const toInsert: ParsedDeal[] = [];
+  for (const d of unmatchedSheet) {
+    const candidate = dbByVehicle.get(vehicleKey(d))?.shift();
+    if (candidate) toUpdate.push({ id: candidate.id, deal: d });
+    else toInsert.push(d);
+  }
+  const toRemoveIds = [...dbByVehicle.values()].flat().map((r) => r.id);
+  return { toInsert, toUpdate, toRemoveIds };
+}
 
 export async function runSheetSync(
   supabase: SupabaseClient,
@@ -54,7 +132,7 @@ export async function runSheetSync(
       .from("sheet_syncs")
       .update({ last_synced_at: nowIso, last_sync_error: fetched.error })
       .eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, error: fetched.error };
+    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: fetched.error };
   }
 
   let parsedDeals: ParsedDeal[];
@@ -67,7 +145,7 @@ export async function runSheetSync(
     const message = err instanceof Error ? err.message : "Failed to parse the sheet.";
     console.error(`Sheet sync ${sync.id}: parse failed:`, err);
     await supabase.from("sheet_syncs").update({ last_synced_at: nowIso, last_sync_error: message }).eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, error: message };
+    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: message };
   }
 
   // A totally empty read (no rows parsed AND none skipped) almost always
@@ -76,12 +154,12 @@ export async function runSheetSync(
   if (parsedDeals.length === 0 && skippedCount === 0) {
     const message = "Last check found no rows on the sheet's first tab — skipped to avoid removing everything.";
     await supabase.from("sheet_syncs").update({ last_synced_at: nowIso, last_sync_error: message }).eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, error: message };
+    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: message };
   }
 
   const { data: existingRows, error: fetchExistingError } = await supabase
     .from("deals")
-    .select("id, match_signature, created_at")
+    .select("id, match_signature, created_at, year, make, model, trim")
     .eq("sheet_sync_id", sync.id)
     .in("status", ["draft", "published"])
     .returns<ActiveDealRow[]>();
@@ -92,43 +170,31 @@ export async function runSheetSync(
       .from("sheet_syncs")
       .update({ last_synced_at: nowIso, last_sync_error: fetchExistingError.message })
       .eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, error: fetchExistingError.message };
+    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: fetchExistingError.message };
   }
 
-  // Group the freshly-parsed sheet rows and the currently active listings by
-  // signature, then reconcile counts per signature — this also handles a
-  // broker listing several identical units at the same price reasonably
-  // well (matched up to the smaller count, extras added/removed as needed).
-  const sheetBySignature = new Map<string, ParsedDeal[]>();
-  for (const d of parsedDeals) {
-    const sig = computeMatchSignature(d);
-    const list = sheetBySignature.get(sig) ?? [];
-    list.push(d);
-    sheetBySignature.set(sig, list);
-  }
+  const { toInsert, toUpdate, toRemoveIds } = planSheetSync(parsedDeals, existingRows ?? []);
 
-  const dbBySignature = new Map<string, ActiveDealRow[]>();
-  for (const row of existingRows ?? []) {
-    const sig = row.match_signature ?? "";
-    const list = dbBySignature.get(sig) ?? [];
-    list.push(row);
-    dbBySignature.set(sig, list);
-  }
-
-  const toInsert: ParsedDeal[] = [];
-  const toRemoveIds: string[] = [];
-
-  const allSignatures = new Set([...sheetBySignature.keys(), ...dbBySignature.keys()]);
-  for (const sig of allSignatures) {
-    const sheetList = sheetBySignature.get(sig) ?? [];
-    const dbList = dbBySignature.get(sig) ?? [];
-    if (sheetList.length > dbList.length) {
-      toInsert.push(...sheetList.slice(dbList.length));
-    } else if (dbList.length > sheetList.length) {
-      // Oldest-first so the listing that's genuinely been there longest is
-      // the one assumed sold/removed first.
-      const sorted = [...dbList].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
-      toRemoveIds.push(...sorted.slice(0, dbList.length - sheetList.length).map((r) => r.id));
+  let updatedCount = 0;
+  for (const { id, deal: d } of toUpdate) {
+    const { error: updateError } = await supabase
+      .from("deals")
+      .update({
+        payment: d.payment,
+        due_at_signing: d.dueAtSigning,
+        msrp: d.msrp,
+        term: d.term,
+        miles_per_year: d.milesPerYear,
+        broker_fee: d.brokerFee,
+        one_pay: d.onePay,
+        match_signature: computeMatchSignature(d),
+        updated_at: nowIso,
+      })
+      .eq("id", id);
+    if (updateError) {
+      console.error(`Sheet sync ${sync.id}: failed to update deal ${id}:`, updateError.message);
+    } else {
+      updatedCount++;
     }
   }
 
@@ -176,5 +242,5 @@ export async function runSheetSync(
     })
     .eq("id", sync.id);
 
-  return { syncId: sync.id, added: addedCount, removed: removedCount, error: lastSyncError };
+  return { syncId: sync.id, added: addedCount, removed: removedCount, updated: updatedCount, error: lastSyncError };
 }

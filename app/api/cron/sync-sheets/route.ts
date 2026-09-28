@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: syncsError.message }, { status: 500 });
   }
 
-  const results: Array<{ syncId: string; added: number; removed: number; error: string | null }> = [];
+  const results: Array<{ syncId: string; added: number; removed: number; updated: number; error: string | null }> = [];
 
   for (const sync of syncs ?? []) {
     try {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         .single<BrokerRow>();
 
       if (!broker) {
-        results.push({ syncId: sync.id, added: 0, removed: 0, error: "Broker profile not found" });
+        results.push({ syncId: sync.id, added: 0, removed: 0, updated: 0, error: "Broker profile not found" });
         continue;
       }
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       console.error(`Cron sync-sheets: sync ${sync.id} threw:`, err);
-      results.push({ syncId: sync.id, added: 0, removed: 0, error: message });
+      results.push({ syncId: sync.id, added: 0, removed: 0, updated: 0, error: message });
     }
   }
 
