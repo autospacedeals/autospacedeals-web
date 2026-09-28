@@ -22,6 +22,8 @@ interface FilterPanelProps {
   states: string[];
   terms: string[];
   mileageOptions: string[];
+  // Rendered below the sliders (the homepage's "Save this search").
+  footer?: React.ReactNode;
 }
 
 export default function FilterPanel({
@@ -35,6 +37,7 @@ export default function FilterPanel({
   states,
   terms,
   mileageOptions,
+  footer,
 }: FilterPanelProps) {
   // Fuel type and mileage allowance are used far less often than the fields
   // above them — tucked behind a toggle so the panel doesn't front-load 9
@@ -154,6 +157,8 @@ export default function FilterPanel({
           onChange={(v) => onChange({ maxDueAtSigning: v })}
         />
       </div>
+
+      {footer}
     </div>
   );
 }

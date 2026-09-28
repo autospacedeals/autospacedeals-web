@@ -28,6 +28,12 @@ import CompareModal from "@/components/CompareModal";
 import DealCoverFlow from "@/components/DealCoverFlow";
 import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
+import SaveSearchButton from "@/components/SaveSearchButton";
+import {
+  PENDING_SAVED_SEARCH_KEY,
+  SAVED_SEARCH_QUERY_MAX,
+  parseSavedSearchFilters,
+} from "@/lib/saved-searches";
 import { nearestState } from "@/lib/us-geo";
 
 const ALL_BODY_STYLES: BodyStyle[] = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
@@ -60,7 +66,15 @@ const STEPS = [
   { title: "Direct seller handoff", text: "Contact the dealer or broker directly." },
 ];
 
-export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
+export default function HomeClient({
+  initialDeals,
+  savedSearchesAvailable = false,
+}: {
+  initialDeals: Deal[];
+  // Whether saved searches can be used yet (the 0017 migration has been
+  // run) — "Save this search" is hidden until then.
+  savedSearchesAvailable?: boolean;
+}) {
   const deals = initialDeals;
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>("featured");
@@ -105,6 +119,24 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
       }
     } catch {
       // Ignore — just falls back to no restore.
+    }
+    // Filters a signed-out shopper tried to save before logging in (see
+    // SaveSearchButton) — put back so they only have to press Save again.
+    // Read once and cleared; re-validated, since storage is editable. The
+    // panel is opened too, so the Save button is in view on small screens
+    // (where the filters start collapsed).
+    try {
+      const pending = sessionStorage.getItem(PENDING_SAVED_SEARCH_KEY);
+      if (pending) {
+        sessionStorage.removeItem(PENDING_SAVED_SEARCH_KEY);
+        const restored = parseSavedSearchFilters(JSON.parse(pending));
+        if (restored) {
+          setFilters(restored);
+          setShowFilters(true);
+        }
+      }
+    } catch {
+      // Ignore — just falls back to the default filters.
     }
     setViewModeLoaded(true);
   }, []);
@@ -253,6 +285,8 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
               <input
                 value={filters.query}
                 onChange={(e) => updateFilters({ query: e.target.value })}
+                // Also the longest search a saved search accepts.
+                maxLength={SAVED_SEARCH_QUERY_MAX}
                 placeholder="Search make, model, broker, city..."
                 aria-label="Search deals"
               />
@@ -374,7 +408,11 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[272px_minmax(0,1fr)]">
-          <aside className={`${showFilters ? "block" : "hidden"} lg:sticky lg:top-24 lg:block lg:self-start`}>
+          {/* On desktop the sticky panel scrolls on its own when it's taller
+              than the window, so its footer (Save this search) stays reachable. */}
+          <aside
+            className={`${showFilters ? "block" : "hidden"} lg:sticky lg:top-24 lg:block lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto lg:pb-1`}
+          >
             <FilterPanel
               filters={filters}
               onChange={updateFilters}
@@ -386,6 +424,7 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
               states={STATES}
               terms={TERMS}
               mileageOptions={MILEAGE_OPTIONS}
+              footer={<SaveSearchButton filters={filters} available={savedSearchesAvailable} />}
             />
           </aside>
 
@@ -425,6 +464,18 @@ export default function HomeClient({ initialDeals }: { initialDeals: Deal[] }) {
                 </button>
               </div>
             </div>
+
+            {/* Small screens, filters collapsed: the panel's Save button is
+                out of sight, so a compact one appears here once the list has
+                been narrowed (e.g. with the hero search or a quick pick). */}
+            {!showFilters && (
+              <SaveSearchButton
+                filters={filters}
+                available={savedSearchesAvailable}
+                compact
+                className="mt-4 lg:hidden"
+              />
+            )}
 
             {results.length > 0 ? (
               viewMode === "coverflow" ? (

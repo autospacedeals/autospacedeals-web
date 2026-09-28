@@ -4,9 +4,12 @@ import { redirect } from "next/navigation";
 import { LogOut, MapPin, Heart, Bell, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSavedDeals, SAVED_DEALS_LIST_LIMIT, type SavedDeals } from "@/lib/supabase/saved-deals";
+import { getSavedSearches, type SavedSearches } from "@/lib/supabase/saved-searches";
+import { describeFilters, savedSearchDate } from "@/lib/saved-searches";
 import { signOutAction } from "../actions";
 import ProfileEditor from "./ProfileEditor";
 import SavedDealsList from "./SavedDealsList";
+import SavedSearchesList from "./SavedSearchesList";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +37,8 @@ export default async function CustomerDashboardPage() {
   // Started now, awaited after the profile — it never throws (and reports
   // "unavailable" before the saved_deals migration has been run).
   const savedDealsPromise = getSavedDeals(user.id);
+  // Same for saved searches (the 0017 migration).
+  const savedSearchesPromise = getSavedSearches(user.id);
 
   const { data: customer } = await supabase
     .from("customers")
@@ -66,7 +71,7 @@ export default async function CustomerDashboardPage() {
           .then(({ data }) => data?.signedUrl ?? null)
       : Promise.resolve(null),
   ]);
-  const savedDeals = await savedDealsPromise;
+  const [savedDeals, savedSearches] = await Promise.all([savedDealsPromise, savedSearchesPromise]);
 
   return (
     <main className="container-page max-w-5xl py-10 sm:py-12">
@@ -123,16 +128,7 @@ export default async function CustomerDashboardPage() {
         <div className="space-y-6 lg:col-span-2">
           <SavedDealsSection savedDeals={savedDeals} />
 
-          {/* Placeholder section for an upcoming feature */}
-          <div className="panel sm:p-8">
-            <h2 className="panel-title">
-              <Bell /> Saved searches &amp; alerts
-            </h2>
-            <p className="mt-2 text-sm text-fg-muted">
-              Coming soon — set your filters once and we&apos;ll email you when a matching deal
-              gets posted.
-            </p>
-          </div>
+          <SavedSearchesSection savedSearches={savedSearches} />
         </div>
       </div>
     </main>
@@ -188,6 +184,61 @@ function SavedDealsSection({ savedDeals }: { savedDeals: SavedDeals }) {
             </p>
           )}
         </>
+      )}
+    </section>
+  );
+}
+
+// Saved searches and their email alerts (the #alerts anchor is where "Save
+// this search" and every alert email's "Manage alerts" link land). Each one
+// shows its name, what it filters on, and when it was saved and last
+// alerted, with a delete button.
+function SavedSearchesSection({ savedSearches }: { savedSearches: SavedSearches }) {
+  const { searches, available } = savedSearches;
+  const items = searches.map((search) => ({
+    id: search.id,
+    label: search.label,
+    summary: describeFilters(search.filters)
+      .map((item) => `${item.name}: ${item.value}`)
+      .join(" · "),
+    created: savedSearchDate(search.createdAt),
+    lastAlerted: savedSearchDate(search.lastAlertedAt),
+  }));
+
+  return (
+    <section id="alerts" aria-labelledby="alerts-heading" className="panel sm:p-8">
+      {/* tabIndex: focus lands here after the last saved search is deleted. */}
+      <h2 id="alerts-heading" tabIndex={-1} className="panel-title outline-none">
+        <Bell /> Saved searches &amp; alerts
+      </h2>
+
+      {!available ? (
+        <p className="mt-2 text-sm text-fg-muted">
+          Saved searches aren&apos;t available right now. Please check back soon.
+        </p>
+      ) : (
+        <SavedSearchesList
+          searches={items}
+          intro={
+            <p className="mt-2 text-sm text-fg-muted">
+              We&apos;ll email you when new deals match any of these. Every alert email also has a
+              link to stop that alert.
+            </p>
+          }
+          emptyState={
+            <>
+              <p className="mt-2 text-sm text-fg-muted">
+                No saved searches yet. On the deals page, set the filters you care about (body
+                style, budget, location…), then choose{" "}
+                <span className="font-medium text-fg">Save this search</span> at the bottom of the
+                filters. We&apos;ll email you when a new matching deal is posted.
+              </p>
+              <Link href="/#deals" className="btn btn-secondary mt-5">
+                Browse deals
+              </Link>
+            </>
+          }
+        />
       )}
     </section>
   );

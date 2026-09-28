@@ -26,6 +26,15 @@ A single reference for every external tool/service this project depends on. Upda
 
 - **MarketCheck** — OEM Incentive Search API, used by the "Suggest with AI" button in the broker dashboard to look up real, currently-active named manufacturer/dealer lease incentive programs (e.g. "BMW Loyalty Lease Credit") before falling back to a Claude ballpark guess. Sign up (free tier: 500 calls/mo) at developers.marketcheck.com/sign-up, paid tiers start at $299/mo. Credential: `MARKETCHECK_API_KEY`. If this key isn't set, the feature just falls back to the old AI-estimate-only behavior — nothing breaks.
 
+## Transactional email
+
+- **Resend** — sends the site's own emails (currently the saved-search alert digests — see "Saved-search alerts" below). Called straight from `lib/email.ts` through Resend's REST API, so there's no extra npm package. Console: resend.com. Credentials: `RESEND_API_KEY` (required) and `RESEND_FROM_EMAIL` (optional — the "from" line, defaults to `Drive <alerts@idriveus.com>`; it must be an address on a domain verified in Resend). If `RESEND_API_KEY` isn't set, nothing breaks — the alert job just reports "email not configured" and sends nothing.
+- **Setup required** (one-time):
+  1. Create a Resend account and **verify idriveus.com** (Resend → Domains → Add domain). Resend shows a few DNS records (SPF/DKIM, usually `TXT` and `MX` records on a `send` subdomain) — add those at your DNS provider and wait for the domain to show as verified. Until it is, Resend refuses to send from `@idriveus.com`.
+  2. Resend → API Keys → create a key with "Sending access".
+  3. Vercel → Project → Settings → Environment Variables → add `RESEND_API_KEY` (and `RESEND_FROM_EMAIL` if you want a different sender), then redeploy.
+- The free tier (3,000 emails/month, 100/day at the time of writing) is plenty to start; keep an eye on it as saved searches grow.
+
 ## Recurring Google Sheet sync
 
 A broker can opt a linked Google Sheet into recurring auto-sync (checked every ~30 minutes), which adds new cars it finds and soft-removes ones that disappear from the sheet. See `lib/sheet-sync.ts` and `app/api/cron/sync-sheets/route.ts`.
@@ -36,6 +45,14 @@ A broker can opt a linked Google Sheet into recurring auto-sync (checked every ~
   2. GitHub repo → Settings → Secrets and variables → Actions → New repository secret → name it `CRON_SYNC_SECRET`.
   Without this secret configured in both places, the endpoint refuses every request (including the scheduled ones) rather than running unauthenticated.
 - The workflow calls `https://www.idriveus.com/api/cron/sync-sheets` — update that URL in the workflow file if the domain ever changes.
+
+## Saved-search alerts
+
+A signed-in customer can save their homepage filters ("Save this search", under the filters) and get one email per saved search when new matching deals are posted. They see and delete their saved searches on their dashboard (`/customer/dashboard#alerts`), and every alert email has a "Stop these alerts" link (`/alerts/unsubscribe?token=…`) that works without logging in. Only deals first published after the search was saved are included, and each deal is only ever emailed once per saved search. See `app/api/cron/search-alerts/route.ts` and `supabase/migrations/0017_saved_searches.sql` (run it in the Supabase SQL editor — until then the feature stays hidden).
+
+- **Trigger**: a GitHub Actions workflow (`.github/workflows/send-search-alerts.yml`) that runs hourly (at :17 past), not Vercel Cron — same reason as the sheet sync above.
+- **Setup required**: nothing new — it reuses the **same `CRON_SYNC_SECRET`** as the sheet sync (already in Vercel and in GitHub's Actions secrets), plus the Resend setup under "Transactional email" above. Without `RESEND_API_KEY` the job runs but skips sending.
+- The workflow calls `https://www.idriveus.com/api/cron/search-alerts` — update that URL in the workflow file if the domain ever changes. Links inside the emails use `NEXT_PUBLIC_SITE_URL`.
 
 ## Domain
 
@@ -61,4 +78,6 @@ Codebase side is done (`SITE_URL`, `SITE_NAME`, all on-page copy, `package.json`
 
 - Anthropic API credits can run low — check usage/balance at console.anthropic.com.
 - CarsXE likely has a monthly request cap depending on the plan — worth checking if photo lookups start silently failing.
+- Resend's free tier has a daily and monthly send cap — if alert emails stop arriving, check Resend → Logs / usage first.
+- To stay inside Resend's limits, each run sends at most about 2 emails a second and stops early if Resend says it's rate limited, and a customer gets at most 3 alert emails per run (and alerts for at most 10 of their saved searches per day). Anything held back isn't lost — it goes out on a later run.
 - Supabase and Vercel are both free-tier-friendly at this scale; keep an eye on usage as listing/broker volume grows.
