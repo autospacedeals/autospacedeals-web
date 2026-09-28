@@ -94,7 +94,16 @@ export async function signUpAction(
   });
 
   if (profileError) {
-    return { error: profileError.message };
+    // The login was created but its broker profile wasn't. Undo the login
+    // (it's brand new — identities check above) so trying again works,
+    // instead of every retry failing with "an account with this email
+    // already exists" while no profile exists to sign in to.
+    console.error("Broker signup: profile insert failed:", profileError.message);
+    const { error: cleanupError } = await admin.auth.admin.deleteUser(data.user.id);
+    if (cleanupError) {
+      console.error("Broker signup: couldn't remove the half-created login:", cleanupError.message);
+    }
+    return { error: "We couldn't finish creating your account. Please try again in a moment." };
   }
 
   if (!data.session) {
