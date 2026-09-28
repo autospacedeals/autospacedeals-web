@@ -68,7 +68,9 @@ export default function DealCard({
         className="block focus-visible:-outline-offset-2"
       >
         <div className="media-stage aspect-[4/3]">
-          <img src={image} alt={title} className="media-img" />
+          {/* Lazy: the homepage grid renders every deal at once, and these
+              are full-size dealer/manufacturer photos (often 1–2 MB each). */}
+          <img src={image} alt={title} loading="lazy" decoding="async" className="media-img" />
 
           {/* One row across the top: the left-hand tags wrap onto a second
               line before they can run underneath the condition tag. When
