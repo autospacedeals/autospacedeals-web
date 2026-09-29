@@ -2,16 +2,9 @@
 
 import { Phone, MessageSquare, Mail, CalendarCheck, Sparkles, ChevronRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { dealMailtoHref, dealTitle, phoneDigits } from "@/lib/deal-utils";
+import { phoneDigits } from "@/lib/deal-utils";
 import { GetMatchedButton } from "@/components/GetMatched";
-
-function availabilityMailto(deal: Deal): string {
-  const subject = encodeURIComponent(`Check availability: ${dealTitle(deal)}`);
-  const body = encodeURIComponent(
-    `Hi ${deal.sellerName},\n\nIs this deal still available?\n\n${dealTitle(deal)}\n${deal.city}, ${deal.state}\n\nThanks!`
-  );
-  return `mailto:${deal.sellerEmail}?subject=${subject}&body=${body}`;
-}
+import { ContactSellerButton, type ContactKind } from "@/components/ContactSellerDialog";
 
 /**
  * Compact contact actions used on deal cards — just Call and Text so the
@@ -61,9 +54,11 @@ export function ContactActionsFull({
 }) {
   const phone = phoneDigits(deal.sellerPhone);
 
-  const more = [
-    { href: dealMailtoHref(deal, "Request this deal"), label: "Request this deal", icon: Mail },
-    { href: availabilityMailto(deal), label: "Check availability", icon: CalendarCheck },
+  // Opened as a dialog rather than a mailto: link, which does nothing for
+  // anyone without a desktop email app — see ContactSellerDialog.
+  const more: { kind: ContactKind; label: string; icon: typeof Mail }[] = [
+    { kind: "request", label: "Request this deal", icon: Mail },
+    { kind: "availability", label: "Check availability", icon: CalendarCheck },
   ];
 
   return (
@@ -77,11 +72,11 @@ export function ContactActionsFull({
         </a>
       </div>
       <ul className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line">
-        {more.map(({ href, label, icon: Icon }) => (
+        {more.map(({ kind, label, icon: Icon }) => (
           <li key={label}>
-            <a href={href} className={ROW_CLASS}>
+            <ContactSellerButton deal={deal} kind={kind} className={ROW_CLASS}>
               <RowContent icon={Icon} label={label} />
-            </a>
+            </ContactSellerButton>
           </li>
         ))}
         <li>

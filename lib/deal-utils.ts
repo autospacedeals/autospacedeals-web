@@ -188,18 +188,6 @@ export function phoneDigits(phone: string | null | undefined): string {
   return (phone ?? "").replace(/\D/g, "");
 }
 
-export function dealMailtoHref(deal: Deal, subjectPrefix = "Interested in"): string {
-  const subject = encodeURIComponent(`${subjectPrefix}: ${dealTitle(deal)}`);
-  const body = encodeURIComponent(
-    `Hi ${deal.sellerName},\n\nI found this deal on Drive and would like more information:\n\n${dealTitle(
-      deal
-    )}\n${formatCurrency(deal.payment)}/mo, ${formatCurrency(
-      deal.dueAtSigning
-    )} due at signing, ${deal.term} month ${deal.dealType.toLowerCase()}\n\nIs it still available?\n\nThanks!`
-  );
-  return `mailto:${deal.sellerEmail}?subject=${subject}&body=${body}`;
-}
-
 export function reportIssueMailtoHref(deal: Deal): string {
   const subject = encodeURIComponent(`Report inaccurate deal: ${dealTitle(deal)} (#${deal.id})`);
   const body = encodeURIComponent(
