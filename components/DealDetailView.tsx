@@ -229,7 +229,7 @@ export default function DealDetailView({
           </section>
 
           <section className="panel mt-6">
-            <h2 className="type-title">Seller notes</h2>
+            <h2 className="type-title">Description</h2>
             <p className="mt-3 text-[15px] leading-7 break-words text-fg-secondary">{deal.notes}</p>
           </section>
 
