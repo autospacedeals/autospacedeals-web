@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { CircleAlert, MailCheck, UserPlus } from "lucide-react";
 import { signUpAction, type AuthState } from "../actions";
+import EmailInput from "@/components/EmailInput";
 
 const initialState: AuthState = { error: null };
 
@@ -126,14 +127,7 @@ export default function SignupForm() {
         <label htmlFor="broker-signup-email" className={labelClass}>
           Email
         </label>
-        <input
-          id="broker-signup-email"
-          required
-          type="email"
-          name="email"
-          autoComplete="email"
-          className={inputClass}
-        />
+        <EmailInput id="broker-signup-email" className={inputClass} />
       </div>
       <div>
         <label htmlFor="broker-signup-password" className={labelClass}>

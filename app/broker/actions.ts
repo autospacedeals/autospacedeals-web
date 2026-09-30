@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { suggestEmailFix } from "@/lib/email-typos";
 
 export type AuthState = {
   error: string | null;
@@ -57,6 +58,13 @@ export async function signUpAction(
   }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
+  }
+
+  // A mistyped domain ("gmai.com") means the confirmation email never
+  // arrives and the account can't be confirmed — catch it up front.
+  const emailFix = suggestEmailFix(email);
+  if (emailFix) {
+    return { error: `Check your email address — did you mean ${emailFix}?` };
   }
 
   const supabase = await createClient();
