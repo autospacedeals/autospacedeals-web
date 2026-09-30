@@ -53,7 +53,7 @@ export default async function BrokerDashboardPage() {
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
     "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at, " +
-    "sheet_sync_id";
+    "sheet_sync_id, msd_count, msd_total";
 
   const { data: myDealRows, error: dealsError } = await supabase
     .from("deals")

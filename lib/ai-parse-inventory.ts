@@ -13,7 +13,7 @@
 // listing going live.
 import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
-import type { ParsedDeal, ParseResult, SkippedRow } from "./parse-inventory";
+import { parseMsdText, type ParsedDeal, type ParseResult, type SkippedRow } from "./parse-inventory";
 
 const MODEL = "claude-opus-5";
 
@@ -59,6 +59,18 @@ const EXTRACT_TOOL = {
                 "A broker/doc/service fee called out as its own dollar amount, e.g. \"$699 broker " +
                 "fee\" -> 699. null if none is mentioned. This is a separate field from " +
                 "dueAtSigning — don't fold it into that number, and don't just leave it in notes.",
+            },
+            msdCount: {
+              type: ["number", "null"],
+              description:
+                "Number of multiple security deposits (MSDs) the advertised payment assumes, e.g. " +
+                "\"w/ 7 MSDs\" or \"7 MSD\" -> 7. null if MSDs aren't mentioned.",
+            },
+            msdTotal: {
+              type: ["number", "null"],
+              description:
+                "Total refundable MSD amount in dollars if stated (e.g. \"$6,300 in MSDs\" -> 6300). " +
+                "null if not stated. Never add it into dueAtSigning.",
             },
             state: {
               type: ["string", "null"],
@@ -121,7 +133,9 @@ const COMBINED_CELL_GUIDANCE =
   `like "all deals 36/10k, $3k das" — apply to EVERY vehicle listed, not just the one printed ` +
   `nearest to them, unless a vehicle states its own value for that field. Due at signing is often ` +
   `called "drive-off", "total drive-off", "drive off", "DAS", "due at signing", "at signing", ` +
-  `"initial payment" or "out of pocket"; "sign and drive" / "$0 down $0 due" means 0.`;
+  `"initial payment" or "out of pocket"; "sign and drive" / "$0 down $0 due" means 0. "w/ 7 MSDs" ` +
+  `(multiple security deposits) goes in msdCount (7), and a stated MSD dollar total in msdTotal — ` +
+  `MSDs are refundable and separate from due at signing, so never add them into dueAtSigning.`;
 
 function rowsToTable(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
@@ -170,6 +184,15 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const exterior = typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null;
     const interior = typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null;
     const brokerFee = typeof c.brokerFee === "number" ? c.brokerFee : null;
+    // The model's MSD fields, falling back to anything it left in the notes.
+    const msdFromNotes = parseMsdText(typeof c.notes === "string" ? c.notes : "");
+    const msdCountRaw = typeof c.msdCount === "number" ? c.msdCount : msdFromNotes.msdCount;
+    const msdCount =
+      msdCountRaw != null && Number.isInteger(msdCountRaw) && msdCountRaw >= 1 && msdCountRaw <= 20
+        ? msdCountRaw
+        : null;
+    const msdTotalRaw = typeof c.msdTotal === "number" ? c.msdTotal : msdFromNotes.msdTotal;
+    const msdTotal = msdCount != null && msdTotalRaw != null && msdTotalRaw > 0 ? msdTotalRaw : null;
     const state = typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState;
     const notes = typeof c.notes === "string" ? c.notes.trim() : "";
     const milesPerYear = typeof c.milesPerYear === "number" ? c.milesPerYear : null;
@@ -202,6 +225,8 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (exterior) partial.exterior = exterior;
       if (interior) partial.interior = interior;
       if (brokerFee) partial.brokerFee = brokerFee;
+      if (msdCount) partial.msdCount = msdCount;
+      if (msdTotal) partial.msdTotal = msdTotal;
       if (state) partial.state = state;
       if (notes) partial.notes = notes;
       if (incentiveHints.length > 0) partial.incentiveHints = incentiveHints;
@@ -222,6 +247,8 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       exterior,
       interior,
       brokerFee,
+      msdCount,
+      msdTotal,
       state,
       notes,
       onePay,

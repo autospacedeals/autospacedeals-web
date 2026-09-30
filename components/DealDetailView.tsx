@@ -21,6 +21,7 @@ import {
   reportIssueMailtoHref,
   formatMileage,
   formatTerm,
+  formatMsds,
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
@@ -172,6 +173,13 @@ export default function DealDetailView({
               {deal.brokerFee != null && (
                 <Row label="Broker fee" note="Separate from due at signing" value={formatCurrency(deal.brokerFee)} />
               )}
+              {deal.msdCount ? (
+                <Row
+                  label="Multiple security deposits"
+                  note="The payment assumes these. Paid at signing on top of due at signing, refunded at lease end"
+                  value={formatMsds(deal.msdCount, deal.msdTotal)}
+                />
+              ) : null}
               <Row label="MSRP" value={displayMsrp(deal)} />
               {deal.sellingPrice != null && <Row label="Selling price" value={formatCurrency(deal.sellingPrice)} />}
               {discount > 0 && <Row label="Discount off MSRP" value={`${discount.toFixed(1)}%`} positive />}
@@ -242,6 +250,11 @@ export default function DealDetailView({
               {deal.brokerFee != null
                 ? "The broker fee shown above is separate from the due-at-signing amount."
                 : "A broker fee may apply and isn't included in the due-at-signing amount shown."}{" "}
+              {deal.msdCount
+                ? `The payment assumes ${deal.msdCount} multiple security deposit${deal.msdCount === 1 ? "" : "s"}${
+                    deal.msdTotal ? ` (${formatCurrency(deal.msdTotal)})` : ""
+                  }, paid at signing in addition to the due-at-signing amount and refunded at the end of the lease.`
+                : ""}{" "}
               Advertised payment amounts usually do not include tax. Title, registration, and
               documentation fees are included in the due-at-signing amount, but that total may
               change based on the actual tax rate applied. Always confirm the full, out-the-door

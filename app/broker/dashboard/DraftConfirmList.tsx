@@ -360,6 +360,34 @@ function DraftRow({
               Shown to shoppers as its own line item, separate from due at signing.
             </p>
           </div>
+          <div>
+            <label htmlFor={`${uid}-msdCount`} className={labelClass}>MSDs (optional)</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              step="1"
+              id={`${uid}-msdCount`}
+              name="msdCount"
+              defaultValue={deal.msdCount ?? ""}
+              placeholder="7"
+              className={inputClass}
+            />
+            <p className="field-hint">How many multiple security deposits the payment assumes.</p>
+          </div>
+          <div>
+            <label htmlFor={`${uid}-msdTotal`} className={labelClass}>MSD total (optional)</label>
+            <input
+              type="number"
+              step="1"
+              id={`${uid}-msdTotal`}
+              name="msdTotal"
+              defaultValue={deal.msdTotal ?? ""}
+              placeholder="6300"
+              className={inputClass}
+            />
+            <p className="field-hint">Refundable, paid at signing on top of due at signing.</p>
+          </div>
         </div>
 
         <IncentivesEditor value={incentives} onChange={setIncentives} brokerState={brokerState} />

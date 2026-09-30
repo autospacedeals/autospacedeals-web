@@ -391,3 +391,10 @@ export function formatMileage(milesPerYear: number): string {
   const n = Number.isInteger(k) ? String(k) : k.toFixed(1).replace(/\.0$/, "");
   return `${n}k per year`;
 }
+
+// "7 MSDs · $6,300 refundable" — multiple security deposits a payment
+// assumes (see supabase/migrations/0020_msds.sql).
+export function formatMsds(count: number, total?: number | null): string {
+  const label = `${count} MSD${count === 1 ? "" : "s"}`;
+  return total ? `${label} · ${formatCurrency(total)} refundable` : label;
+}

@@ -95,6 +95,11 @@ export interface Deal {
   // broker fee" disclaimer on due-at-signing. Null/undefined means not
   // disclosed.
   brokerFee?: number | null;
+  // Multiple security deposits the advertised payment assumes (count) and
+  // their refundable total, paid at signing on top of dueAtSigning. Null =
+  // no MSDs.
+  msdCount?: number | null;
+  msdTotal?: number | null;
 
   // When true, the public MSRP display masks digits (e.g. "$49,XXX")
   // instead of showing the exact figure — set automatically when a broker

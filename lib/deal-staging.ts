@@ -85,6 +85,8 @@ export async function stageParsedDeals(
       payment: d.payment,
       due_at_signing: d.dueAtSigning,
       broker_fee: d.brokerFee,
+      msd_count: d.msdCount ?? null,
+      msd_total: d.msdTotal ?? null,
       term: d.term,
       miles_per_year: d.milesPerYear,
       apr: null,

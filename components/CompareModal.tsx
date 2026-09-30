@@ -12,6 +12,7 @@ import {
   msrpDiscountPercent,
   formatMileage,
   formatTerm,
+  formatMsds,
 } from "@/lib/deal-utils";
 
 // A lightweight, client-only side-by-side view — no new route, since the
@@ -76,6 +77,7 @@ export default function CompareModal({
       label: "Mileage",
       render: (d) => (d.milesPerYear ? formatMileage(d.milesPerYear) : "N/A"),
     },
+    { label: "MSDs", render: (d) => (d.msdCount ? formatMsds(d.msdCount, d.msdTotal) : "None") },
     { label: "MSRP", render: (d) => displayMsrp(d) },
     {
       label: "Off MSRP",

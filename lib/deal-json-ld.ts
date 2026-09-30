@@ -160,6 +160,12 @@ function offer(deal: Deal, url: string): JsonLd | undefined {
   if (!isFinance && milesPerYear) {
     details.push(`${milesPerYear.toLocaleString("en-US")} miles per year`);
   }
+  if (!isFinance && deal.msdCount) {
+    details.push(
+      `assumes ${deal.msdCount} multiple security deposit${deal.msdCount === 1 ? "" : "s"}` +
+        (deal.msdTotal ? ` ($${Number(deal.msdTotal).toLocaleString("en-US")} refundable)` : "")
+    );
+  }
 
   // Without a price there's no meaningful offer to describe.
   if (price === undefined) return undefined;

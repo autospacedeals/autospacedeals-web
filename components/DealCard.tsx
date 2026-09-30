@@ -19,6 +19,7 @@ import {
   msrpDiscountPercent,
   formatMileage,
   formatTerm,
+  formatMsds,
 } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
 import SaveDealButton, { useShowSaveDealButton } from "./SaveDealButton";
@@ -182,6 +183,12 @@ export default function DealCard({
             signing
           </p>
         )}
+        {deal.msdCount ? (
+          <p className="spec-footnote mt-2">
+            Payment assumes <strong>{formatMsds(deal.msdCount, deal.msdTotal)}</strong> · paid at
+            signing
+          </p>
+        ) : null}
 
         {/* Seller + actions are one unit anchored to the card bottom, so
             action rows line up across a grid row. */}

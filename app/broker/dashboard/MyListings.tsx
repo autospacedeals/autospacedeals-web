@@ -117,6 +117,8 @@ interface RowDraft {
   dueAtSigning: string;
   dueAtSigningTaxRate: string;
   brokerFee: string;
+  msdCount: string;
+  msdTotal: string;
   term: string;
   milesPerYear: string;
   apr: string;
@@ -146,6 +148,8 @@ function deriveDraft(deal: Deal): RowDraft {
     dueAtSigning: String(deal.dueAtSigning ?? ""),
     dueAtSigningTaxRate: deal.dueAtSigningTaxRate != null ? String(deal.dueAtSigningTaxRate) : "",
     brokerFee: deal.brokerFee != null ? String(deal.brokerFee) : "",
+    msdCount: deal.msdCount != null ? String(deal.msdCount) : "",
+    msdTotal: deal.msdTotal != null ? String(deal.msdTotal) : "",
     term: String(deal.term ?? ""),
     milesPerYear: deal.milesPerYear != null ? String(deal.milesPerYear) : "",
     apr: deal.apr != null ? String(deal.apr) : "",
@@ -422,6 +426,8 @@ function ListingRow({
       fd.set("dueAtSigning", draft.dueAtSigning);
       if (draft.dueAtSigningTaxRate) fd.set("dueAtSigningTaxRate", draft.dueAtSigningTaxRate);
       if (draft.brokerFee) fd.set("brokerFee", draft.brokerFee);
+      if (draft.msdCount) fd.set("msdCount", draft.msdCount);
+      if (draft.msdTotal) fd.set("msdTotal", draft.msdTotal);
       fd.set("term", draft.term);
       if (draft.milesPerYear) fd.set("milesPerYear", draft.milesPerYear);
       if (draft.apr) fd.set("apr", draft.apr);
@@ -784,6 +790,36 @@ function ListingRow({
                     onChange={(e) => set("sellingPrice", e.target.value)}
                     className={inputClass}
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor={`listing-${deal.id}-msd-count`} className={labelClass}>
+                      MSDs (optional)
+                    </label>
+                    <input
+                      id={`listing-${deal.id}-msd-count`}
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={draft.msdCount}
+                      onChange={(e) => set("msdCount", e.target.value)}
+                      placeholder="7"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`listing-${deal.id}-msd-total`} className={labelClass}>
+                      MSD total
+                    </label>
+                    <input
+                      id={`listing-${deal.id}-msd-total`}
+                      type="number"
+                      value={draft.msdTotal}
+                      onChange={(e) => set("msdTotal", e.target.value)}
+                      placeholder="6300"
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
               </div>
 

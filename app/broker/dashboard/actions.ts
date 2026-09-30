@@ -563,6 +563,8 @@ export async function createManualDealAction(
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
   const brokerFeeRaw = formData.get("brokerFee");
   const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
+  const msd = parseMsdFields(formData);
+  if ("error" in msd) return { error: msd.error };
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -632,6 +634,8 @@ export async function createManualDealAction(
     mask_msrp: maskMsrp,
     msrp_masked_label: msrpMaskedLabel,
     broker_fee: brokerFee,
+    msd_count: msd.msdCount,
+    msd_total: msd.msdTotal,
     term,
     miles_per_year: milesPerYear,
     apr,
@@ -692,6 +696,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
   const brokerFeeRaw = formData.get("brokerFee");
   const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
+  const msd = parseMsdFields(formData);
+  if ("error" in msd) return { error: msd.error };
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -760,6 +766,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       mask_msrp: maskMsrp,
       msrp_masked_label: msrpMaskedLabel,
       broker_fee: brokerFee,
+      msd_count: msd.msdCount,
+      msd_total: msd.msdTotal,
       term,
       miles_per_year: milesPerYear,
       apr,
@@ -941,6 +949,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
   const brokerFeeRaw = formData.get("brokerFee");
   const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
+  const msd = parseMsdFields(formData);
+  if ("error" in msd) return { error: msd.error };
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
   const milesPerYear = milesPerYearRaw ? Number(milesPerYearRaw) : null;
@@ -1008,6 +1018,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       mask_msrp: maskMsrp,
       msrp_masked_label: msrpMaskedLabel,
       broker_fee: brokerFee,
+      msd_count: msd.msdCount,
+      msd_total: msd.msdTotal,
       term,
       miles_per_year: milesPerYear,
       apr,
@@ -1091,4 +1103,26 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
   return { error: null };
+}
+
+// Multiple security deposits (supabase/migrations/0020_msds.sql): how many
+// the advertised payment assumes, and their refundable total. Both blank =
+// no MSDs; a total without a count doesn't mean anything, so it's refused.
+function parseMsdFields(
+  formData: FormData
+): { msdCount: number | null; msdTotal: number | null } | { error: string } {
+  const countRaw = String(formData.get("msdCount") ?? "").trim();
+  const totalRaw = String(formData.get("msdTotal") ?? "").replace(/[$,\s]/g, "");
+  const msdCount = countRaw ? Number(countRaw) : null;
+  const msdTotal = totalRaw ? Number(totalRaw) : null;
+  if (msdCount != null && (!Number.isInteger(msdCount) || msdCount < 1 || msdCount > 20)) {
+    return { error: "Number of MSDs should be a whole number from 1 to 20." };
+  }
+  if (msdTotal != null && (!Number.isFinite(msdTotal) || msdTotal < 0 || msdTotal > 250000)) {
+    return { error: "Enter the MSD total as a dollar amount." };
+  }
+  if (msdTotal != null && msdCount == null) {
+    return { error: "Add how many MSDs the payment assumes, or clear the MSD total." };
+  }
+  return { msdCount, msdTotal };
 }

@@ -29,6 +29,11 @@ export interface ParsedDeal {
   exterior: string | null;
   interior: string | null;
   brokerFee: number | null;
+  // Multiple security deposits the payment assumes, and their refundable
+  // total (see supabase/migrations/0020_msds.sql). Optional — most sources
+  // don't have them.
+  msdCount?: number | null;
+  msdTotal?: number | null;
   state: string | null;
   notes: string;
   // One-pay lease: a single upfront lump sum (stored in dueAtSigning) with
@@ -292,6 +297,19 @@ export async function parseInventoryCsv(
   return parseRowsWithAiOrHeuristic(rows, brokerState);
 }
 
+// Multiple security deposits written into a listing's text: "w/ 7 MSDs",
+// "7 MSD", "7x MSD", and optionally a total like "$6,300 MSD" /
+// "MSDs $6,300". A count outside 1-20 isn't an MSD count.
+export function parseMsdText(text: string): { msdCount: number | null; msdTotal: number | null } {
+  const count = text.match(/\b(\d{1,2})\s*x?\s*msds?\b/i);
+  const msdCount = count && Number(count[1]) >= 1 && Number(count[1]) <= 20 ? Number(count[1]) : null;
+  const total =
+    text.match(/\$\s*([\d,]{3,})\s*(?:total\s*)?(?:in\s*)?msds?\b/i) ??
+    text.match(/\bmsds?\s*(?:total\s*)?(?:of\s*|=\s*|:\s*|\(\s*)?\$\s*([\d,]{3,})/i);
+  const msdTotal = total ? Number(total[1].replace(/,/g, "")) : null;
+  return { msdCount, msdTotal: msdCount != null && msdTotal != null && msdTotal > 0 ? msdTotal : null };
+}
+
 function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseResult {
   if (rows.length === 0) return { parsed: [], skipped: [] };
 
@@ -328,6 +346,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
     const { exterior, interior } = parseSpecCell(specText);
     const state = locationText ? parseLocationCell(locationText, brokerState) : brokerState;
     const fee = feeText ? firstNumber(feeText) : null;
+    const msd = parseMsdText(Object.values(row).map(String).join(" "));
 
     const missing: string[] = [];
     if (!year) missing.push("year");
@@ -353,6 +372,8 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
       if (exterior) partial.exterior = exterior;
       if (interior) partial.interior = interior;
       if (fee) partial.brokerFee = fee;
+      if (msd.msdCount) partial.msdCount = msd.msdCount;
+      if (msd.msdTotal) partial.msdTotal = msd.msdTotal;
       if (state) partial.state = state;
       if (notes) partial.notes = notes;
       skipped.push({ row: idx + 2, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
@@ -372,6 +393,8 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
       exterior,
       interior,
       brokerFee: fee,
+      msdCount: msd.msdCount,
+      msdTotal: msd.msdTotal,
       state,
       notes,
       onePay,
