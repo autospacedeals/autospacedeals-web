@@ -9,6 +9,8 @@ import {
   MAX_PAYMENT_CEILING,
   formatCurrency,
   type DealFilters,
+  formatMileage,
+  formatTerm,
 } from "@/lib/deal-utils";
 
 interface FilterPanelProps {
@@ -91,7 +93,7 @@ export default function FilterPanel({
           value={filters.term}
           onChange={(v) => onChange({ term: v })}
           options={terms}
-          suffix=" mo"
+          format={(opt) => formatTerm(Number(opt))}
         />
         <Select
           label="Lease type"
@@ -124,7 +126,7 @@ export default function FilterPanel({
             value={filters.mileage}
             onChange={(v) => onChange({ mileage: v })}
             options={mileageOptions}
-            suffix="/yr"
+            format={(opt) => formatMileage(Number(opt))}
           />
         </div>
       )}
@@ -168,13 +170,13 @@ function Select({
   value,
   onChange,
   options,
-  suffix = "",
+  format = (opt: string) => opt,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: string[];
-  suffix?: string;
+  format?: (opt: string) => string;
 }) {
   return (
     <label className="block">
@@ -182,7 +184,7 @@ function Select({
       <select value={value} onChange={(e) => onChange(e.target.value)} className="select">
         {options.map((opt) => (
           <option key={opt} value={opt}>
-            {opt === "All" ? `Any ${label.toLowerCase()}` : `${opt}${suffix}`}
+            {opt === "All" ? `Any ${label.toLowerCase()}` : format(opt)}
           </option>
         ))}
       </select>

@@ -378,11 +378,14 @@ export default function LeaseCalculator() {
           )}
 
           <BracketStepper
+            // Full width on phones: the ± buttons plus "months" leave no
+            // room for the number itself in a half-width cell.
+            className="max-sm:col-span-2"
             label="Term"
             badge={structures.length > 0 && <span className="text-success">· real programs</span>}
             value={input.term}
             brackets={availableTerms}
-            suffix="mo"
+            suffix="months"
             onSelect={selectTerm}
             onManualChange={(v) => patch({ term: v })}
           />
@@ -411,8 +414,8 @@ export default function LeaseCalculator() {
 
         <p className="mt-2 text-[11px] text-fg-muted">
           {structures.length > 0
-            ? `Real programs found for ${availableTerms.join(", ")} mo — the term adjuster snaps to these and updates residual %/money factor to match.`
-            : `The term adjuster steps through standard ${availableTerms[0]}–${availableTerms[availableTerms.length - 1]} mo brackets without changing residual/money factor.`}
+            ? `Real programs found for ${availableTerms.join(", ")} months — the term adjuster snaps to these and updates residual %/money factor to match.`
+            : `The term adjuster steps through standard ${availableTerms[0]}–${availableTerms[availableTerms.length - 1]} month brackets without changing residual/money factor.`}
         </p>
 
         {/* Trade-in */}
@@ -509,7 +512,7 @@ export default function LeaseCalculator() {
                 label="Your annual mileage"
                 value={input.annualMileage}
                 brackets={MILEAGE_BRACKETS}
-                suffix="mi/yr"
+                suffix="per year"
                 onSelect={(v) => patch({ annualMileage: v })}
                 onManualChange={(v) => patch({ annualMileage: v })}
               />
@@ -517,7 +520,7 @@ export default function LeaseCalculator() {
                 label="Mileage residual was quoted for"
                 value={input.standardMileage}
                 brackets={MILEAGE_BRACKETS}
-                suffix="mi/yr"
+                suffix="per year"
                 onSelect={(v) => patch({ standardMileage: v })}
                 onManualChange={(v) => patch({ standardMileage: v })}
               />
@@ -533,8 +536,8 @@ export default function LeaseCalculator() {
           )}
           {result.residualAdjustmentDollars !== 0 && (
             <p className="mt-3 text-xs leading-5 text-fg-muted">
-              Driving {input.annualMileage.toLocaleString()} mi/yr instead of the quoted{" "}
-              {input.standardMileage.toLocaleString()} mi/yr adjusts residual{" "}
+              Driving {input.annualMileage.toLocaleString()} miles per year instead of the quoted{" "}
+              {input.standardMileage.toLocaleString()} miles per year adjusts residual{" "}
               {result.residualAdjustmentDollars < 0 ? "down" : "up"} by{" "}
               {formatCurrency(Math.abs(result.residualAdjustmentDollars))}, to{" "}
               {formatCurrency(result.residualValue)} ({result.adjustedResidualPercent.toFixed(1)}%).
@@ -636,6 +639,7 @@ export default function LeaseCalculator() {
 // actually offered. The number stays directly editable (onManualChange)
 // for a one-off custom value that doesn't need to match a bracket.
 function BracketStepper({
+  className,
   label,
   badge,
   value,
@@ -644,6 +648,7 @@ function BracketStepper({
   onSelect,
   onManualChange,
 }: {
+  className?: string;
   label: string;
   badge?: React.ReactNode;
   value: number;
@@ -672,7 +677,7 @@ function BracketStepper({
   const inputId = useId();
 
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={inputId} className="field-label">
         {label} {badge}
       </label>

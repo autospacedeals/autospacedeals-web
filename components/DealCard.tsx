@@ -17,6 +17,8 @@ import {
   isNewlyPosted,
   markDealViewed,
   msrpDiscountPercent,
+  formatMileage,
+  formatTerm,
 } from "@/lib/deal-utils";
 import { ContactActionsCompact } from "./ContactActions";
 import SaveDealButton, { useShowSaveDealButton } from "./SaveDealButton";
@@ -167,10 +169,10 @@ export default function DealCard({
             value={formatCurrency(deal.dueAtSigning)}
             note={deal.dueAtSigningTaxRate ? `assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
           />
-          <Spec label="Term" value={`${deal.term} mo`} />
+          <Spec label="Term" value={formatTerm(deal.term)} />
           <Spec
             label="Mileage"
-            value={deal.milesPerYear ? `${(deal.milesPerYear / 1000).toFixed(1)}k/yr` : "N/A"}
+            value={deal.milesPerYear ? formatMileage(deal.milesPerYear) : "N/A"}
           />
           <Spec label="MSRP" value={displayMsrp(deal)} />
         </dl>

@@ -378,3 +378,16 @@ export function sortDeals(deals: Deal[], sortBy: SortOption, referenceState: str
       return list.sort((a, b) => b.popularity - a.popularity);
   }
 }
+
+// Customer-facing term and mileage wording — spelled out ("24 months",
+// "7.5k per year") everywhere a shopper sees them, instead of "24 mo" /
+// "7.5k/yr", so nobody has to decode abbreviations.
+export function formatTerm(months: number): string {
+  return `${months} ${months === 1 ? "month" : "months"}`;
+}
+
+export function formatMileage(milesPerYear: number): string {
+  const k = milesPerYear / 1000;
+  const n = Number.isInteger(k) ? String(k) : k.toFixed(1).replace(/\.0$/, "");
+  return `${n}k per year`;
+}

@@ -104,7 +104,7 @@ export default function LeaseEndCalculator() {
           />
         </div>
         <p className="mt-2 text-[11px] text-fg-muted">
-          Full-term allowance is the whole lease&apos;s mileage limit (e.g. 10,000/yr × 3 years =
+          Full-term allowance is the whole lease&apos;s mileage limit (e.g. 10,000 per year × 3 years =
           30,000), not the annual figure — compare it against your actual odometer reading.
         </p>
       </div>

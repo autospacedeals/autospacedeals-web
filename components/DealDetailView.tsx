@@ -19,6 +19,8 @@ import {
   msrpDiscountPercent,
   phoneDigits,
   reportIssueMailtoHref,
+  formatMileage,
+  formatTerm,
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
@@ -162,7 +164,7 @@ export default function DealDetailView({
                 value={formatCurrency(deal.dueAtSigning)}
                 note={deal.dueAtSigningTaxRate ? `Assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
               />
-              <KeyFigure label="Term" value={`${deal.term} months`} />
+              <KeyFigure label="Term" value={formatTerm(deal.term)} />
             </dl>
 
             {/* Everything else as statement rows */}
@@ -176,7 +178,7 @@ export default function DealDetailView({
               {deal.milesPerYear ? (
                 <Row
                   label="Mileage allowance"
-                  value={`${deal.milesPerYear.toLocaleString()}/yr`}
+                  value={formatMileage(deal.milesPerYear)}
                   note={`Contact ${deal.sellerName} for more/less mileage`}
                 />
               ) : (
@@ -282,8 +284,8 @@ export default function DealDetailView({
               </p>
               <p className="mt-3 text-sm text-fg-secondary">
                 {!deal.onePay && `${formatCurrency(deal.dueAtSigning)} due at signing · `}
-                {deal.term} mo
-                {deal.milesPerYear ? ` · ${deal.milesPerYear.toLocaleString()} mi/yr` : ""}
+                {formatTerm(deal.term)}
+                {deal.milesPerYear ? ` · ${formatMileage(deal.milesPerYear)}` : ""}
               </p>
             </div>
 
@@ -370,7 +372,7 @@ export default function DealDetailView({
                 {!deal.onePay && <span className="price-unit">/mo</span>}
               </p>
               <p className="mt-0.5 truncate text-xs text-fg-muted">
-                {deal.onePay ? "One-pay total" : `${formatCurrency(deal.dueAtSigning)} due`} · {deal.term} mo
+                {deal.onePay ? "One-pay total" : `${formatCurrency(deal.dueAtSigning)} due`} · {formatTerm(deal.term)}
               </p>
             </div>
             <a href={`tel:${phone}`} className="btn btn-primary btn-sm">

@@ -13,6 +13,8 @@ import {
   MAX_PAYMENT_CEILING,
   dealTitle,
   formatCurrency,
+  formatMileage,
+  formatTerm,
   type DealFilters,
 } from "./deal-utils";
 
@@ -162,11 +164,11 @@ export function describeFilters(filters: DealFilters): FilterSummaryItem[] {
   if (filters.bodyStyle !== "All") items.push({ name: "Body style", value: filters.bodyStyle });
   if (filters.seller !== "All") items.push({ name: "Broker/dealer", value: filters.seller });
   if (filters.state !== "All") items.push({ name: "Location", value: filters.state });
-  if (filters.term !== "All") items.push({ name: "Lease term", value: `${filters.term} mo` });
+  if (filters.term !== "All") items.push({ name: "Lease term", value: formatTerm(Number(filters.term)) });
   if (filters.paymentType !== "All") items.push({ name: "Lease type", value: filters.paymentType });
   if (filters.fuel !== "All") items.push({ name: "Fuel type", value: filters.fuel });
   if (filters.mileage !== "All") {
-    items.push({ name: "Mileage allowance", value: `${Number(filters.mileage).toLocaleString("en-US")}/yr` });
+    items.push({ name: "Mileage allowance", value: formatMileage(Number(filters.mileage)) });
   }
   if (filters.maxPayment < MAX_PAYMENT_CEILING) {
     items.push({ name: "Max monthly payment", value: `${formatCurrency(filters.maxPayment)}/mo` });
@@ -194,8 +196,8 @@ export function savedSearchLabel(filters: DealFilters): string {
   if (filters.maxDueAtSigning < MAX_DAS_CEILING) {
     parts.push(`Up to ${formatCurrency(filters.maxDueAtSigning)} due at signing`);
   }
-  if (filters.term !== "All") parts.push(`${filters.term} mo`);
-  if (filters.mileage !== "All") parts.push(`${Number(filters.mileage).toLocaleString("en-US")} mi/yr`);
+  if (filters.term !== "All") parts.push(formatTerm(Number(filters.term)));
+  if (filters.mileage !== "All") parts.push(formatMileage(Number(filters.mileage)));
   if (filters.seller !== "All") parts.push(filters.seller);
   if (filters.state !== "All") parts.push(filters.state);
 

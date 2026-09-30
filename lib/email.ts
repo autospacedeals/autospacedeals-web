@@ -17,7 +17,7 @@
 // be used. It's a light, dark-on-white palette because many clients
 // (Outlook, Gmail's own dark mode) rewrite or ignore dark backgrounds.
 import type { Deal } from "@/lib/deals-data";
-import { dealTitle, formatCurrency } from "@/lib/deal-utils";
+import { dealTitle, formatCurrency, formatMileage, formatTerm } from "@/lib/deal-utils";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -152,8 +152,8 @@ function priceLine(deal: Deal): { amount: string; unit: string } {
 function detailsLine(deal: Deal): string {
   const parts: string[] = [];
   if (!deal.onePay) parts.push(`${formatCurrency(deal.dueAtSigning)} due at signing`);
-  if (deal.term > 0) parts.push(`${deal.term} mo`);
-  if (deal.milesPerYear) parts.push(`${deal.milesPerYear.toLocaleString("en-US")} mi/yr`);
+  if (deal.term > 0) parts.push(formatTerm(deal.term));
+  if (deal.milesPerYear) parts.push(formatMileage(deal.milesPerYear));
   const place = [deal.city, deal.state].filter(Boolean).join(", ");
   if (place) parts.push(place);
   return parts.join(" · ");

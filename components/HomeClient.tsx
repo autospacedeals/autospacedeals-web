@@ -20,6 +20,7 @@ import {
   sortDeals,
   type DealFilters,
   type SortOption,
+  formatTerm,
 } from "@/lib/deal-utils";
 import DealCard from "@/components/DealCard";
 import CompareModal from "@/components/CompareModal";
@@ -332,7 +333,7 @@ export default function HomeClient({
                     </p>
                     <p className="mt-1.5 text-[13px] text-fg-muted">
                       {!spotlight.onePay && `${formatCurrency(spotlight.dueAtSigning)} due · `}
-                      {spotlight.term} mo
+                      {formatTerm(spotlight.term)}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">

@@ -10,6 +10,8 @@ import {
   effectiveMonthly,
   formatCurrency,
   msrpDiscountPercent,
+  formatMileage,
+  formatTerm,
 } from "@/lib/deal-utils";
 
 // A lightweight, client-only side-by-side view — no new route, since the
@@ -69,10 +71,10 @@ export default function CompareModal({
       note: "payment + due at signing spread over the term",
       render: (d) => formatCurrency(effectiveMonthly(d)),
     },
-    { label: "Term", render: (d) => `${d.term} mo` },
+    { label: "Term", render: (d) => formatTerm(d.term) },
     {
       label: "Mileage",
-      render: (d) => (d.milesPerYear ? `${(d.milesPerYear / 1000).toFixed(1)}k/yr` : "N/A"),
+      render: (d) => (d.milesPerYear ? formatMileage(d.milesPerYear) : "N/A"),
     },
     { label: "MSRP", render: (d) => displayMsrp(d) },
     {
