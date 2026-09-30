@@ -15,7 +15,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
 import type { ParsedDeal, ParseResult, SkippedRow } from "./parse-inventory";
 
-const MODEL = "claude-haiku-4-5-20251001";
+const MODEL = "claude-opus-5";
 
 const EXTRACT_TOOL = {
   name: "extract_deals",
@@ -115,7 +115,13 @@ const COMBINED_CELL_GUIDANCE =
   `condition for the advertised price without stating its dollar value (e.g. "CONQUEST AND FLEET ` +
   `(AAA/SAMS/EMPLOYER required)"), put the program name(s) in incentiveHints (e.g. ["Conquest", ` +
   `"Fleet"]) rather than just leaving it in notes — the actual dollar amount gets looked up ` +
-  `separately, so just capture the name here, don't guess a number for it yourself.`;
+  `separately, so just capture the name here, don't guess a number for it yourself. Terms stated ` +
+  `ONCE for the whole image, sheet or message — e.g. a shared banner, header or footer strip like ` +
+  `"$3,000 TOTAL DRIVE-OFF · 7,500 MILES PER YEAR · 24 MONTH LEASE" under several cars, or a line ` +
+  `like "all deals 36/10k, $3k das" — apply to EVERY vehicle listed, not just the one printed ` +
+  `nearest to them, unless a vehicle states its own value for that field. Due at signing is often ` +
+  `called "drive-off", "total drive-off", "drive off", "DAS", "due at signing", "at signing", ` +
+  `"initial payment" or "out of pocket"; "sign and drive" / "$0 down $0 due" means 0.`;
 
 function rowsToTable(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
