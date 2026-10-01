@@ -25,6 +25,7 @@ export default async function CustomerLoginPage({
   // Set by /auth/callback when a Google sign-in or an email link didn't
   // work (cancelled, expired, already used).
   const signInFailed = params.error === "signin";
+  const failReason = typeof params.reason === "string" ? params.reason.slice(0, 160) : null;
 
   const supabase = await createClient();
   const {
@@ -55,6 +56,9 @@ export default async function CustomerLoginPage({
           {signInFailed && (
             <p role="alert" className="alert alert-warning mt-6">
               That sign-in didn&apos;t go through, or the link has expired. Please try again.
+              {failReason && (
+                <span className="mt-1 block text-xs text-fg-muted">Details: {failReason}</span>
+              )}
             </p>
           )}
           <div className="mt-8">

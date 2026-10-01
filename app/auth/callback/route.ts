@@ -39,10 +39,23 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${next}`);
     }
     console.error("auth callback: code exchange failed:", error.message);
+    return failed(origin, error.message);
   } else if (searchParams.get("error")) {
-    // e.g. the person cancelled on Google's screen.
-    console.error("auth callback: provider error:", searchParams.get("error_description") ?? searchParams.get("error"));
+    // e.g. the person cancelled on Google's screen, or Google/Supabase
+    // rejected the sign-in (misconfigured client ID/secret).
+    const reason = searchParams.get("error_description") ?? searchParams.get("error") ?? "";
+    console.error("auth callback: provider error:", reason);
+    return failed(origin, reason);
   }
 
-  return NextResponse.redirect(`${origin}/customer/login?error=signin`);
+  return failed(origin, "");
+}
+
+// Back to login with a short, plain-text reason the page can show.
+function failed(origin: string, reason: string) {
+  const url = new URL("/customer/login", origin);
+  url.searchParams.set("error", "signin");
+  const clean = reason.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 160);
+  if (clean) url.searchParams.set("reason", clean);
+  return NextResponse.redirect(url);
 }
