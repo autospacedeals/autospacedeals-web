@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Confirm your email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;">
+<!-- Preview text shown next to the subject in the inbox -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">One click to finish creating your Drive account.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+        <tr>
+          <td style="padding:0 4px 20px 4px;">
+            <a href="https://www.idriveus.com" style="text-decoration:none;">
+              <img src="https://www.idriveus.com/brand/drive-wordmark-email.png" width="107" height="36" alt="Drive" style="display:block;border:0;outline:none;height:36px;width:107px;">
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color:#ffffff;border-radius:16px;border:1px solid #e5e7eb;padding:36px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0b0d12;">
+            <h1 style="margin:0 0 12px 0;font-size:24px;line-height:32px;font-weight:600;color:#0b0d12;">Confirm your email</h1>
+            <p style="margin:0;font-size:16px;line-height:24px;color:#374151;">Thanks for signing up for Drive. Confirm <strong>{{ .Email }}</strong> to finish creating your account and start saving deals.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
+              <tr>
+                <td style="border-radius:10px;background-color:#2a66f2;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-size:16px;line-height:20px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Confirm email</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 6px 0;font-size:13px;line-height:20px;color:#6b7280;">If the button doesn&#39;t work, copy and paste this link into your browser:</p>
+            <p style="margin:0;font-size:13px;line-height:20px;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#2a66f2;text-decoration:underline;">{{ .ConfirmationURL }}</a></p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 8px 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;color:#6b7280;text-align:center;">
+            Didn&#39;t sign up for Drive? You can ignore this email &mdash; nothing happens unless you confirm.<br>
+            Drive &middot; <a href="https://www.idriveus.com" style="color:#6b7280;text-decoration:underline;">idriveus.com</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
