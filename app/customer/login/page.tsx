@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { LogoMark } from "@/components/Logo";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -19,7 +20,11 @@ export default async function CustomerLoginPage({
   // Where to go after signing in, e.g. back to the broker profile a
   // "Log in to leave a review" link came from. Only same-site paths are
   // kept (see lib/safe-next-path.ts); anything else means the dashboard.
-  const next = safeNextPath((await searchParams).next);
+  const params = await searchParams;
+  const next = safeNextPath(params.next);
+  // Set by /auth/callback when a Google sign-in or an email link didn't
+  // work (cancelled, expired, already used).
+  const signInFailed = params.error === "signin";
 
   const supabase = await createClient();
   const {
@@ -47,7 +52,13 @@ export default async function CustomerLoginPage({
           <p className="label mt-6">Customer account</p>
           <h1 className="type-page mt-1 text-3xl sm:text-3xl">Sign in</h1>
           <p className="mt-2 text-sm text-fg-muted">Access your saved deals and account info.</p>
+          {signInFailed && (
+            <p role="alert" className="alert alert-warning mt-6">
+              That sign-in didn&apos;t go through, or the link has expired. Please try again.
+            </p>
+          )}
           <div className="mt-8">
+            <GoogleSignInButton next={next} />
             <LoginForm next={next} />
           </div>
         </div>

@@ -62,6 +62,18 @@ A signed-in customer can save their homepage filters ("Save this search", under 
 - **Setup required**: run `0018_match_email_log.sql` in the Supabase SQL editor, plus the Resend setup under "Transactional email" above. Until 0018 is run, only signed-in customers can use it — signed-out visitors are told to log in or try later.
 - **Limits**: at most 3 emails to the same address and 10 from the same IP address in any 24 hours, tracked in `match_email_log` (only the site's server can read it). The site deletes rows older than a week now and then; you can also clear the table by hand at any time.
 
+## Google sign-in ("Continue with Google")
+
+Customers can sign in or sign up with their Google account (brokers still use email). The button on `/customer/login` and `/customer/signup` stays **hidden until `NEXT_PUBLIC_GOOGLE_SIGN_IN=true`** is set in Vercel. A first-time Google user is sent to `/customer/complete-profile` to add the zip code Google doesn't provide (that creates their `customers` row). If someone already has an email account with the same address, Supabase links Google to that same account. See `components/GoogleSignInButton.tsx` and `app/auth/callback/route.ts`.
+
+**One-time setup:**
+1. **Google Cloud** (console.cloud.google.com) → create a project (e.g. "Drive"). The same project can later hold the service account for private Google Sheets.
+2. **APIs & Services → OAuth consent screen**: External, app name "Drive", support email, logo, app domain `idriveus.com`, privacy policy `https://www.idriveus.com/privacy`, terms `https://www.idriveus.com/terms`. Scopes: just the defaults (email, profile, openid). Publish the app.
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID** → Web application. Authorized redirect URI: `https://sdouwmylejkrnhdqdthh.supabase.co/auth/v1/callback`. Copy the client ID and secret.
+4. **Supabase → Authentication → Sign In / Providers → Google**: enable, paste the client ID and secret, save.
+5. **Supabase → Authentication → URL Configuration**: Site URL `https://www.idriveus.com`; add `https://www.idriveus.com/auth/callback` to Redirect URLs.
+6. **Vercel → Environment Variables**: add `NEXT_PUBLIC_GOOGLE_SIGN_IN` = `true` (Production), then redeploy (it's read at build time).
+
 ## Domain
 
 - **idriveus.com** — registrar: *(not sure — let me know where this is registered so I can fill this in)*. Formerly deployed at autospacedeals.com.

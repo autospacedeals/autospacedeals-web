@@ -40,13 +40,22 @@ export default async function CustomerDashboardPage() {
   // Same for saved searches (the 0017 migration).
   const savedSearchesPromise = getSavedSearches(user.id);
 
-  const { data: customer } = await supabase
+  const { data: customer, error: customerError } = await supabase
     .from("customers")
     .select(
       "first_name, last_name, zip_code, address, current_vehicle, drivers_license_path, insurance_card_path"
     )
     .eq("id", user.id)
     .single<Customer>();
+
+  // No customer profile yet: most likely a first "Continue with Google"
+  // sign-in that didn't finish the zip-code step — send them back to it
+  // (that page sends brokers on to their own dashboard).
+  // (.single() reports "no row" as error PGRST116; any other error is a
+  // real failure and falls through to the degraded page below.)
+  if (!customer && (!customerError || customerError.code === "PGRST116")) {
+    redirect("/customer/complete-profile");
+  }
 
   // A customer row should always exist post-signup — if it's somehow
   // missing (e.g. the profile insert failed), degrade gracefully instead of

@@ -197,3 +197,46 @@ export async function resetPasswordAction(
 
   redirect("/customer/dashboard");
 }
+
+// Second step of "Continue with Google": the person is signed in but has no
+// customer profile yet (Google gives a name and email, not a zip code).
+// Creates their customers row with their own session — RLS only allows a
+// customer to insert their own row (supabase/migrations/0013).
+export async function completeProfileAction(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const firstName = String(formData.get("firstName") || "").trim().slice(0, 80);
+  const lastName = String(formData.get("lastName") || "").trim().slice(0, 80);
+  const zipCode = String(formData.get("zipCode") || "").trim();
+  const next = safeNextPath(formData.get("next")) ?? "/customer/dashboard";
+
+  if (!firstName || !lastName || !zipCode) {
+    return { error: "Please fill in your name and zip code." };
+  }
+  if (!/^\d{5}$/.test(zipCode)) {
+    return { error: "Enter a valid 5-digit zip code." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/customer/login");
+
+  const { data: existing } = await supabase.from("customers").select("id").eq("id", user.id).maybeSingle();
+  if (!existing) {
+    const { error } = await supabase.from("customers").insert({
+      id: user.id,
+      first_name: firstName,
+      last_name: lastName,
+      zip_code: zipCode,
+    });
+    if (error) {
+      console.error("completeProfileAction: insert failed:", error.message);
+      return { error: "We couldn't save your details. Please try again in a moment." };
+    }
+  }
+
+  redirect(next);
+}

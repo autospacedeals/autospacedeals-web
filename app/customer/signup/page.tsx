@@ -4,6 +4,7 @@ import SignupForm from "./SignupForm";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { LogoMark } from "@/components/Logo";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export const metadata: Metadata = {
   title: "Create Your Account",
@@ -42,6 +43,7 @@ export default async function CustomerSignupPage() {
             Save deals, get matched with brokers, and pick up your search right where you left off.
           </p>
           <div className="mt-8">
+            <GoogleSignInButton />
             <SignupForm />
           </div>
         </div>
