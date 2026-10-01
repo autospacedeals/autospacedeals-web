@@ -181,7 +181,10 @@ const COMBINED_CELL_GUIDANCE =
   `called "drive-off", "total drive-off", "drive off", "DAS", "due at signing", "at signing", ` +
   `"initial payment" or "out of pocket"; "sign and drive" / "$0 down $0 due" means 0. "w/ 7 MSDs" ` +
   `(multiple security deposits) goes in msdCount (7), and a stated MSD dollar total in msdTotal — ` +
-  `MSDs are refundable and separate from due at signing, so never add them into dueAtSigning.`;
+  `MSDs are refundable and separate from due at signing, so never add them into dueAtSigning. A ` +
+  `vehicle whose name/trim is crossed out (strikethrough) — or most of whose row is — is sold or no ` +
+  `longer available: leave it out entirely, even if its other cells look normal. Only a lone ` +
+  `crossed-out old price sitting next to a new one is different: use the new price.`;
 
 function rowsToTable(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
