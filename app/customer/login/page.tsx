@@ -55,10 +55,12 @@ export default async function CustomerLoginPage({
           <p className="mt-2 text-sm text-fg-muted">Access your saved deals and account info.</p>
           {signInFailed && (
             <p role="alert" className="alert alert-warning mt-6">
-              That sign-in didn&apos;t go through, or the link has expired. Please try again.
-              {failReason && (
-                <span className="mt-1 block text-xs text-fg-muted">Details: {failReason}</span>
-              )}
+              <span>
+                That sign-in didn&apos;t go through, or the link has expired. Please try again.
+                {failReason && (
+                  <span className="mt-1 block text-xs text-fg-muted">Details: {failReason}</span>
+                )}
+              </span>
             </p>
           )}
           <div className="mt-8">
