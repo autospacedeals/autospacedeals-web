@@ -37,6 +37,28 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${broker ? "/broker/dashboard" : "/customer/dashboard"}`);
     }
     console.error("auth confirm: verifyOtp failed:", error?.message ?? "no user");
+
+    // Each link works once — opening it again (or an email app having
+    // already opened it) looks like an expired token. Someone who's already
+    // signed in from the first click just carries on to their dashboard.
+    if (type !== "recovery") {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: broker } = await supabase.from("brokers").select("id").eq("id", user.id).maybeSingle();
+        return NextResponse.redirect(`${origin}${broker ? "/broker/dashboard" : "/customer/dashboard"}`);
+      }
+    }
+    const url = new URL("/customer/login", origin);
+    url.searchParams.set("error", "signin");
+    url.searchParams.set(
+      "reason",
+      type === "recovery"
+        ? "This reset link was already used or has expired — request a new one with Forgot password."
+        : "This link was already used or has expired. If you already confirmed your email, just sign in below."
+    );
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.redirect(`${origin}/customer/login?error=signin`);
