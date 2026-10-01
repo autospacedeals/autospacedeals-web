@@ -9,8 +9,20 @@ export async function fetchCarsxePhoto(params: {
   model: string;
   trim?: string;
 }): Promise<string | null> {
+  return (await fetchCarsxePhotos(params))[0] ?? null;
+}
+
+// Every exterior photo CarsXE has for the vehicle, best match first — the
+// "Re-pull photo" button steps through these instead of always getting
+// back the first one (which the listing usually already has).
+export async function fetchCarsxePhotos(params: {
+  year: number;
+  make: string;
+  model: string;
+  trim?: string;
+}): Promise<string[]> {
   const apiKey = process.env.CARSXE_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return [];
 
   const query = new URLSearchParams({
     key: apiKey,
@@ -34,20 +46,20 @@ export async function fetchCarsxePhoto(params: {
       // back to back.
       next: { revalidate: 3600 },
     });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
 
     const data = await res.json();
-    return extractFirstImageUrl(data);
+    return extractImageUrls(data);
   } catch (err) {
     console.error("CarsXE photo lookup failed:", err);
-    return null;
+    return [];
   }
 }
 
 // CarsXE's response shape has varied across versions of this API in
 // practice, so this checks the common shapes rather than assuming one.
-function extractFirstImageUrl(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
+function extractImageUrls(data: unknown): string[] {
+  if (!data || typeof data !== "object") return [];
   const obj = data as Record<string, unknown>;
 
   const candidates: unknown[] = [];
@@ -55,14 +67,14 @@ function extractFirstImageUrl(data: unknown): string | null {
   if (Array.isArray(obj.result)) candidates.push(...obj.result);
   if (Array.isArray(data)) candidates.push(...(data as unknown[]));
 
+  const urls: string[] = [];
   for (const item of candidates) {
-    if (typeof item === "string" && item.startsWith("http")) return item;
+    let url: unknown = item;
     if (item && typeof item === "object") {
       const rec = item as Record<string, unknown>;
-      const url = rec.link ?? rec.url ?? rec.src;
-      if (typeof url === "string" && url.startsWith("http")) return url;
+      url = rec.link ?? rec.url ?? rec.src;
     }
+    if (typeof url === "string" && url.startsWith("http") && !urls.includes(url)) urls.push(url);
   }
-
-  return null;
+  return urls;
 }

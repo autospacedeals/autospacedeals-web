@@ -394,6 +394,12 @@ function ListingRow({
   const [deleting, setDeleting] = useState(false);
   const [repulling, setRepulling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Feedback after "Re-pull photo" — the new photo is only kept once the
+  // row is saved, which is easy to miss otherwise.
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
+  // Photos "Re-pull photo" has already swapped out this session, so it
+  // doesn't hand them back.
+  const triedPhotos = useRef<Set<string>>(new Set());
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const rowBg = dirty ? "bg-warning-soft" : "bg-hover";
@@ -453,6 +459,7 @@ function ListingRow({
 
   async function handleRepullPhoto() {
     setError(null);
+    setPhotoNotice(null);
     setRepulling(true);
     try {
       const result = await repullPhotoAction({
@@ -460,20 +467,30 @@ function ListingRow({
         make: draft.make,
         model: draft.model,
         trim: draft.trim || undefined,
+        current: [
+          ...draft.images
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          ...triedPhotos.current,
+        ],
       });
       if (result.error) {
-        setError(result.error);
+        setPhotoNotice(result.error);
       } else if (result.imageUrl) {
-        // New photo goes first, so it becomes the primary/cover image —
-        // any other URLs already in the field stay below it as extras.
-        const rest = draft.images
+        setPhotoNotice("New main photo — click Save to keep it, or Re-pull again for another.");
+        // The new photo replaces the current main (cover) photo rather than
+        // piling up behind it — the old one is usually why the broker is
+        // re-pulling. Any extra photos below it stay as they are.
+        const [oldMain, ...extras] = draft.images
           .split("\n")
           .map((s) => s.trim())
-          .filter((s) => s && s !== result.imageUrl);
-        set("images", [result.imageUrl, ...rest].join("\n"));
+          .filter(Boolean);
+        if (oldMain) triedPhotos.current.add(oldMain);
+        set("images", [result.imageUrl, ...extras.filter((s) => s !== result.imageUrl)].join("\n"));
       }
     } catch {
-      setError("Couldn't fetch a new photo — try again.");
+      setPhotoNotice("Couldn't fetch a new photo — try again.");
     } finally {
       setRepulling(false);
     }
@@ -844,6 +861,11 @@ function ListingRow({
                     Re-pull photo
                   </button>
                 </div>
+                {photoNotice && (
+                  <p role="status" className="mb-2 text-xs text-fg-secondary">
+                    {photoNotice}
+                  </p>
+                )}
                 {draft.images.split("\n")[0]?.trim() && (
                   <div className="media-stage mb-2 aspect-[4/3] w-full max-w-[160px] rounded-lg">
                     <img

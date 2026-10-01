@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { slugify, parseMsrpInput } from "@/lib/deal-utils";
-import { fetchCarsxePhoto } from "@/lib/carsxe";
+import { fetchCarsxePhoto, fetchCarsxePhotos } from "@/lib/carsxe";
 import { parseInventoryBuffer, parseInventoryCsv, type ParsedDeal } from "@/lib/parse-inventory";
 import {
   parseFreeTextWithAI,
@@ -109,14 +109,16 @@ export async function suggestIncentivesAction(input: {
 
 // Called from the "Re-pull photo" button in MyListings when a listing's
 // auto-sourced photo doesn't show the whole car (a close-up, interior, or
-// engine-bay shot). Just looks up a fresh CarsXE photo and hands the URL
-// back — it doesn't touch the deal row itself, the broker still reviews it
-// and hits Save like any other edit, same as pasting in a URL by hand.
+// engine-bay shot). Hands back a CarsXE photo the listing isn't already
+// using — each click steps to the next one — falling back to the same car
+// without the trim filter for more options. It doesn't touch the deal row
+// itself: the broker still reviews it and hits Save like any other edit.
 export async function repullPhotoAction(input: {
   year: number;
   make: string;
   model: string;
   trim?: string;
+  current?: string[];
 }): Promise<{ imageUrl: string | null; error: string | null }> {
   const supabase = await createClient();
   const {
@@ -128,17 +130,25 @@ export async function repullPhotoAction(input: {
     return { imageUrl: null, error: "Fill in year, make, and model first." };
   }
 
-  const imageUrl = await fetchCarsxePhoto({
-    year: input.year,
-    make: input.make,
-    model: input.model,
-    trim: input.trim,
-  });
-
-  if (!imageUrl) {
-    return { imageUrl: null, error: "Couldn't find a photo for this exact year/make/model/trim." };
+  const current = new Set((input.current ?? []).slice(0, 20).map((u) => String(u).trim()));
+  const vehicle = { year: input.year, make: input.make, model: input.model };
+  let photos = await fetchCarsxePhotos({ ...vehicle, trim: input.trim });
+  let fresh = photos.find((url) => !current.has(url));
+  if (!fresh && input.trim) {
+    photos = await fetchCarsxePhotos(vehicle);
+    fresh = photos.find((url) => !current.has(url));
   }
-  return { imageUrl, error: null };
+
+  if (!fresh) {
+    return {
+      imageUrl: null,
+      error:
+        current.size > 0
+          ? "No other photos found for this car — you can paste a photo URL instead."
+          : "Couldn't find a photo for this exact year/make/model/trim.",
+    };
+  }
+  return { imageUrl: fresh, error: null };
 }
 
 // Parses the hidden `incentives` field (JSON string written by
