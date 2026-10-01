@@ -27,12 +27,12 @@
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
               <tr>
                 <td style="border-radius:10px;background-color:#2a66f2;">
-                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-size:16px;line-height:20px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Confirm email</a>
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email" style="display:inline-block;padding:14px 28px;font-size:16px;line-height:20px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Confirm email</a>
                 </td>
               </tr>
             </table>
             <p style="margin:0 0 6px 0;font-size:13px;line-height:20px;color:#6b7280;">If the button doesn&#39;t work, copy and paste this link into your browser:</p>
-            <p style="margin:0;font-size:13px;line-height:20px;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#2a66f2;text-decoration:underline;">{{ .ConfirmationURL }}</a></p>
+            <p style="margin:0;font-size:13px;line-height:20px;word-break:break-all;"><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email" style="color:#2a66f2;text-decoration:underline;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email</a></p>
           </td>
         </tr>
         <tr>
