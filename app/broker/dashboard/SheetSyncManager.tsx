@@ -50,11 +50,9 @@ function shortUrl(url: string): string {
 export default function SheetSyncManager({
   syncs,
   listingsBySync = {},
-  brokerState,
 }: {
   syncs: SheetSync[];
   listingsBySync?: Record<string, Deal[]>;
-  brokerState?: string;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -162,7 +160,6 @@ export default function SheetSyncManager({
               </p>
               <MyListings
                 deals={listings}
-                brokerState={brokerState}
                 emptyMessage={
                   sync.autoPublish
                     ? "No live cars from this sheet yet — new rows show up here after the next check."

@@ -4,6 +4,7 @@ import { useActionState, useId, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { stageDealDraftAction, type StageDealState } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "@/app/broker/dashboard/IncentivesEditor";
+import MileageOptionsEditor, { type MileageRow } from "@/app/broker/dashboard/MileageOptionsEditor";
 
 const initialState: StageDealState = { error: null };
 
@@ -29,6 +30,7 @@ export default function StageDealForm({
   const [state, formAction, pending] = useActionState(stageDealDraftAction, initialState);
   const [onePay, setOnePay] = useState(false);
   const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
+  const [mileageRows, setMileageRows] = useState<MileageRow[]>([]);
   // Unique per instance — the queue renders one of these for every pending
   // submission, so label/field ids can't be hard-coded.
   const uid = useId();
@@ -291,6 +293,8 @@ export default function StageDealForm({
         </div>
 
         <IncentivesEditor value={incentives} onChange={setIncentives} />
+
+        <MileageOptionsEditor value={mileageRows} onChange={setMileageRows} />
 
         <div>
           <label htmlFor={`${uid}-images`} className={labelClass}>

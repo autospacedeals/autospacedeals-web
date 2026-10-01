@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import type { Incentive } from "@/lib/deals-data";
+import { parseJsonField, sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
 import { createClient } from "@/lib/supabase/server";
 import { slugify, parseMsrpInput } from "@/lib/deal-utils";
 import { fetchCarsxePhoto, fetchCarsxePhotos } from "@/lib/carsxe";
@@ -11,7 +13,6 @@ import {
   parseImageWithAI,
   type SupportedImageType,
 } from "@/lib/ai-parse-inventory";
-import { suggestIncentives, resolveNamedIncentives, type SuggestedIncentive } from "@/lib/ai-incentives";
 import { fetchGoogleSheetCsv } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 
@@ -84,29 +85,6 @@ export async function updateBrokerAboutAction(formData: FormData): Promise<{ err
   return { error: null };
 }
 
-// Called directly from the client (not a <form> submit) when a broker hits
-// "Suggest with AI" on a car's incentives list. Returns starting suggestions
-// only — nothing is saved here, the broker edits/removes before the
-// surrounding form is actually submitted.
-export async function suggestIncentivesAction(input: {
-  year: number;
-  make: string;
-  model: string;
-  trim?: string;
-  state?: string;
-  zip?: string;
-}): Promise<{ incentives: SuggestedIncentive[]; error: string | null }> {
-  if (!input.year || !input.make.trim() || !input.model.trim()) {
-    return { incentives: [], error: "Fill in year, make, and model first." };
-  }
-  // No longer gated on ANTHROPIC_API_KEY alone — MarketCheck (real incentive
-  // data) is tried first and doesn't need it. suggestIncentives() falls back
-  // to Claude only when MarketCheck has nothing, and that fallback quietly
-  // returns [] if ANTHROPIC_API_KEY isn't configured either.
-  const incentives = await suggestIncentives(input);
-  return { incentives, error: null };
-}
-
 // Called from the "Re-pull photo" button in MyListings when a listing's
 // auto-sourced photo doesn't show the whole car (a close-up, interior, or
 // engine-bay shot). Hands back a CarsXE photo the listing isn't already
@@ -154,22 +132,8 @@ export async function repullPhotoAction(input: {
 // Parses the hidden `incentives` field (JSON string written by
 // IncentivesEditor) that every deal-editing form submits, tolerating a
 // missing/invalid value rather than throwing.
-function parseIncentivesField(
-  formData: FormData
-): { name: string; amount: number; includedInPrice: boolean }[] {
-  const raw = String(formData.get("incentives") || "[]");
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (i): i is { name: string; amount: number; includedInPrice?: boolean } =>
-          i && typeof i.name === "string" && i.name.trim().length > 0 && typeof i.amount === "number" && i.amount > 0
-      )
-      .map((i) => ({ name: i.name.trim(), amount: i.amount, includedInPrice: i.includedInPrice === true }));
-  } catch {
-    return [];
-  }
+function parseIncentivesField(formData: FormData): Incentive[] {
+  return sanitizeIncentives(parseJsonField(formData, "incentives"));
 }
 
 // Google Sheet / Excel file / pasted text / screenshot. We try to pull
@@ -394,40 +358,6 @@ export async function createSubmissionAction(
     }
   }
 
-  // A source that names a specific required incentive program (e.g.
-  // "CONQUEST AND FLEET (AAA/SAMS/EMPLOYER required)") without stating its
-  // dollar value gets that figure resolved here — real MarketCheck data
-  // when available, otherwise a targeted AI estimate for that exact program
-  // — before staging, so it lands as a proper (already-included-in-price)
-  // incentive row on the draft instead of being lost in a notes paragraph.
-  // Only touches rows that actually came back with hints to resolve.
-  if (parsedDeals.some((d) => d.incentiveHints && d.incentiveHints.length > 0)) {
-    parsedDeals = await Promise.all(
-      parsedDeals.map(async (d) => {
-        if (!d.incentiveHints || d.incentiveHints.length === 0) return d;
-        try {
-          const resolved = await resolveNamedIncentives(
-            { year: d.year, make: d.make, model: d.model, trim: d.trim ?? undefined },
-            d.incentiveHints
-          );
-          if (resolved.length === 0) return d;
-          return {
-            ...d,
-            incentives: resolved.map((r) => ({ name: r.name, amount: r.amount, includedInPrice: true })),
-          };
-        } catch (err) {
-          console.error("Failed to resolve named incentives for a parsed deal:", err, {
-            year: d.year,
-            make: d.make,
-            model: d.model,
-            incentiveHints: d.incentiveHints,
-          });
-          return d;
-        }
-      })
-    );
-  }
-
   let stageFailed = 0;
   let stageLastError: string | null = null;
   if (broker && parsedDeals.length > 0 && inserted) {
@@ -586,6 +516,8 @@ export async function createManualDealAction(
   const notes = String(formData.get("notes") || "").trim();
   const condition = String(formData.get("condition") || "").trim() || null;
   const incentives = parseIncentivesField(formData);
+  const mileageOptions =
+    dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
   let images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -659,6 +591,7 @@ export async function createManualDealAction(
     verified: true,
     condition,
     incentives,
+    mileage_options: mileageOptions,
     photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,
@@ -720,6 +653,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const notes = String(formData.get("notes") || "").trim();
   const condition = String(formData.get("condition") || "").trim() || null;
   const incentives = parseIncentivesField(formData);
+  const mileageOptions =
+    dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
   const images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -785,6 +720,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       notes,
       condition,
       incentives,
+      mileage_options: mileageOptions,
       images: finalImages,
       photo_auto_sourced: photoAutoSourced,
       one_pay: onePay,
@@ -972,6 +908,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const notes = String(formData.get("notes") || "").trim();
   const condition = String(formData.get("condition") || "").trim() || null;
   const incentives = parseIncentivesField(formData);
+  const mileageOptions =
+    dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
   const images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -1036,6 +974,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       notes,
       condition,
       incentives,
+      mileage_options: mileageOptions,
       photo_auto_sourced: photoAutoSourced,
       images: finalImages,
       one_pay: onePay,

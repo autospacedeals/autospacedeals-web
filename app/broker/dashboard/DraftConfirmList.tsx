@@ -8,6 +8,7 @@ import { dealTitle, formatCurrency, msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { confirmDraftsAction, updateDraftDealAction, deleteDraftAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
+import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
 
 const inputClass = "input input-sm";
 const labelClass = "field-label";
@@ -20,10 +21,8 @@ const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
 export default function DraftConfirmList({
   drafts,
-  brokerState,
 }: {
   drafts: Deal[];
-  brokerState?: string;
 }) {
   const [checked, setChecked] = useState<Set<string>>(new Set(drafts.map((d) => d.id)));
   const [confirming, setConfirming] = useState(false);
@@ -64,7 +63,6 @@ export default function DraftConfirmList({
             deal={deal}
             checked={checked.has(deal.id)}
             onToggle={() => toggle(deal.id)}
-            brokerState={brokerState}
           />
         ))}
       </div>
@@ -85,12 +83,10 @@ function DraftRow({
   deal,
   checked,
   onToggle,
-  brokerState,
 }: {
   deal: Deal;
   checked: boolean;
   onToggle: () => void;
-  brokerState?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +95,7 @@ function DraftRow({
   const [incentives, setIncentives] = useState<IncentiveRow[]>(
     (deal.incentives ?? []).map((inc) => ({ ...inc, includedInPrice: inc.includedInPrice === true }))
   );
+  const [mileageRows, setMileageRows] = useState<MileageRow[]>(() => toMileageRows(deal.mileageOptions));
   const uid = useId();
 
   async function handleDelete() {
@@ -390,7 +387,9 @@ function DraftRow({
           </div>
         </div>
 
-        <IncentivesEditor value={incentives} onChange={setIncentives} brokerState={brokerState} />
+        <IncentivesEditor value={incentives} onChange={setIncentives} />
+
+        <MileageOptionsEditor value={mileageRows} onChange={setMileageRows} />
 
         <div>
           <label htmlFor={`${uid}-images`} className={labelClass}>Photo URLs (one per line, optional)</label>

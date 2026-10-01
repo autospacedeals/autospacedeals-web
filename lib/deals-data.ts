@@ -22,6 +22,20 @@ export interface Incentive {
   // incentive is applied. Missing/undefined on older rows saved before this
   // field existed — treated as false (not already included) wherever read.
   includedInPrice?: boolean;
+  // How much the monthly payment moves with vs. without this incentive,
+  // when the source states it that way (e.g. "no Loyalty +$15" -> 15). When
+  // set, the payment estimator uses it directly instead of spreading
+  // `amount` over the term. `amount` may be 0 when only this is known.
+  monthly?: number;
+}
+
+// Another annual mileage allowance offered on a lease, and how much it
+// changes the advertised monthly payment (e.g. "12k +$45" -> { 12000, 45 };
+// a lower allowance can be negative). The advertised milesPerYear itself
+// isn't listed.
+export interface MileageOption {
+  milesPerYear: number;
+  monthlyDelta: number;
 }
 
 export interface Deal {
@@ -134,6 +148,9 @@ export interface Deal {
   // Broker-managed; AI can suggest starting points but never publishes
   // amounts without broker review.
   incentives?: Incentive[];
+  // Other mileage allowances a shopper can pick in the payment estimator.
+  // Empty/undefined when the listing only offers its advertised mileage.
+  mileageOptions?: MileageOption[];
 
   // Provenance — where this listing came from. Optional; used for real deals
   // pulled from a broker's public posts (e.g. their Leasehackr thread) so we

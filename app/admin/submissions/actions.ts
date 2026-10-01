@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import type { Incentive } from "@/lib/deals-data";
+import { parseJsonField, sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { slugify } from "@/lib/deal-utils";
@@ -90,22 +92,8 @@ export async function reviewSubmissionAction(formData: FormData) {
 
 export type StageDealState = { error: string | null; success?: boolean };
 
-function parseIncentivesField(
-  formData: FormData
-): { name: string; amount: number; includedInPrice: boolean }[] {
-  const raw = String(formData.get("incentives") || "[]");
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (i): i is { name: string; amount: number; includedInPrice?: boolean } =>
-          i && typeof i.name === "string" && i.name.trim().length > 0 && typeof i.amount === "number" && i.amount > 0
-      )
-      .map((i) => ({ name: i.name.trim(), amount: i.amount, includedInPrice: i.includedInPrice === true }));
-  } catch {
-    return [];
-  }
+function parseIncentivesField(formData: FormData): Incentive[] {
+  return sanitizeIncentives(parseJsonField(formData, "incentives"));
 }
 
 // Admin reads a broker's submitted link/sheet/file and stages an individual
@@ -165,6 +153,8 @@ export async function stageDealDraftAction(
   const notes = String(formData.get("notes") || "").trim();
   const condition = String(formData.get("condition") || "").trim() || null;
   const incentives = parseIncentivesField(formData);
+  const mileageOptions =
+    dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
   const sourceUrlRaw = String(formData.get("sourceUrl") || "").trim();
   let images = String(formData.get("images") || "")
     .split("\n")
@@ -225,6 +215,7 @@ export async function stageDealDraftAction(
     verified: true,
     condition,
     incentives,
+    mileage_options: mileageOptions,
     photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,

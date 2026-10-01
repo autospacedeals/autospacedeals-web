@@ -17,6 +17,7 @@ import { msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { updateDealAction, deleteDealAction, deleteDealsAction, repullPhotoAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
+import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
 
 // Borderless-until-touched inputs — the point is to read like an editable
 // list, not a literal spreadsheet grid of boxes. A cell only "lights up"
@@ -129,6 +130,7 @@ interface RowDraft {
   condition: string;
   images: string;
   incentives: IncentiveRow[];
+  mileageOptions: MileageRow[];
 }
 
 function deriveDraft(deal: Deal): RowDraft {
@@ -163,16 +165,15 @@ function deriveDraft(deal: Deal): RowDraft {
       ...inc,
       includedInPrice: inc.includedInPrice === true,
     })),
+    mileageOptions: toMileageRows(deal.mileageOptions),
   };
 }
 
 export default function MyListings({
   deals,
-  brokerState,
   emptyMessage = "You don't have any live listings yet — use the form below to add one.",
 }: {
   deals: Deal[];
-  brokerState?: string;
   emptyMessage?: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -366,7 +367,6 @@ export default function MyListings({
                 deal={deal}
                 selected={selected.has(deal.id)}
                 onToggleSelect={() => toggleOne(deal.id)}
-                brokerState={brokerState}
               />
             ))}
           </tbody>
@@ -380,12 +380,10 @@ function ListingRow({
   deal,
   selected,
   onToggleSelect,
-  brokerState,
 }: {
   deal: Deal;
   selected: boolean;
   onToggleSelect: () => void;
-  brokerState?: string;
 }) {
   const baseline = useMemo(() => deriveDraft(deal), [deal]);
   const [draft, setDraft] = useState<RowDraft>(baseline);
@@ -444,7 +442,15 @@ function ListingRow({
       fd.set("condition", draft.condition);
       fd.set(
         "incentives",
-        JSON.stringify(draft.incentives.filter((r) => r.name.trim() && r.amount > 0))
+        JSON.stringify(draft.incentives.filter((r) => r.name.trim() && (r.amount > 0 || (r.monthly ?? 0) > 0)))
+      );
+      fd.set(
+        "mileageOptions",
+        JSON.stringify(
+          draft.mileageOptions
+            .filter((r) => r.milesPerYear.trim() && r.monthlyDelta.trim())
+            .map((r) => ({ milesPerYear: Number(r.milesPerYear), monthlyDelta: Number(r.monthlyDelta) }))
+        )
       );
       fd.set("images", draft.images);
 
@@ -722,15 +728,9 @@ function ListingRow({
       {expanded && (
         <tr>
           <td colSpan={COLUMN_COUNT} className="rounded-xl border border-line bg-hover p-4 sm:p-5">
-            {/* Local <form> is not submitted directly — it just gives
-                IncentivesEditor's "Suggest with AI" button a form context to
-                read year/make/model/trim from, matching how it's used in the
-                other broker forms. */}
+            {/* Never submitted — Save sends the draft below — so Enter in a
+                field doesn't reload the page. */}
             <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
-              <input type="hidden" name="year" value={draft.year} readOnly />
-              <input type="hidden" name="make" value={draft.make} readOnly />
-              <input type="hidden" name="model" value={draft.model} readOnly />
-              <input type="hidden" name="trim" value={draft.trim} readOnly />
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
@@ -843,7 +843,11 @@ function ListingRow({
               <IncentivesEditor
                 value={draft.incentives}
                 onChange={(rows) => set("incentives", rows)}
-                brokerState={brokerState}
+              />
+
+              <MileageOptionsEditor
+                value={draft.mileageOptions}
+                onChange={(rows) => set("mileageOptions", rows)}
               />
 
               <div>

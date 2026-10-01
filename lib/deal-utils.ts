@@ -139,7 +139,9 @@ export function msrpDiscountPercent(deal: Deal): number {
 // can play with, not a finance quote. The UI is required to disclaim this.
 export function estimatePayment(
   deal: Deal,
-  input: { dueAtSigning: number; incentivesTotal: number }
+  // monthlyAdjustment: straight per-month changes (a chosen mileage tier,
+  // an incentive stated as "+$15/mo"), added after the proration.
+  input: { dueAtSigning: number; incentivesTotal: number; monthlyAdjustment?: number }
 ): { monthly: number; total: number } {
   const term = deal.term > 0 ? deal.term : 1;
 
@@ -156,7 +158,7 @@ export function estimatePayment(
   // pushing due-at-signing down toward $0 rolls that amount into the
   // monthly payment instead; pushing it up lowers the monthly payment.
   const capReduction = input.dueAtSigning - deal.dueAtSigning + input.incentivesTotal;
-  const monthly = Math.max(0, deal.payment - capReduction / term);
+  const monthly = Math.max(0, deal.payment - capReduction / term + (input.monthlyAdjustment ?? 0));
   return { monthly, total: Math.max(0, input.dueAtSigning) };
 }
 

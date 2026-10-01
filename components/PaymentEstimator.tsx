@@ -33,16 +33,33 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   // priced in — toggling an included-by-default one off removes its
   // discount (raises the estimate), toggling a not-yet-included one on
   // adds it (lowers the estimate). Matching states cancel out to 0.
-  const incentivesTotal = incentives.reduce((sum, inc, idx) => {
-    const checked = selected.has(idx) ? inc.amount : 0;
-    const baseline = inc.includedInPrice ? inc.amount : 0;
-    return sum + (checked - baseline);
-  }, 0);
+  // An incentive with a stated per-month value moves the payment by exactly
+  // that; one with only a dollar amount is spread over the term.
+  const toggled = (idx: number) => selected.has(idx) !== (incentives[idx].includedInPrice === true);
+  const sign = (idx: number) => (selected.has(idx) ? 1 : -1);
+  const incentivesTotal = incentives.reduce(
+    (sum, inc, idx) => (toggled(idx) && !inc.monthly ? sum + sign(idx) * inc.amount : sum),
+    0
+  );
+  const incentivesMonthly = incentives.reduce(
+    (sum, inc, idx) => (toggled(idx) && inc.monthly ? sum - sign(idx) * inc.monthly : sum),
+    0
+  );
+
+  // Other mileage tiers ("12k +$45/mo"); "" is the advertised mileage.
+  const mileageOptions = deal.onePay ? [] : (deal.mileageOptions ?? []);
+  const [mileage, setMileage] = useState("");
+  const mileageDelta = mileageOptions.find((o) => String(o.milesPerYear) === mileage)?.monthlyDelta ?? 0;
 
   const dueAtSigning = Math.max(0, Number(dueAtSigningInput) || 0);
-  const estimate = estimatePayment(deal, { dueAtSigning, incentivesTotal });
+  const estimate = estimatePayment(deal, {
+    dueAtSigning,
+    incentivesTotal,
+    monthlyAdjustment: incentivesMonthly + mileageDelta,
+  });
   const isDefault =
     dueAtSigning === deal.dueAtSigning &&
+    mileage === "" &&
     selected.size === defaultSelected.size &&
     [...selected].every((idx) => defaultSelected.has(idx));
 
@@ -63,6 +80,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   function reset() {
     setDueAtSigningInput(String(deal.dueAtSigning));
     setSelected(defaultSelected);
+    setMileage("");
   }
 
   return (
@@ -80,7 +98,8 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
         )}
       </div>
       <p className="mt-1.5 text-sm text-fg-muted">
-        Put more or less down, or apply an incentive below, to see how it changes your{" "}
+        Put more or less down{mileageOptions.length > 0 ? ", pick a mileage," : ""} or apply an incentive below,
+        to see how it changes your{" "}
         {deal.onePay ? "one-pay total" : "monthly payment"}.
       </p>
 
@@ -112,6 +131,31 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
         </p>
       </div>
 
+      {mileageOptions.length > 0 && (
+        <div className="mt-6">
+          <label htmlFor="estimator-mileage" className="field-label">
+            Miles per year
+          </label>
+          <select
+            id="estimator-mileage"
+            value={mileage}
+            onChange={(e) => setMileage(e.target.value)}
+            className="select"
+          >
+            <option value="">
+              {deal.milesPerYear ? `${deal.milesPerYear.toLocaleString("en-US")} mi/yr` : "Advertised mileage"} (as
+              advertised)
+            </option>
+            {mileageOptions.map((o) => (
+              <option key={o.milesPerYear} value={String(o.milesPerYear)}>
+                {o.milesPerYear.toLocaleString("en-US")} mi/yr · {o.monthlyDelta >= 0 ? "+" : "-"}
+                {formatCurrency(Math.abs(o.monthlyDelta))}/mo
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {incentives.length > 0 && (
         <div className="mt-6">
           <p className="field-label">Incentives you might qualify for</p>
@@ -122,7 +166,10 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
           <div className="space-y-2">
             {incentives.map((inc, idx) => {
               const checked = selected.has(idx);
-              const delta = (checked ? inc.amount : 0) - (inc.includedInPrice ? inc.amount : 0);
+              // Positive = a discount being added (lowers the estimate).
+              const value = inc.monthly || inc.amount;
+              const delta = toggled(idx) ? sign(idx) * value : 0;
+              const unit = inc.monthly ? "/mo" : "";
               return (
                 <label key={idx} className="choice justify-between">
                   <span className="flex min-w-0 items-center gap-2.5">
@@ -145,8 +192,8 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
                     }`}
                   >
                     {delta === 0
-                      ? formatCurrency(inc.amount)
-                      : `${delta > 0 ? "-" : "+"}${formatCurrency(Math.abs(delta))}`}
+                      ? `${formatCurrency(value)}${unit}`
+                      : `${delta > 0 ? "-" : "+"}${formatCurrency(Math.abs(delta))}${unit}`}
                   </span>
                 </label>
               );

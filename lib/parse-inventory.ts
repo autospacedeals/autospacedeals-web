@@ -40,19 +40,12 @@ export interface ParsedDeal {
   // no separate monthly bill. payment is 0 by convention when this is true,
   // same as the manual "Add a car" forms.
   onePay: boolean;
-  // Named incentive/rebate programs (e.g. "Conquest", "Fleet", "Loyalty")
-  // the source says are REQUIRED to qualify for the advertised price, when
-  // the source states the requirement but not a dollar figure — extracted
-  // by the AI parse (lib/ai-parse-inventory.ts). Resolved into real dollar
-  // amounts (lib/ai-incentives.ts's resolveNamedIncentives, called from
-  // app/broker/dashboard/actions.ts before staging) and landed in
-  // `incentives` below rather than lost in a notes paragraph, since the ad's
-  // stated price already assumes the shopper qualifies.
-  incentiveHints?: string[];
-  // Resolved incentive rows ready to persist — populated from
-  // incentiveHints post-parse, always includedInPrice: true since these are
-  // requirements baked into the price already shown, not stackable extras.
-  incentives?: { name: string; amount: number; includedInPrice: boolean }[];
+  // Incentives the source gives a value for — a dollar amount and/or a
+  // monthly difference like "no Loyalty +$15" — read by the AI parse
+  // exactly as stated (never looked up or estimated).
+  incentives?: { name: string; amount: number; includedInPrice: boolean; monthly?: number }[];
+  // Other mileage tiers the source prices, e.g. "10k +$23 · 12k +$45".
+  mileageOptions?: { milesPerYear: number; monthlyDelta: number }[];
 }
 
 export interface SkippedRow {

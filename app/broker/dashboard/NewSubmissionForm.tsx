@@ -17,6 +17,7 @@ import {
 } from "./actions";
 import type { ParsedDeal } from "@/lib/parse-inventory";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
+import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
 
 const initialState: SubmissionState = { error: null };
 
@@ -52,7 +53,7 @@ const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
 const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
-export default function NewSubmissionForm({ brokerState }: { brokerState?: string }) {
+export default function NewSubmissionForm() {
   const [category, setCategory] = useState<"manual" | "link" | null>(null);
   // Bumped to force-remount LinkForm when a broker wants to try the same
   // (or a different) source again after some rows came back unreadable —
@@ -87,20 +88,17 @@ export default function NewSubmissionForm({ brokerState }: { brokerState?: strin
         <LinkForm
           key={linkFormKey}
           onStartOver={() => setLinkFormKey((k) => k + 1)}
-          brokerState={brokerState}
         />
       )}
-      {category === "manual" && <ManualForm brokerState={brokerState} />}
+      {category === "manual" && <ManualForm />}
     </div>
   );
 }
 
 function LinkForm({
   onStartOver,
-  brokerState,
 }: {
   onStartOver: () => void;
-  brokerState?: string;
 }) {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
   const [sourceType, setSourceType] = useState<
@@ -164,18 +162,17 @@ function LinkForm({
                 <ManualForm
                   submissionId={state.submissionId}
                   initialValues={partial}
-                  brokerState={brokerState}
                 />
               </div>
             ))}
             <div className="border-t border-line pt-5">
               <p className="mb-2 text-sm text-fg-secondary">Add another car from this source:</p>
-              <ManualForm submissionId={state.submissionId} brokerState={brokerState} />
+              <ManualForm submissionId={state.submissionId} />
             </div>
           </div>
         ) : (
           <div className="mt-4">
-            <ManualForm submissionId={state.submissionId} brokerState={brokerState} />
+            <ManualForm submissionId={state.submissionId} />
           </div>
         )}
       </div>
@@ -330,7 +327,6 @@ function LinkForm({
 function ManualForm({
   submissionId,
   initialValues,
-  brokerState,
 }: {
   submissionId?: string;
   // Pre-fills whatever a parser (heuristic or AI) already managed to read
@@ -338,11 +334,11 @@ function ManualForm({
   // SubmissionState.skippedDeals. Left undefined for a plain blank "add a
   // car" form.
   initialValues?: Partial<ParsedDeal>;
-  brokerState?: string;
 }) {
   const [state, formAction, pending] = useActionState(createManualDealAction, initialState);
   const [onePay, setOnePay] = useState(initialValues?.onePay ?? false);
-  const [incentives, setIncentives] = useState<IncentiveRow[]>([]);
+  const [incentives, setIncentives] = useState<IncentiveRow[]>(initialValues?.incentives ?? []);
+  const [mileageRows, setMileageRows] = useState<MileageRow[]>(toMileageRows(initialValues?.mileageOptions));
   const uid = useId();
   // Bump the form's key on every successful publish so the fields clear —
   // needed here (unlike a one-shot form) because a broker submitting a
@@ -361,6 +357,7 @@ function ManualForm({
     if (state.success && !initialValues) {
       setResetCount((n) => n + 1);
       setIncentives([]);
+      setMileageRows([]);
     }
   }
   const publishedAndLocked = Boolean(initialValues) && state.success;
@@ -632,8 +629,10 @@ function ManualForm({
 
         <div>
           <p className={sectionHeadingClass}>Incentives</p>
-          <IncentivesEditor value={incentives} onChange={setIncentives} brokerState={brokerState} />
+          <IncentivesEditor value={incentives} onChange={setIncentives} />
         </div>
+
+        <MileageOptionsEditor value={mileageRows} onChange={setMileageRows} />
 
         <div>
           <p className={sectionHeadingClass}>Photos (optional)</p>

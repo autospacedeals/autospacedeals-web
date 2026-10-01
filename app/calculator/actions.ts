@@ -1,8 +1,7 @@
 "use server";
 
-// Prefills the Lease Calculator from real data when it's available. Reuses
-// the exact same sources the broker "Suggest with AI" flow already relies on
-// (lib/marketcheck.ts, lib/ai-incentives.ts) — MarketCheck's OEM Incentive
+// Prefills the Lease Calculator from real data when it's available, from
+// lib/marketcheck.ts and lib/ai-incentives.ts — MarketCheck's OEM Incentive
 // Search API first for real residual/money-factor/cap-cost numbers (see
 // pickLeaseStructure), Claude only as a ballpark fallback for the incentive
 // list. The calculator always stays editable either way; this just saves a

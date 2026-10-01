@@ -14,6 +14,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
 import { parseMsdText, type ParsedDeal, type ParseResult, type SkippedRow } from "./parse-inventory";
+import { sanitizeIncentives, sanitizeMileageOptions } from "./deal-options";
+import type { Incentive } from "./deals-data";
+
+function toParsedIncentives(list: Incentive[]): NonNullable<ParsedDeal["incentives"]> {
+  return list.map((i) => ({ ...i, includedInPrice: i.includedInPrice === true }));
+}
 
 const MODEL = "claude-opus-5";
 
@@ -76,18 +82,57 @@ const EXTRACT_TOOL = {
               type: ["string", "null"],
               description: "2-letter US state code, inferred from any region/city mentioned (e.g. \"Socal\" -> CA)",
             },
-            incentiveHints: {
+            incentives: {
               type: "array" as const,
-              items: { type: "string" },
+              items: {
+                type: "object" as const,
+                properties: {
+                  name: { type: "string", description: "Program name as the ad writes it, e.g. \"Loyalty\"" },
+                  amount: {
+                    type: ["number", "null"],
+                    description: "Dollar value the ad states for it (\"$500 Loyalty\" -> 500), else null",
+                  },
+                  monthly: {
+                    type: ["number", "null"],
+                    description:
+                      "How much the monthly payment goes up without it, when the ad says so " +
+                      "(\"no Loyalty +$15\" -> 15), else null",
+                  },
+                  includedInPrice: {
+                    type: "boolean",
+                    description:
+                      "true if the advertised payment already assumes it (\"rebates already " +
+                      "included\", \"w/ loyalty\", or a \"no X +$15\" surcharge), false if it's an " +
+                      "extra a shopper could add on top",
+                  },
+                },
+                required: ["name", "amount", "monthly", "includedInPrice"],
+              },
               description:
-                "Names of specific named incentive/rebate programs (e.g. \"Conquest\", \"Fleet\", " +
-                "\"Loyalty\", \"Military\") that the ad says are REQUIRED to qualify for the " +
-                "advertised price, when the ad names the program but doesn't give its dollar value " +
-                "(e.g. \"CONQUEST AND FLEET (AAA/SAMS/EMPLOYER required)\" -> [\"Conquest\", " +
-                "\"Fleet\"]). These get looked up separately to find the real dollar amount — just " +
-                "list the program name(s) here, don't guess a number. Empty array if the ad doesn't " +
-                "name a specific required program (a generic \"tax and fees extra\" disclaimer " +
-                "doesn't count).",
+                "Incentive/rebate programs the ad gives a value for — a dollar amount, a monthly " +
+                "difference, or both. Read the values exactly as the ad states them; never estimate " +
+                "one. Programs written together as alternatives (\"A-Plan / Affinity\") are ONE " +
+                "program. Empty array if none. A program named with no value at all just goes " +
+                "in notes — don't list it here or guess a value.",
+            },
+            mileageOptions: {
+              type: "array" as const,
+              items: {
+                type: "object" as const,
+                properties: {
+                  milesPerYear: { type: "number", description: "Annual miles, e.g. 12000 for \"12k\"" },
+                  monthlyDelta: {
+                    type: "number",
+                    description: "Change to the monthly payment, e.g. 45 for \"+$45\" (negative if cheaper)",
+                  },
+                },
+                required: ["milesPerYear", "monthlyDelta"],
+              },
+              description:
+                "Other annual mileage allowances the ad prices relative to the advertised payment, " +
+                "e.g. \"10k $23 · 12k $45 · 15k $90\" (the add-on per month for each) -> " +
+                "[{10000,23},{12000,45},{15000,90}]. Don't include the advertised milesPerYear " +
+                "itself. Empty array if none are listed.",
             },
             notes: {
               type: "string",
@@ -123,11 +168,12 @@ const COMBINED_CELL_GUIDANCE =
   `exterior Chalk, interior black. A price cell like "$74,990 ONEPAY" means this is a one-pay lease ` +
   `— set onePay true, payment null, and put $74,990 in dueAtSigning as the full one-pay total. A ` +
   `"Fees" column or a note like "$699 broker fee" or "$999 doc fee" belongs in the brokerFee field, ` +
-  `not just left in notes. When the ad names a specific incentive/rebate program as a REQUIRED ` +
-  `condition for the advertised price without stating its dollar value (e.g. "CONQUEST AND FLEET ` +
-  `(AAA/SAMS/EMPLOYER required)"), put the program name(s) in incentiveHints (e.g. ["Conquest", ` +
-  `"Fleet"]) rather than just leaving it in notes — the actual dollar amount gets looked up ` +
-  `separately, so just capture the name here, don't guess a number for it yourself. Terms stated ` +
+  `not just left in notes. When the ad states an incentive's value — a dollar amount like "$500 ` +
+  `Loyalty", or what the payment becomes without it like "no Loyalty +$15" (monthly 15) — put it in ` +
+  `incentives with exactly those numbers. Price modifiers like "10k $23 · 12k $45 · 15k $90" next to ` +
+  `a 7,500-mile deal are mileage tiers (mileageOptions), not incentives. Banner text such as "rebates ` +
+  `already included in these prices: Loyalty & A-Plan" applies to every vehicle under it. When the ` +
+  `ad names a program with no value at all, leave it in notes and never guess a number. Terms stated ` +
   `ONCE for the whole image, sheet or message — e.g. a shared banner, header or footer strip like ` +
   `"$3,000 TOTAL DRIVE-OFF · 7,500 MILES PER YEAR · 24 MONTH LEASE" under several cars, or a line ` +
   `like "all deals 36/10k, $3k das" — apply to EVERY vehicle listed, not just the one printed ` +
@@ -196,9 +242,9 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const state = typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState;
     const notes = typeof c.notes === "string" ? c.notes.trim() : "";
     const milesPerYear = typeof c.milesPerYear === "number" ? c.milesPerYear : null;
-    const incentiveHints = Array.isArray(c.incentiveHints)
-      ? c.incentiveHints.filter((h): h is string => typeof h === "string" && h.trim().length > 0)
-      : [];
+    // Incentives with a stated value, kept as read — never looked up.
+    const statedIncentives = sanitizeIncentives(c.incentives);
+    const mileageOptions = sanitizeMileageOptions(c.mileageOptions, milesPerYear);
 
     const missing: string[] = [];
     if (!year) missing.push("year");
@@ -229,7 +275,8 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (msdTotal) partial.msdTotal = msdTotal;
       if (state) partial.state = state;
       if (notes) partial.notes = notes;
-      if (incentiveHints.length > 0) partial.incentiveHints = incentiveHints;
+      if (statedIncentives.length > 0) partial.incentives = toParsedIncentives(statedIncentives);
+      if (mileageOptions.length > 0) partial.mileageOptions = mileageOptions;
       skipped.push({ row: idx + 1, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
       return;
     }
@@ -252,7 +299,8 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       state,
       notes,
       onePay,
-      incentiveHints,
+      incentives: toParsedIncentives(statedIncentives),
+      mileageOptions,
     });
   });
 

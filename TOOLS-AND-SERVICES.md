@@ -16,7 +16,7 @@ A single reference for every external tool/service this project depends on. Upda
 
 ## AI
 
-- **Anthropic API (Claude)** — powers the AI inventory parsing (screenshots, free-text paste, spreadsheet rows) and the incentive-suggestion feature in the broker dashboard. Console: console.anthropic.com — this is also where you buy/monitor API credits. Credential: `ANTHROPIC_API_KEY`.
+- **Anthropic API (Claude)** — powers the AI inventory parsing (screenshots, free-text paste, spreadsheet rows) and the incentive suggestions on the public lease calculator. Console: console.anthropic.com — this is also where you buy/monitor API credits. Credential: `ANTHROPIC_API_KEY`.
 
 ## Vehicle photos
 
@@ -24,7 +24,7 @@ A single reference for every external tool/service this project depends on. Upda
 
 ## Incentive data
 
-- **MarketCheck** — OEM Incentive Search API, used by the "Suggest with AI" button in the broker dashboard to look up real, currently-active named manufacturer/dealer lease incentive programs (e.g. "BMW Loyalty Lease Credit") before falling back to a Claude ballpark guess. Sign up (free tier: 500 calls/mo) at developers.marketcheck.com/sign-up, paid tiers start at $299/mo. Credential: `MARKETCHECK_API_KEY`. If this key isn't set, the feature just falls back to the old AI-estimate-only behavior — nothing breaks.
+- **MarketCheck** — OEM Incentive Search API, used only by the public lease calculator (`/calculator`) to look up current lease structures and named incentive programs. Listings don't use it: a listing's incentives come only from what the broker's own sheet/screenshot/text states (or what they type in). Sign up (free tier: 500 calls/mo) at developers.marketcheck.com/sign-up. Credential: `MARKETCHECK_API_KEY`. If this key isn't set, the calculator falls back to its built-in estimates — nothing breaks.
 
 ## Transactional email
 

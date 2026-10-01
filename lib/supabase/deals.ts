@@ -3,6 +3,7 @@
 // import, so broker self-service edits (price changes, new listings,
 // removals) show up on the live site immediately.
 import type { Deal } from "@/lib/deals-data";
+import { sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { withTimeout } from "./with-timeout";
 
@@ -62,7 +63,8 @@ export interface DealRow {
   status: "draft" | "published" | "removed";
   submission_id: string | null;
   condition: string | null;
-  incentives: { name: string; amount: number; includedInPrice?: boolean }[] | null;
+  incentives: { name: string; amount: number; includedInPrice?: boolean; monthly?: number }[] | null;
+  mileage_options?: unknown;
   photo_auto_sourced: boolean;
   due_at_signing_tax_rate: number | null;
   payment_tax_rate: number | null;
@@ -118,7 +120,8 @@ export function mapRowToDeal(row: DealRow): Deal {
     sample: row.sample,
     onePay: row.one_pay,
     condition: (row.condition as Deal["condition"]) ?? null,
-    incentives: row.incentives ?? [],
+    incentives: sanitizeIncentives(row.incentives ?? []),
+    mileageOptions: sanitizeMileageOptions(row.mileage_options ?? [], row.miles_per_year),
     photoAutoSourced: row.photo_auto_sourced,
     dueAtSigningTaxRate: row.due_at_signing_tax_rate ?? null,
     paymentTaxRate: row.payment_tax_rate ?? null,
@@ -144,7 +147,7 @@ export const DEAL_COLUMNS =
   "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
   "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
   "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at, " +
-  "msd_count, msd_total";
+  "msd_count, msd_total, mileage_options";
 
 // Maps each row independently so one malformed row (bad test data, a
 // future column-shape change, etc.) can't take down an entire listing page
