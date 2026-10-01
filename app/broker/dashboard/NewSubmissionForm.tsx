@@ -53,7 +53,9 @@ const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
 const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
-export default function NewSubmissionForm() {
+// sheetShareEmail: Drive's service-account email a broker can share a
+// private Google Sheet with (null when that isn't set up).
+export default function NewSubmissionForm({ sheetShareEmail = null }: { sheetShareEmail?: string | null }) {
   const [category, setCategory] = useState<"manual" | "link" | null>(null);
   // Bumped to force-remount LinkForm when a broker wants to try the same
   // (or a different) source again after some rows came back unreadable —
@@ -88,6 +90,7 @@ export default function NewSubmissionForm() {
         <LinkForm
           key={linkFormKey}
           onStartOver={() => setLinkFormKey((k) => k + 1)}
+          sheetShareEmail={sheetShareEmail}
         />
       )}
       {category === "manual" && <ManualForm />}
@@ -97,7 +100,9 @@ export default function NewSubmissionForm() {
 
 function LinkForm({
   onStartOver,
+  sheetShareEmail,
 }: {
+  sheetShareEmail: string | null;
   onStartOver: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
@@ -262,9 +267,17 @@ function LinkForm({
           />
           {sourceType === "google_sheet" && (
             <>
-              <p className="field-hint">
-                Set sharing to &quot;Anyone with the link can view&quot; so we can read it.
-              </p>
+              {sheetShareEmail ? (
+                <p className="field-hint">
+                  Private sheet? Click &quot;Share&quot; in Google Sheets and add{" "}
+                  <span className="font-medium break-all text-fg-secondary select-all">{sheetShareEmail}</span> as a
+                  Viewer. Or set sharing to &quot;Anyone with the link can view&quot;.
+                </p>
+              ) : (
+                <p className="field-hint">
+                  Set sharing to &quot;Anyone with the link can view&quot; so we can read it.
+                </p>
+              )}
               <div className="mt-3 space-y-3 rounded-xl border border-line bg-hover p-3.5">
                 <label className="flex cursor-pointer items-start gap-2.5 text-sm text-fg-secondary">
                   <input

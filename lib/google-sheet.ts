@@ -1,8 +1,12 @@
-// Shared helpers for reading a broker's public Google Sheet — used both for
-// the one-off "link a Google Sheet" submission and the recurring sync job
-// (lib/sheet-sync.ts) that re-checks it periodically.
+// Shared helpers for reading a broker's Google Sheet — used both for the
+// one-off "link a Google Sheet" submission and the recurring sync job
+// (lib/sheet-sync.ts) that re-checks it periodically. A sheet shared as
+// "Anyone with the link" is read through its public export; a private one
+// the broker has shared with Drive's service account (see
+// lib/google-service-account.ts) is read through the Drive API instead.
 
 import * as XLSX from "xlsx";
+import { serviceAccountEmail, serviceAccountToken } from "@/lib/google-service-account";
 
 export function extractGoogleSheetId(url: string): string | null {
   const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
@@ -11,11 +15,18 @@ export function extractGoogleSheetId(url: string): string | null {
 
 export type FetchSheetResult = { ok: true; csvText: string } | { ok: false; error: string };
 
-// Fetches the CSV export of a Google Sheet's first tab. Requires the sheet
-// to be shared as "Anyone with the link can view" — a private sheet's
-// export URL redirects to a Google sign-in / "request access" HTML page
-// instead of CSV, which we detect and report rather than trying (and
-// failing) to parse it as data.
+// How to share a sheet so we can read it, for the error messages.
+function sharingHelp(): string {
+  const email = serviceAccountEmail();
+  return email
+    ? `In Google Sheets, click "Share" and either add ${email} as a Viewer or set it to "Anyone with the link" → Viewer, then try again.`
+    : 'In Google Sheets, click "Share" → set to "Anyone with the link" → Viewer, then try again.';
+}
+
+// Fetches the CSV export of a Google Sheet's first tab. A private sheet's
+// public export URL redirects to a Google sign-in / "request access" HTML
+// page instead of CSV, which we detect — then try the service account, and
+// report how to share it if that can't read it either.
 export async function fetchGoogleSheetCsv(sheetUrl: string): Promise<FetchSheetResult> {
   const sheetId = extractGoogleSheetId(sheetUrl);
   if (!sheetId) {
@@ -33,22 +44,10 @@ export async function fetchGoogleSheetCsv(sheetUrl: string): Promise<FetchSheetR
       headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
     });
 
-    if (!res.ok) {
-      return {
-        ok: false,
-        error: `Couldn't open that Google Sheet (error ${res.status}). Make sure sharing is set to "Anyone with the link can view" and try again.`,
-      };
-    }
-
-    const csvText = await res.text();
-    const looksLikeHtml = /^\s*<(!doctype|html)/i.test(csvText);
-    if (looksLikeHtml) {
-      return {
-        ok: false,
-        error:
-          'That Google Sheet isn\'t publicly viewable yet. In Google Sheets, click "Share" → set to "Anyone with the link" → Viewer, then try again.',
-      };
-    }
+    const publicText = res.ok ? await res.text() : "";
+    const isPublic = res.ok && !/^\s*<(!doctype|html)/i.test(publicText);
+    if (!isPublic) return await fetchPrivateSheetCsv(sheetId, res.ok ? null : res.status);
+    const csvText = publicText;
 
     // Brokers often cross out a sold car instead of deleting its row. The CSV
     // export drops all formatting, so read the strikethrough from the xlsx
@@ -69,13 +68,56 @@ export async function fetchGoogleSheetCsv(sheetUrl: string): Promise<FetchSheetR
 // Crossed-out rows
 // ---------------------------------------------------------------------------
 
+// A sheet that isn't public: read it as Drive's service account, which
+// only sees files that were shared with it. `publicStatus` is the public
+// export's HTTP error, if it gave one rather than a sign-in page.
+async function fetchPrivateSheetCsv(sheetId: string, publicStatus: number | null): Promise<FetchSheetResult> {
+  const token = await serviceAccountToken();
+  if (!token) {
+    return {
+      ok: false,
+      error: publicStatus
+        ? `Couldn't open that Google Sheet (error ${publicStatus}). ${sharingHelp()}`
+        : `That Google Sheet isn't shared with us yet. ${sharingHelp()}`,
+    };
+  }
+  const res = await fetch(driveExportUrl(sheetId, "text/csv"), {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    if (res.status !== 403 && res.status !== 404) {
+      console.error("Drive export of a private sheet failed:", res.status, (await res.text()).slice(0, 300));
+    }
+    return {
+      ok: false,
+      error:
+        res.status === 403 || res.status === 404
+          ? `That Google Sheet isn't shared with us yet. ${sharingHelp()}`
+          : `Couldn't open that Google Sheet (error ${res.status}). Try again in a minute, or add cars manually below.`,
+    };
+  }
+  const csvText = await res.text();
+  const struckRows = await fetchStruckRows(sheetId, token);
+  return { ok: true, csvText: struckRows.size ? dropCsvRecords(csvText, struckRows) : csvText };
+}
+
+function driveExportUrl(sheetId: string, mimeType: string): string {
+  return `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(sheetId)}/export?mimeType=${encodeURIComponent(mimeType)}`;
+}
+
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
 // Sheet row number (1-based) → the text of that row's first filled cell,
-// for every row where most of the filled cells are struck through.
-async function fetchStruckRows(sheetId: string): Promise<Map<number, string>> {
+// for every row where most of the filled cells are struck through. With a
+// service-account token, reads the private sheet through the Drive API.
+async function fetchStruckRows(sheetId: string, token?: string): Promise<Map<number, string>> {
   try {
-    const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
-    });
+    const res = token
+      ? await fetch(driveExportUrl(sheetId, XLSX_MIME), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
+      : await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
+        });
     if (!res.ok) return new Map();
     return findStruckRows(Buffer.from(await res.arrayBuffer()));
   } catch (err) {

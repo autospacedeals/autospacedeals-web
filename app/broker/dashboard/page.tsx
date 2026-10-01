@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { serviceAccountEmail } from "@/lib/google-service-account";
 import { mapRowToDeal, type DealRow } from "@/lib/supabase/deals";
 import { signOutAction } from "../actions";
 import NewSubmissionForm from "./NewSubmissionForm";
@@ -199,7 +200,7 @@ export default async function BrokerDashboardPage() {
           gets an account removed.
         </p>
         <div className="mt-6">
-          <NewSubmissionForm />
+          <NewSubmissionForm sheetShareEmail={serviceAccountEmail()} />
         </div>
       </div>
     </main>
