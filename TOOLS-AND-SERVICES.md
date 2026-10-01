@@ -57,7 +57,7 @@ A signed-in customer can save their homepage filters ("Save this search", under 
 
 ## Get matched emails
 
-"Get matched with similar deals" on a deal page opens a small form that emails the shopper the similar deals shown under that listing (a one-time email, sent through Resend). Signed-in customers get it at their account email and can also tick "Email me when new matching deals are posted", which saves an alert (a saved search named "Deals like …") on their dashboard. Anyone else types an email address. See `app/deals/[slug]/actions.ts` and `supabase/migrations/0018_match_email_log.sql`.
+"Get matched with similar deals" on a deal page opens a small form that emails the shopper the similar deals shown under that listing (a one-time email, sent through Resend). Anyone signed in gets it at their account email without typing it; customers can also tick "Email me when new matching deals are posted", which saves an alert (a saved search named "Deals like …") on their dashboard. Signed-out visitors type an email address. See `app/deals/[slug]/actions.ts` and `supabase/migrations/0018_match_email_log.sql`.
 
 - **Setup required**: run `0018_match_email_log.sql` in the Supabase SQL editor, plus the Resend setup under "Transactional email" above. Until 0018 is run, only signed-in customers can use it — signed-out visitors are told to log in or try later.
 - **Limits**: at most 3 emails to the same address and 10 from the same IP address in any 24 hours, tracked in `match_email_log` (only the site's server can read it). The site deletes rows older than a week now and then; you can also clear the table by hand at any time.

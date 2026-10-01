@@ -123,6 +123,10 @@ function GetMatchedDialog({
   const status = session?.status ?? "anonymous";
   const isCustomer = status === "customer";
   const loading = status === "loading";
+  // Anyone signed in gets it at their account address, no typing — a
+  // broker/admin account too (just without the alert option, which needs a
+  // customer profile).
+  const usesAccountEmail = isCustomer || (status === "non-customer" && Boolean(session?.email));
   // Log-in and create-account links only make sense for someone signed
   // out (or who might be — "unknown"), not for a broker/admin account.
   const offerAccount = status === "anonymous" || status === "unknown";
@@ -130,7 +134,15 @@ function GetMatchedDialog({
   const loginHref = `/customer/login?next=${encodeURIComponent(pathname || "/")}`;
   const hasSimilar = similarIds.length > 0;
   // Which form is showing; see the focus effect below.
-  const mode = loading ? "loading" : isCustomer ? "customer" : "guest";
+  const mode = loading ? "loading" : usesAccountEmail ? "account" : "guest";
+
+  // What the page read about the account may be out of date (signed in or
+  // finished a profile in another tab, since this page loaded), so check
+  // again on open. The current form stays up meanwhile.
+  const refreshSession = session?.refresh;
+  useEffect(() => {
+    refreshSession?.();
+  }, [refreshSession]);
 
   // Focus goes into the dialog on open and back to whatever opened it
   // (the row button) on close; the page behind doesn't scroll meanwhile.
@@ -208,7 +220,7 @@ function GetMatchedDialog({
   // Shown under the email field. The customer form has no field, so there
   // an invalid-email error goes in the alert below instead.
   const emailError =
-    !isCustomer && outcome.kind === "error" && outcome.code === "invalid-email" ? outcome.message : null;
+    !usesAccountEmail && outcome.kind === "error" && outcome.code === "invalid-email" ? outcome.message : null;
   // Focus goes to the field so its error (aria-describedby) is read out.
   useEffect(() => {
     if (emailError) emailRef.current?.focus();
@@ -219,7 +231,7 @@ function GetMatchedDialog({
     if (pending || loading) return;
 
     const typed = email.trim();
-    if (!isCustomer) {
+    if (!usesAccountEmail) {
       if (!typed || !isValidEmailAddress(typed)) {
         setOutcome({
           kind: "error",
@@ -236,9 +248,9 @@ function GetMatchedDialog({
         const result = await getMatchedAction({
           dealId: deal.id,
           similarIds: similarIds.slice(0, MAX_SIMILAR_IDS),
-          // A customer's email always goes to their account address (the
+          // A signed-in account's email always goes to its own address (the
           // server looks it up), so nothing typed is sent for them.
-          email: isCustomer ? null : typed,
+          email: usesAccountEmail ? null : typed,
           website,
           subscribe: isCustomer && alertsAvailable && subscribe,
         });
@@ -328,13 +340,13 @@ function GetMatchedDialog({
             <form onSubmit={handleSubmit} noValidate className="mt-5">
               {loading ? (
                 <p className="text-sm text-fg-muted">One moment…</p>
-              ) : isCustomer ? (
+              ) : usesAccountEmail ? (
                 <>
                   <p className="text-sm leading-6 text-fg-secondary">
                     We&apos;ll send them to{" "}
                     <span className="font-medium break-all text-fg">{session?.email ?? "your account email"}</span>.
                   </p>
-                  {alertsAvailable && (
+                  {isCustomer && alertsAvailable && (
                     <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm text-fg-secondary">
                       <input
                         type="checkbox"
@@ -460,7 +472,7 @@ function GetMatchedDialog({
 
               <button
                 type="submit"
-                data-autofocus={isCustomer ? true : undefined}
+                data-autofocus={usesAccountEmail ? true : undefined}
                 aria-busy={pending || undefined}
                 // Stays focusable while sending or loading (a disabled
                 // button would drop keyboard focus to the page).

@@ -185,14 +185,15 @@ async function requesterIp(): Promise<string | null> {
 
 type Recipient =
   | { kind: "customer"; email: string }
+  | { kind: "account"; email: string }
   | { kind: "guest"; email: string }
   | { kind: "error"; result: GetMatchedResult };
 
-// Who the email goes to. A signed-in customer: their account address,
-// whatever was submitted. Anyone else (signed out, or a broker/admin
-// account, which has no customers row): the address they typed. No
-// address at all means the dialog showed the customer form to someone the
-// server doesn't see as a customer (any more).
+// Who the email goes to. Anyone signed in: their account address, whatever
+// was submitted — "customer" if they have a customer profile (which alerts
+// need), "account" for a broker/admin login. Signed out: the address they
+// typed. No address at all means the dialog showed the signed-in form to
+// someone the server doesn't see as signed in (any more).
 async function resolveRecipient(submitted: string | null): Promise<Recipient> {
   const guest = (): Recipient => {
     if (!submitted) return { kind: "error", result: fail("signed-out", SIGNED_OUT) };
@@ -218,9 +219,8 @@ async function resolveRecipient(submitted: string | null): Promise<Recipient> {
       // guest form can still be used, but a customer's form has none.
       return submitted ? guest() : { kind: "error", result: fail("failed", SEND_FAILED) };
     }
-    if (!customer) return guest();
-
     const email = user.email?.trim().toLowerCase() ?? "";
+    if (!customer) return isValidEmailAddress(email) ? { kind: "account", email } : guest();
     if (!isValidEmailAddress(email)) {
       return {
         kind: "error",
