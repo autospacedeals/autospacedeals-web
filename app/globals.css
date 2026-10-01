@@ -453,6 +453,26 @@
   .textarea[aria-invalid="true"] {
     border-color: var(--danger);
   }
+  /* A required field an upload didn't give us (NewSubmissionForm), while
+     it's still empty. */
+  .field-missing .input:placeholder-shown {
+    border-color: var(--warning);
+    box-shadow: 0 0 0 3px var(--warning-soft);
+  }
+  .missing-tag {
+    display: none;
+  }
+  .field-missing:has(.input:placeholder-shown) .missing-tag {
+    display: inline-flex;
+    margin-left: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--warning-soft);
+    padding: 0 0.5rem;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25rem;
+    color: var(--warning);
+  }
   .input:disabled,
   .select:disabled,
   .textarea:disabled {

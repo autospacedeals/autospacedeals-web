@@ -361,6 +361,13 @@ function ManualForm({
     }
   }
   const publishedAndLocked = Boolean(initialValues) && state.success;
+  // A row the AI couldn't fully read comes pre-filled; the required fields
+  // it couldn't get are highlighted (until filled in — see .field-missing
+  // in globals.css) so they're easy to spot.
+  const missingField = (key: keyof ParsedDeal, className = "") => {
+    const absent = Boolean(initialValues) && !initialValues?.[key] && !(key === "payment" && onePay);
+    return [className, absent ? "field-missing" : ""].filter(Boolean).join(" ") || undefined;
+  };
 
   return (
     <form action={formAction} className="space-y-4" key={resetCount}>
@@ -369,8 +376,8 @@ function ManualForm({
         <div>
           <p className={sectionHeadingClass}>Vehicle</p>
           <div className="grid gap-3 sm:grid-cols-4">
-            <div className="sm:col-span-1">
-              <label htmlFor={`${uid}-year`} className={labelClass}>Year</label>
+            <div className={missingField("year", "sm:col-span-1")}>
+              <label htmlFor={`${uid}-year`} className={labelClass}>Year<MissingTag /></label>
               <input
                 required
                 type="number"
@@ -381,8 +388,8 @@ function ManualForm({
                 className={inputClass}
               />
             </div>
-            <div className="sm:col-span-1">
-              <label htmlFor={`${uid}-make`} className={labelClass}>Make</label>
+            <div className={missingField("make", "sm:col-span-1")}>
+              <label htmlFor={`${uid}-make`} className={labelClass}>Make<MissingTag /></label>
               <input
                 required
                 type="text"
@@ -393,8 +400,8 @@ function ManualForm({
                 className={inputClass}
               />
             </div>
-            <div className="sm:col-span-1">
-              <label htmlFor={`${uid}-model`} className={labelClass}>Model</label>
+            <div className={missingField("model", "sm:col-span-1")}>
+              <label htmlFor={`${uid}-model`} className={labelClass}>Model<MissingTag /></label>
               <input
                 required
                 type="text"
@@ -478,8 +485,8 @@ function ManualForm({
         <div>
           <p className={sectionHeadingClass}>Deal terms</p>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor={`${uid}-msrp`} className={labelClass}>MSRP</label>
+            <div className={missingField("msrp", "")}>
+              <label htmlFor={`${uid}-msrp`} className={labelClass}>MSRP<MissingTag /></label>
               <input
                 required
                 type="text"
@@ -513,8 +520,8 @@ function ManualForm({
           </label>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor={`${uid}-payment`} className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}</label>
+            <div className={missingField("payment", "")}>
+              <label htmlFor={`${uid}-payment`} className={labelClass}>{onePay ? "One-pay total" : "Monthly payment"}<MissingTag /></label>
               <input
                 required={!onePay}
                 disabled={onePay}
@@ -535,8 +542,8 @@ function ManualForm({
                 />
               )}
             </div>
-            <div>
-              <label htmlFor={`${uid}-dueAtSigning`} className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}</label>
+            <div className={missingField("dueAtSigning", "")}>
+              <label htmlFor={`${uid}-dueAtSigning`} className={labelClass}>{onePay ? "One-pay amount" : "Due at signing"}<MissingTag /></label>
               <input
                 required
                 type="number"
@@ -554,8 +561,8 @@ function ManualForm({
                 className={`${inputClass} mt-1.5`}
               />
             </div>
-            <div>
-              <label htmlFor={`${uid}-term`} className={labelClass}>Term (months)</label>
+            <div className={missingField("term", "")}>
+              <label htmlFor={`${uid}-term`} className={labelClass}>Term (months)<MissingTag /></label>
               <input
                 required
                 type="number"
@@ -569,8 +576,8 @@ function ManualForm({
           </div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor={`${uid}-milesPerYear`} className={labelClass}>Miles per year</label>
+            <div className={missingField("milesPerYear", "")}>
+              <label htmlFor={`${uid}-milesPerYear`} className={labelClass}>Miles per year<MissingTag /></label>
               <input
                 required
                 type="number"
@@ -683,4 +690,8 @@ function ManualForm({
       </button>
     </form>
   );
+}
+
+function MissingTag() {
+  return <span className="missing-tag">Missing</span>;
 }
