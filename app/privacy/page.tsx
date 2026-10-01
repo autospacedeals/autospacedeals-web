@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "August 19, 2026";
+const LAST_UPDATED = "October 1, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -45,6 +45,17 @@ export default function PrivacyPolicyPage() {
               email address.
             </p>
             <p>
+              <strong>Signing in with Google.</strong> If you choose
+              &quot;Continue with Google,&quot; Google shares your name, email address, and profile
+              picture with us (the basic &quot;openid,&quot; &quot;email,&quot; and &quot;profile&quot;
+              permissions). We use your name and email only to create and sign you in to your{" "}
+              {SITE_NAME} account and to email you about it; we don&apos;t use the profile picture.
+              We don&apos;t get access to your Gmail, contacts, files, or anything else in your
+              Google account, we don&apos;t sell or share this information for advertising, and we
+              don&apos;t use it to train AI models. You can remove {SITE_NAME}&apos;s access at any
+              time from your Google Account&apos;s security settings (Third-party apps &amp; services).
+            </p>
+            <p>
               <strong>Listing content.</strong> Dealers and brokers submit
               vehicle listing details — pricing, terms, photos, and descriptions — either directly
               or by uploading a spreadsheet, pasting text, or uploading a screenshot of their
@@ -77,7 +88,11 @@ export default function PrivacyPolicyPage() {
                 To look up a stock photo of a vehicle by year/make/model when a dealer/broker
                 hasn&apos;t uploaded their own photo
               </li>
-              <li>To communicate with you about your account or a listing</li>
+              <li>
+                To communicate with you about your account or a listing, and to send emails you ask
+                for — deals similar to one you&apos;re viewing, or alerts for new deals that match a
+                search you saved (every alert email has a link to stop them)
+              </li>
               <li>To keep the site secure and prevent fraud or abuse</li>
               <li>To improve and maintain the site</li>
             </ul>
@@ -94,7 +109,8 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong>With service providers</strong> who host our
                 infrastructure and help the site function — currently Supabase (database,
-                authentication, and file storage), Vercel (hosting), Anthropic (AI processing of
+                authentication, and file storage), Vercel (hosting), Resend (sending the site&apos;s
+                emails), Google (the optional &quot;Continue with Google&quot; sign-in), Anthropic (AI processing of
                 submitted spreadsheets/text/screenshots into listing data), and CarsXE (vehicle
                 stock photo lookups by year/make/model — no personal information is sent to
                 CarsXE)
