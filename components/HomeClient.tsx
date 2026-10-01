@@ -6,7 +6,6 @@ import {
   Search,
   ArrowRight,
   SlidersHorizontal,
-  Users,
   CircleAlert,
 } from "lucide-react";
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
@@ -478,30 +477,6 @@ export default function HomeClient({
               <p className="mt-1.5 text-sm leading-6 text-fg-muted">{step.text}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------------------- */}
-      {/* For dealers & brokers */}
-      {/* ---------------------------------------------------------------- */}
-      <section id="brokers" className="container-page py-16">
-        <div className="relative flex flex-col items-start gap-6 overflow-hidden rounded-3xl border border-line bg-surface p-8 md:flex-row md:items-center md:justify-between md:p-10">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_140%_at_100%_0%,rgb(47_123_255/0.14),transparent_60%)]"
-          />
-          <div className="relative">
-            <p className="eyebrow">For dealers &amp; brokers</p>
-            <h2 className="type-section mt-3 text-2xl sm:text-2xl">List your dealer or broker deals for free</h2>
-            <p className="mt-2 flex items-center gap-2 text-sm text-fg-muted">
-              <Users size={14} className="shrink-0 text-fg-faint" /> {sellerCount} dealers &amp; brokers
-              already listed · you keep every lead
-            </p>
-          </div>
-
-          <Link href="/broker/signup" className="btn btn-primary relative">
-            Create a broker account <ArrowRight />
-          </Link>
         </div>
       </section>
 
