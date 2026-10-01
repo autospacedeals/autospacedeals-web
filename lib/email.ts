@@ -36,6 +36,9 @@ export interface SendEmailInput {
   subject: string;
   html: string;
   text: string;
+  // Where replies go instead of the "from" address, e.g. the visitor who
+  // filled in the contact form.
+  replyTo?: string;
   // Extra headers, e.g. List-Unsubscribe.
   headers?: Record<string, string>;
   // Resend drops a repeat send with the same key (for 24 hours) instead of
@@ -80,6 +83,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         subject: singleLine(input.subject).slice(0, 200),
         html: input.html,
         text: input.text,
+        ...(input.replyTo && isSendableAddress(input.replyTo.trim()) ? { reply_to: input.replyTo.trim() } : {}),
         ...(input.headers ? { headers: input.headers } : {}),
       }),
       signal: AbortSignal.timeout(SEND_TIMEOUT_MS),

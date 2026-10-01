@@ -46,12 +46,9 @@ export default function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <a
-                  href="mailto:rob@idriveus.com?subject=Question%20about%20Drive"
-                  className="link-quiet"
-                >
+                <Link href="/contact" className="link-quiet">
                   Contact support
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
