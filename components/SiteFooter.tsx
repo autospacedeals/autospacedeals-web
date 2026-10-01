@@ -29,11 +29,6 @@ export default function SiteFooter() {
                   Leasing guide
                 </Link>
               </li>
-              <li>
-                <Link href="/#how" className="link-quiet">
-                  How it works
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -61,12 +56,9 @@ export default function SiteFooter() {
                 <span>Every listing shows real contact info for the dealer or broker who posted it — you deal with them directly.</span>
               </li>
               <li>
-                <a
-                  href="mailto:rob@idriveus.com?subject=Report%20an%20issue"
-                  className="link-quiet"
-                >
+                <Link href="/contact" className="link-quiet">
                   Report an issue
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

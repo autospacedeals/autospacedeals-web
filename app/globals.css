@@ -169,7 +169,7 @@
     color: var(--fg);
     color-scheme: dark;
     -webkit-tap-highlight-color: transparent;
-    /* sticky header offset for #deals / #how anchors */
+    /* sticky header offset for #deals anchor */
     scroll-padding-top: 5rem;
   }
   body {
