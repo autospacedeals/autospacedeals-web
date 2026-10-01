@@ -473,6 +473,7 @@ function ListingRow({
         make: draft.make,
         model: draft.model,
         trim: draft.trim || undefined,
+        color: draft.exterior || undefined,
         current: [
           ...draft.images
             .split("\n")

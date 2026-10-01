@@ -3,24 +3,50 @@
 // any failure (missing key, no match, network error, unexpected response
 // shape) just returns null and the listing falls back to the generic
 // placeholder image instead of blocking the publish.
-export async function fetchCarsxePhoto(params: {
+//
+// When the listing has an exterior color, photos of the car in that color
+// come first, falling back to any color when CarsXE has none.
+interface PhotoQuery {
   year: number;
   make: string;
   model: string;
   trim?: string;
-}): Promise<string | null> {
-  return (await fetchCarsxePhotos(params))[0] ?? null;
+  // The listing's exterior color as the broker wrote it ("Chalk", "Onyx
+  // Black"), or null/undefined/"" when not given.
+  color?: string | null;
 }
 
-// Every exterior photo CarsXE has for the vehicle, best match first — the
-// "Re-pull photo" button steps through these instead of always getting
-// back the first one (which the listing usually already has).
-export async function fetchCarsxePhotos(params: {
-  year: number;
-  make: string;
-  model: string;
-  trim?: string;
-}): Promise<string[]> {
+export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | null> {
+  const color = searchColor(params.color);
+  if (color) {
+    const inColor = await queryCarsxe(params, color);
+    if (inColor[0]) return inColor[0];
+  }
+  return (await queryCarsxe(params, null))[0] ?? null;
+}
+
+// Every exterior photo CarsXE has for the vehicle, best match first (the
+// listing's color, then any color) — the "Re-pull photo" button steps
+// through these instead of always getting back the first one (which the
+// listing usually already has).
+export async function fetchCarsxePhotos(params: PhotoQuery): Promise<string[]> {
+  const color = searchColor(params.color);
+  const [inColor, any] = await Promise.all([
+    color ? queryCarsxe(params, color) : Promise.resolve([]),
+    queryCarsxe(params, null),
+  ]);
+  return [...new Set([...inColor, ...any])];
+}
+
+// "Black x Black" style values sometimes land in the exterior field; only
+// the exterior half is the car's paint. Junk like "TBD" / "N/A" means no color.
+function searchColor(raw: string | null | undefined): string | null {
+  const value = (raw ?? "").trim();
+  if (/^(tbd|n\/?a|any|various|multiple|assorted|-+)$/i.test(value)) return null;
+  return value.split(/\s+x\s+|\/|,/i)[0].trim().slice(0, 40) || null;
+}
+
+async function queryCarsxe(params: PhotoQuery, color: string | null): Promise<string[]> {
   const apiKey = process.env.CARSXE_API_KEY;
   if (!apiKey) return [];
 
@@ -30,13 +56,20 @@ export async function fetchCarsxePhotos(params: {
     model: params.model,
     year: String(params.year),
     license: "ShareCommercially",
+  });
+  if (color) {
+    // CarsXE ignores `color` when photoType is set, so a color search goes
+    // without it — searching for the car in a color comes back as exterior
+    // shots anyway.
+    query.set("color", color);
+  } else {
     // Without this, CarsXE's result set is a grab-bag that can include
     // interior and engine-bay close-ups — which is why some auto-sourced
     // photos didn't actually show the whole car. Restricting to exterior
     // shots is the fix; there's no per-image angle/type field in the
     // response to filter on afterward, only this request-side filter.
-    photoType: "exterior",
-  });
+    query.set("photoType", "exterior");
+  }
   if (params.trim) query.set("trim", params.trim);
 
   try {

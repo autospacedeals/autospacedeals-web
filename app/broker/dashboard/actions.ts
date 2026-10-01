@@ -96,6 +96,8 @@ export async function repullPhotoAction(input: {
   make: string;
   model: string;
   trim?: string;
+  // The listing's exterior color — photos in that color come first.
+  color?: string;
   current?: string[];
 }): Promise<{ imageUrl: string | null; error: string | null }> {
   const supabase = await createClient();
@@ -109,7 +111,12 @@ export async function repullPhotoAction(input: {
   }
 
   const current = new Set((input.current ?? []).slice(0, 20).map((u) => String(u).trim()));
-  const vehicle = { year: input.year, make: input.make, model: input.model };
+  const vehicle = {
+    year: input.year,
+    make: input.make,
+    model: input.model,
+    color: typeof input.color === "string" ? input.color.slice(0, 80) : undefined,
+  };
   let photos = await fetchCarsxePhotos({ ...vehicle, trim: input.trim });
   let fresh = photos.find((url) => !current.has(url));
   if (!fresh && input.trim) {
@@ -548,7 +555,7 @@ export async function createManualDealAction(
 
   const photoAutoSourced = images.length === 0;
   if (images.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
     if (photo) images = [photo];
   }
 
@@ -686,7 +693,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   let finalImages = images;
   const photoAutoSourced = images.length === 0;
   if (finalImages.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
     if (photo) finalImages = [photo];
   }
 
@@ -941,7 +948,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   let finalImages = images;
   const photoAutoSourced = images.length === 0;
   if (finalImages.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
     if (photo) finalImages = [photo];
   }
 

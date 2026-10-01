@@ -60,6 +60,7 @@ export async function stageParsedDeals(
       make: d.make,
       model: d.model,
       trim: d.trim ?? undefined,
+      color: d.exterior,
     });
     if (photo) images = [photo];
 

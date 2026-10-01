@@ -36,7 +36,7 @@ export async function refreshSamplePhotosAction(): Promise<{
 
   const { data: rows, error } = await admin
     .from("deals")
-    .select("id, year, make, model, trim")
+    .select("id, year, make, model, trim, exterior")
     .eq("sample", true);
 
   if (error) return { error: error.message, updated: 0, noMatch: 0, total: 0 };
@@ -51,6 +51,7 @@ export async function refreshSamplePhotosAction(): Promise<{
       make: row.make,
       model: row.model,
       trim: row.trim ?? undefined,
+      color: row.exterior,
     });
     if (!url) {
       noMatch++;
@@ -179,7 +180,7 @@ export async function stageDealDraftAction(
 
   const photoAutoSourced = images.length === 0;
   if (images.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
     if (photo) images = [photo];
   }
 
