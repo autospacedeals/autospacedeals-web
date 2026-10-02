@@ -17,6 +17,7 @@ import { msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { updateDealAction, deleteDealAction, deleteDealsAction, repullPhotoAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
+import LocationFields, { type LocationValue } from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
 
 // Borderless-until-touched inputs — the point is to read like an editable
@@ -122,6 +123,7 @@ interface RowDraft {
   msdTotal: string;
   term: string;
   milesPerYear: string;
+  location: LocationValue;
   apr: string;
   msrp: string;
   sellingPrice: string;
@@ -154,6 +156,7 @@ function deriveDraft(deal: Deal): RowDraft {
     msdTotal: deal.msdTotal != null ? String(deal.msdTotal) : "",
     term: String(deal.term ?? ""),
     milesPerYear: deal.milesPerYear != null ? String(deal.milesPerYear) : "",
+    location: { city: deal.city ?? "", state: deal.state ?? "", delivery: deal.delivery ?? "" },
     apr: deal.apr != null ? String(deal.apr) : "",
     msrp: msrpEditValue(deal),
     sellingPrice: deal.sellingPrice != null ? String(deal.sellingPrice) : "",
@@ -440,6 +443,9 @@ function ListingRow({
       if (draft.inStock) fd.set("inStock", "on");
       fd.set("notes", draft.notes);
       fd.set("condition", draft.condition);
+      fd.set("city", draft.location.city);
+      fd.set("state", draft.location.state);
+      fd.set("delivery", draft.location.delivery);
       fd.set(
         "incentives",
         JSON.stringify(draft.incentives.filter((r) => r.name.trim() && (r.amount > 0 || (r.monthly ?? 0) > 0)))
@@ -840,6 +846,12 @@ function ListingRow({
                   </div>
                 </div>
               </div>
+
+              <LocationFields
+                idPrefix={`listing-${deal.id}`}
+                value={draft.location}
+                onChange={(location) => set("location", location)}
+              />
 
               <IncentivesEditor
                 value={draft.incentives}

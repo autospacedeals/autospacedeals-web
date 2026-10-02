@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { Incentive } from "@/lib/deals-data";
 import { parseJsonField, sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
+import { parseLocationFields } from "@/lib/deal-location";
 import { createClient } from "@/lib/supabase/server";
 import { slugify, parseMsrpInput } from "@/lib/deal-utils";
 import { fetchCarsxePhoto, fetchCarsxePhotos } from "@/lib/carsxe";
@@ -525,6 +526,8 @@ export async function createManualDealAction(
   const incentives = parseIncentivesField(formData);
   const mileageOptions =
     dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
+  const location = parseLocationFields(formData, { city: broker.city, state: broker.state });
+  if ("error" in location) return { error: location.error };
   let images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -559,7 +562,7 @@ export async function createManualDealAction(
     if (photo) images = [photo];
   }
 
-  const slug = slugify([year, make, model, trim ?? "", broker.state]);
+  const slug = slugify([year, make, model, trim ?? "", location.state]);
 
   const { error } = await supabase.from("deals").insert({
     slug,
@@ -593,12 +596,13 @@ export async function createManualDealAction(
     seller_dealership: broker.dealership_name,
     seller_phone: broker.contact_phone,
     seller_email: user.email ?? "",
-    city: broker.city,
-    state: broker.state,
     verified: true,
     condition,
     incentives,
     mileage_options: mileageOptions,
+    city: location.city,
+    state: location.state,
+    delivery: location.delivery,
     photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,
@@ -662,6 +666,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const incentives = parseIncentivesField(formData);
   const mileageOptions =
     dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
+  const location = parseLocationFields(formData);
+  if ("error" in location) return { error: location.error };
   const images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -728,6 +734,9 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       condition,
       incentives,
       mileage_options: mileageOptions,
+      city: location.city,
+      state: location.state,
+      delivery: location.delivery,
       images: finalImages,
       photo_auto_sourced: photoAutoSourced,
       one_pay: onePay,
@@ -917,6 +926,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const incentives = parseIncentivesField(formData);
   const mileageOptions =
     dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
+  const location = parseLocationFields(formData);
+  if ("error" in location) return { error: location.error };
   const images = String(formData.get("images") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -982,6 +993,9 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       condition,
       incentives,
       mileage_options: mileageOptions,
+      city: location.city,
+      state: location.state,
+      delivery: location.delivery,
       photo_auto_sourced: photoAutoSourced,
       images: finalImages,
       one_pay: onePay,

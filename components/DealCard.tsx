@@ -7,6 +7,7 @@
 // page, since a Server Component can't hand a function prop to <Link>.
 "use client";
 
+import { deliveryLabel } from "@/lib/deal-location";
 import { useId } from "react";
 import Link from "next/link";
 import { MapPin, ArrowRight, Store, CircleAlert } from "lucide-react";
@@ -196,6 +197,7 @@ export default function DealCard({
           <div className="space-y-1.5 border-t border-line pt-4 text-[13px] text-fg-muted">
             <p className="flex items-center gap-2">
               <MapPin size={14} className="shrink-0 text-fg-faint" /> {deal.city}, {deal.state}
+              {deliveryLabel(deal.delivery) && <span className="text-fg-faint">· {deliveryLabel(deal.delivery)}</span>}
             </p>
             <p className="flex items-start gap-2">
               <Store size={14} className="mt-0.5 shrink-0 text-fg-faint" />

@@ -15,6 +15,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
 import { parseMsdText, type ParsedDeal, type ParseResult, type SkippedRow } from "./parse-inventory";
 import { sanitizeIncentives, sanitizeMileageOptions } from "./deal-options";
+import { cleanCity, parseDelivery, parseStateCode } from "./deal-location";
 import type { Incentive } from "./deals-data";
 
 function toParsedIncentives(list: Incentive[]): NonNullable<ParsedDeal["incentives"]> {
@@ -81,6 +82,22 @@ const EXTRACT_TOOL = {
             state: {
               type: ["string", "null"],
               description: "2-letter US state code, inferred from any region/city mentioned (e.g. \"Socal\" -> CA)",
+            },
+            city: {
+              type: ["string", "null"],
+              description:
+                "Where the car is, as the ad names it — a city or region like \"SoCal\", \"Bay Area\" " +
+                "or \"Phoenix\" (\"Southern California\" -> \"SoCal\"). null if not stated. Never a state " +
+                "name alone (that's the state field).",
+            },
+            delivery: {
+              type: ["string", "null"],
+              enum: ["pickup", "in_state", "nationwide", null],
+              description:
+                "Whether the car can get to a buyer elsewhere, if the ad says: \"pick-up only\" / " +
+                "\"shipping not available\" -> pickup; delivery within the state -> in_state; " +
+                "\"ships nationwide\" / \"we ship anywhere\" / \"delivery available to all 50 states\" -> " +
+                "nationwide. null if not stated.",
             },
             incentives: {
               type: "array" as const,
@@ -184,7 +201,10 @@ const COMBINED_CELL_GUIDANCE =
   `MSDs are refundable and separate from due at signing, so never add them into dueAtSigning. A ` +
   `vehicle whose name/trim is crossed out (strikethrough) — or most of whose row is — is sold or no ` +
   `longer available: leave it out entirely, even if its other cells look normal. Only a lone ` +
-  `crossed-out old price sitting next to a new one is different: use the new price.`;
+  `crossed-out old price sitting next to a new one is different: use the new price. A location or ` +
+  `shipping banner over a group of cars (e.g. "Southern California — pick-up only, shipping not ` +
+  `available") applies to every car under it until another one starts: city "SoCal", state CA, ` +
+  `delivery "pickup".`;
 
 function rowsToTable(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
@@ -242,7 +262,9 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
         : null;
     const msdTotalRaw = typeof c.msdTotal === "number" ? c.msdTotal : msdFromNotes.msdTotal;
     const msdTotal = msdCount != null && msdTotalRaw != null && msdTotalRaw > 0 ? msdTotalRaw : null;
-    const state = typeof c.state === "string" && c.state.trim() ? c.state.trim().toUpperCase() : brokerState;
+    const state = parseStateCode(c.state) ?? brokerState;
+    const city = cleanCity(c.city);
+    const delivery = parseDelivery(c.delivery);
     const notes = typeof c.notes === "string" ? c.notes.trim() : "";
     const milesPerYear = typeof c.milesPerYear === "number" ? c.milesPerYear : null;
     // Incentives with a stated value, kept as read — never looked up.
@@ -277,6 +299,8 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (msdCount) partial.msdCount = msdCount;
       if (msdTotal) partial.msdTotal = msdTotal;
       if (state) partial.state = state;
+      if (city) partial.city = city;
+      if (delivery) partial.delivery = delivery;
       if (notes) partial.notes = notes;
       if (statedIncentives.length > 0) partial.incentives = toParsedIncentives(statedIncentives);
       if (mileageOptions.length > 0) partial.mileageOptions = mileageOptions;
@@ -300,6 +324,8 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       msdCount,
       msdTotal,
       state,
+      city,
+      delivery,
       notes,
       onePay,
       incentives: toParsedIncentives(statedIncentives),

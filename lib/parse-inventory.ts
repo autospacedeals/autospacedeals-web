@@ -35,6 +35,10 @@ export interface ParsedDeal {
   msdCount?: number | null;
   msdTotal?: number | null;
   state: string | null;
+  // Where the car is, as the source names it ("SoCal", "Phoenix"), and
+  // whether it ships — optional; staging falls back to the broker's city.
+  city?: string | null;
+  delivery?: "pickup" | "in_state" | "nationwide" | null;
   notes: string;
   // One-pay lease: a single upfront lump sum (stored in dueAtSigning) with
   // no separate monthly bill. payment is 0 by convention when this is true,

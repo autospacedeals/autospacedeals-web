@@ -17,6 +17,7 @@ import {
 } from "./actions";
 import type { ParsedDeal } from "@/lib/parse-inventory";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
+import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
 
 const initialState: SubmissionState = { error: null };
@@ -55,7 +56,15 @@ const CONDITIONS = ["New", "Loaner", "Demo", "CPO", "Used"];
 
 // sheetShareEmail: Drive's service-account email a broker can share a
 // private Google Sheet with (null when that isn't set up).
-export default function NewSubmissionForm({ sheetShareEmail = null }: { sheetShareEmail?: string | null }) {
+// brokerLocation: the broker's own city/state, the default location for
+// each car they add.
+export default function NewSubmissionForm({
+  sheetShareEmail = null,
+  brokerLocation,
+}: {
+  sheetShareEmail?: string | null;
+  brokerLocation: { city: string; state: string };
+}) {
   const [category, setCategory] = useState<"manual" | "link" | null>(null);
   // Bumped to force-remount LinkForm when a broker wants to try the same
   // (or a different) source again after some rows came back unreadable —
@@ -91,9 +100,10 @@ export default function NewSubmissionForm({ sheetShareEmail = null }: { sheetSha
           key={linkFormKey}
           onStartOver={() => setLinkFormKey((k) => k + 1)}
           sheetShareEmail={sheetShareEmail}
+          brokerLocation={brokerLocation}
         />
       )}
-      {category === "manual" && <ManualForm />}
+      {category === "manual" && <ManualForm brokerLocation={brokerLocation} />}
     </div>
   );
 }
@@ -101,8 +111,10 @@ export default function NewSubmissionForm({ sheetShareEmail = null }: { sheetSha
 function LinkForm({
   onStartOver,
   sheetShareEmail,
+  brokerLocation,
 }: {
   sheetShareEmail: string | null;
+  brokerLocation: { city: string; state: string };
   onStartOver: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
@@ -165,6 +177,7 @@ function LinkForm({
                   could read is already filled in below, just fix what&apos;s missing.
                 </p>
                 <ManualForm
+                  brokerLocation={brokerLocation}
                   submissionId={state.submissionId}
                   initialValues={partial}
                 />
@@ -172,12 +185,12 @@ function LinkForm({
             ))}
             <div className="border-t border-line pt-5">
               <p className="mb-2 text-sm text-fg-secondary">Add another car from this source:</p>
-              <ManualForm submissionId={state.submissionId} />
+              <ManualForm submissionId={state.submissionId} brokerLocation={brokerLocation} />
             </div>
           </div>
         ) : (
           <div className="mt-4">
-            <ManualForm submissionId={state.submissionId} />
+            <ManualForm submissionId={state.submissionId} brokerLocation={brokerLocation} />
           </div>
         )}
       </div>
@@ -340,8 +353,10 @@ function LinkForm({
 function ManualForm({
   submissionId,
   initialValues,
+  brokerLocation,
 }: {
   submissionId?: string;
+  brokerLocation: { city: string; state: string };
   // Pre-fills whatever a parser (heuristic or AI) already managed to read
   // for a row it couldn't fully process (e.g. everything but MSRP) — see
   // SubmissionState.skippedDeals. Left undefined for a plain blank "add a
@@ -645,6 +660,18 @@ function ManualForm({
               <p className="field-hint">Refundable, paid at signing on top of due at signing.</p>
             </div>
           </div>
+        </div>
+
+        <div>
+          <p className={sectionHeadingClass}>Location</p>
+          <LocationFields
+            idPrefix={uid}
+            value={{
+              city: initialValues?.city ?? brokerLocation.city,
+              state: initialValues?.state ?? brokerLocation.state,
+              delivery: initialValues?.delivery ?? "",
+            }}
+          />
         </div>
 
         <div>

@@ -4,6 +4,7 @@
 // (app/broker/preview/[id]/page.tsx) so a broker can see exactly what
 // shoppers will see before confirming & publishing a draft, without
 // duplicating this whole layout in two places and letting them drift.
+import { deliveryLabel } from "@/lib/deal-location";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, MapPin, Flag, CircleAlert, Phone, MessageSquare } from "lucide-react";
@@ -142,6 +143,7 @@ export default function DealDetailView({
             </div>
             <p className="mt-3 flex items-center gap-2 text-sm text-fg-muted">
               <MapPin size={15} className="text-fg-faint" /> {deal.city}, {deal.state}
+              {deliveryLabel(deal.delivery) && <span className="text-fg-faint">· {deliveryLabel(deal.delivery)}</span>}
             </p>
           </div>
 

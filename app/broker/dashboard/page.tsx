@@ -61,7 +61,7 @@ export default async function BrokerDashboardPage() {
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
     "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at, " +
-    "sheet_sync_id, msd_count, msd_total, mileage_options";
+    "sheet_sync_id, msd_count, msd_total, mileage_options, delivery";
 
   const { data: myDealRows, error: dealsError } = await supabase
     .from("deals")
@@ -207,7 +207,10 @@ export default async function BrokerDashboardPage() {
           gets an account removed.
         </p>
         <div className="mt-6">
-          <NewSubmissionForm sheetShareEmail={serviceAccountEmail()} />
+          <NewSubmissionForm
+            sheetShareEmail={serviceAccountEmail()}
+            brokerLocation={{ city: broker?.city ?? "", state: broker?.state ?? "" }}
+          />
         </div>
       </div>
     </main>

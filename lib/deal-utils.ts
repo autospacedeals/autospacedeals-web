@@ -294,7 +294,9 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
     const matchesBodyStyle = filters.bodyStyle === "All" || deal.bodyStyle === filters.bodyStyle;
     const matchesFuel = filters.fuel === "All" || deal.fuel === filters.fuel;
     const matchesSeller = filters.seller === "All" || deal.sellerName === filters.seller;
-    const matchesState = filters.state === "All" || deal.state === filters.state;
+    // A car that ships nationwide is available in every state.
+    const matchesState =
+      filters.state === "All" || deal.state === filters.state || deal.delivery === "nationwide";
     const matchesTerm = filters.term === "All" || String(deal.term) === filters.term;
     const matchesMileage =
       filters.mileage === "All" || String(deal.milesPerYear ?? "") === filters.mileage;
@@ -371,8 +373,10 @@ export function sortDeals(deals: Deal[], sortBy: SortOption, referenceState: str
     case "closest":
       if (referenceState === "All") return list;
       return list.sort((a, b) => {
-        const aMatch = a.state === referenceState ? 0 : 1;
-        const bMatch = b.state === referenceState ? 0 : 1;
+        // In-state first, then cars that ship nationwide, then the rest.
+        const rank = (d: Deal) => (d.state === referenceState ? 0 : d.delivery === "nationwide" ? 1 : 2);
+        const aMatch = rank(a);
+        const bMatch = rank(b);
         return aMatch - bMatch;
       });
     case "featured":

@@ -8,6 +8,7 @@ import { dealTitle, formatCurrency, msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { confirmDraftsAction, updateDraftDealAction, deleteDraftAction } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
+import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
 
 const inputClass = "input input-sm";
@@ -386,6 +387,11 @@ function DraftRow({
             <p className="field-hint">Refundable, paid at signing on top of due at signing.</p>
           </div>
         </div>
+
+        <LocationFields
+          idPrefix={uid}
+          value={{ city: deal.city ?? "", state: deal.state ?? "", delivery: deal.delivery ?? "" }}
+        />
 
         <IncentivesEditor value={incentives} onChange={setIncentives} />
 

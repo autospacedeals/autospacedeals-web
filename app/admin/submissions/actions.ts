@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { Incentive } from "@/lib/deals-data";
 import { parseJsonField, sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
+import { parseLocationFields } from "@/lib/deal-location";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { slugify } from "@/lib/deal-utils";
@@ -156,6 +157,8 @@ export async function stageDealDraftAction(
   const incentives = parseIncentivesField(formData);
   const mileageOptions =
     dealType === "Lease" ? sanitizeMileageOptions(parseJsonField(formData, "mileageOptions"), milesPerYear) : [];
+  const location = parseLocationFields(formData, { city: broker.city, state: broker.state });
+  if ("error" in location) return { error: location.error };
   const sourceUrlRaw = String(formData.get("sourceUrl") || "").trim();
   let images = String(formData.get("images") || "")
     .split("\n")
@@ -184,7 +187,7 @@ export async function stageDealDraftAction(
     if (photo) images = [photo];
   }
 
-  const slug = slugify([year, make, model, trim ?? "", broker.state]);
+  const slug = slugify([year, make, model, trim ?? "", location.state]);
 
   const { error } = await admin.from("deals").insert({
     slug,
@@ -210,13 +213,14 @@ export async function stageDealDraftAction(
     seller_name: broker.business_name,
     seller_dealership: broker.dealership_name,
     seller_phone: broker.contact_phone,
-    city: broker.city,
-    state: broker.state,
     seller_email: brokerEmail,
     verified: true,
     condition,
     incentives,
     mileage_options: mileageOptions,
+    city: location.city,
+    state: location.state,
+    delivery: location.delivery,
     photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,

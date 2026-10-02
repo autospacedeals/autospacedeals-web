@@ -151,6 +151,9 @@ export interface Deal {
   // Other mileage allowances a shopper can pick in the payment estimator.
   // Empty/undefined when the listing only offers its advertised mileage.
   mileageOptions?: MileageOption[];
+  // Whether the car can get to a shopper outside its area (see
+  // lib/deal-location.ts). Null/undefined = not stated.
+  delivery?: "pickup" | "in_state" | "nationwide" | null;
 
   // Provenance — where this listing came from. Optional; used for real deals
   // pulled from a broker's public posts (e.g. their Leasehackr thread) so we

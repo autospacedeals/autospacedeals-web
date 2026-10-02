@@ -4,6 +4,7 @@ import { useActionState, useId, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { stageDealDraftAction, type StageDealState } from "./actions";
 import IncentivesEditor, { type IncentiveRow } from "@/app/broker/dashboard/IncentivesEditor";
+import LocationFields from "@/app/broker/dashboard/LocationFields";
 import MileageOptionsEditor, { type MileageRow } from "@/app/broker/dashboard/MileageOptionsEditor";
 
 const initialState: StageDealState = { error: null };
@@ -291,6 +292,12 @@ export default function StageDealForm({
             />
           </div>
         </div>
+
+        <LocationFields
+          idPrefix={uid}
+          value={{ city: "", state: "", delivery: "" }}
+          cityPlaceholder="Blank = broker's city"
+        />
 
         <IncentivesEditor value={incentives} onChange={setIncentives} />
 
