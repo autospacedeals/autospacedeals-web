@@ -12,6 +12,7 @@ interface ProfileEditorProps {
   firstName: string;
   lastName: string;
   zipCode: string;
+  phone: string;
   address: string | null;
   currentVehicle: string | null;
   hasLicense: boolean;
@@ -24,6 +25,7 @@ export default function ProfileEditor({
   firstName,
   lastName,
   zipCode,
+  phone,
   address,
   currentVehicle,
   hasLicense,
@@ -162,6 +164,21 @@ export default function ProfileEditor({
             inputMode="numeric"
             pattern="\d{5}"
             maxLength={5}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="profile-phone" className={labelClass}>
+            Phone
+          </label>
+          <input
+            id="profile-phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            defaultValue={phone}
+            required
+            placeholder="949-555-1234"
             className={inputClass}
           />
         </div>

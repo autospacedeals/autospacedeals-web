@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { normalizeUsPhone, PHONE_ERROR } from "@/lib/phone";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site";
 import { safeNextPath } from "@/lib/safe-next-path";
@@ -77,17 +78,20 @@ export async function signUpAction(
   const firstName = String(formData.get("firstName") || "").trim();
   const lastName = String(formData.get("lastName") || "").trim();
   const zipCode = String(formData.get("zipCode") || "").trim();
+  const phoneRaw = String(formData.get("phone") || "").trim();
   const address = String(formData.get("address") || "").trim() || null;
   const currentVehicle = String(formData.get("currentVehicle") || "").trim() || null;
   const licenseFile = formData.get("driversLicense") as File | null;
   const insuranceFile = formData.get("insuranceCard") as File | null;
 
-  if (!email || !password || !firstName || !lastName || !zipCode) {
-    return { error: "Please fill in your name, email, password, and zip code." };
+  if (!email || !password || !firstName || !lastName || !zipCode || !phoneRaw) {
+    return { error: "Please fill in your name, email, phone, password, and zip code." };
   }
   if (!/^\d{5}$/.test(zipCode)) {
     return { error: "Enter a valid 5-digit zip code." };
   }
+  const phone = normalizeUsPhone(phoneRaw);
+  if (!phone) return { error: PHONE_ERROR };
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
   }
@@ -132,6 +136,7 @@ export async function signUpAction(
     first_name: firstName,
     last_name: lastName,
     zip_code: zipCode,
+    phone,
     address,
     current_vehicle: currentVehicle,
     drivers_license_path: licensePath,
@@ -209,14 +214,17 @@ export async function completeProfileAction(
   const firstName = String(formData.get("firstName") || "").trim().slice(0, 80);
   const lastName = String(formData.get("lastName") || "").trim().slice(0, 80);
   const zipCode = String(formData.get("zipCode") || "").trim();
+  const phoneRaw = String(formData.get("phone") || "").trim();
   const next = safeNextPath(formData.get("next")) ?? "/customer/dashboard";
 
-  if (!firstName || !lastName || !zipCode) {
-    return { error: "Please fill in your name and zip code." };
+  if (!firstName || !lastName || !zipCode || !phoneRaw) {
+    return { error: "Please fill in your name, zip code, and phone." };
   }
   if (!/^\d{5}$/.test(zipCode)) {
     return { error: "Enter a valid 5-digit zip code." };
   }
+  const phone = normalizeUsPhone(phoneRaw);
+  if (!phone) return { error: PHONE_ERROR };
 
   const supabase = await createClient();
   const {
@@ -231,6 +239,7 @@ export async function completeProfileAction(
       first_name: firstName,
       last_name: lastName,
       zip_code: zipCode,
+      phone,
     });
     if (error) {
       console.error("completeProfileAction: insert failed:", error.message);

@@ -70,6 +70,20 @@ export default function SignupForm() {
         <EmailInput id="signup-email" className={inputClass} />
       </div>
       <div>
+        <label htmlFor="signup-phone" className={labelClass}>
+          Phone
+        </label>
+        <input
+          id="signup-phone"
+          required
+          type="tel"
+          name="phone"
+          autoComplete="tel"
+          placeholder="949-555-1234"
+          className={inputClass}
+        />
+      </div>
+      <div>
         <label htmlFor="signup-password" className={labelClass}>
           Password
         </label>

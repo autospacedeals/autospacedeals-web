@@ -97,6 +97,8 @@ export default function SignupForm() {
           <input
             id="broker-signup-contact-phone"
             required
+            type="tel"
+            autoComplete="tel"
             name="contactPhone"
             placeholder="949-555-1234"
             className={inputClass}

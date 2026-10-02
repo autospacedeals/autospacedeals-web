@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { normalizeUsPhone, PHONE_ERROR } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,6 +53,8 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<P
   if (!/^\d{5}$/.test(zipCode)) {
     return { error: "Enter a valid 5-digit zip code." };
   }
+  const phone = normalizeUsPhone(formData.get("phone"));
+  if (!phone) return { error: PHONE_ERROR };
 
   const [license, insurance] = await Promise.all([
     uploadDocument(supabase, user.id, licenseFile, "license"),
@@ -66,6 +69,7 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<P
     first_name: firstName,
     last_name: lastName,
     zip_code: zipCode,
+    phone,
     address,
     current_vehicle: currentVehicle,
   };

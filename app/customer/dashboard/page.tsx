@@ -21,6 +21,7 @@ interface Customer {
   first_name: string;
   last_name: string;
   zip_code: string;
+  phone: string | null;
   address: string | null;
   current_vehicle: string | null;
   drivers_license_path: string | null;
@@ -43,7 +44,7 @@ export default async function CustomerDashboardPage() {
   const { data: customer, error: customerError } = await supabase
     .from("customers")
     .select(
-      "first_name, last_name, zip_code, address, current_vehicle, drivers_license_path, insurance_card_path"
+      "first_name, last_name, zip_code, phone, address, current_vehicle, drivers_license_path, insurance_card_path"
     )
     .eq("id", user.id)
     .single<Customer>();
@@ -119,12 +120,19 @@ export default async function CustomerDashboardPage() {
               <dt className="label">Email</dt>
               <dd className="mt-1 font-medium wrap-anywhere text-fg">{user.email}</dd>
             </div>
+            <div>
+              <dt className="label">Phone</dt>
+              <dd className="mt-1 font-medium text-fg">
+                {customer?.phone ?? <span className="text-warning">Not added yet — add it under Edit profile</span>}
+              </dd>
+            </div>
           </dl>
 
           <ProfileEditor
             firstName={firstName}
             lastName={lastName}
             zipCode={customer?.zip_code ?? ""}
+            phone={customer?.phone ?? ""}
             address={customer?.address ?? null}
             currentVehicle={customer?.current_vehicle ?? null}
             hasLicense={Boolean(customer?.drivers_license_path)}

@@ -64,6 +64,20 @@ export default function CompleteProfileForm({
           className="input"
         />
       </div>
+      <div>
+        <label htmlFor="complete-phone" className="field-label">
+          Phone
+        </label>
+        <input
+          id="complete-phone"
+          name="phone"
+          required
+          type="tel"
+          autoComplete="tel"
+          placeholder="949-555-1234"
+          className="input"
+        />
+      </div>
 
       {state.error && (
         <p role="alert" className="alert alert-danger">

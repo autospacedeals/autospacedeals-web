@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { normalizeUsPhone, PHONE_ERROR } from "@/lib/phone";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { suggestEmailFix } from "@/lib/email-typos";
 
@@ -56,6 +57,8 @@ export async function signUpAction(
   if (sellerType === "Salesperson" && !dealershipName) {
     return { error: "Please enter the dealership you work at." };
   }
+  const phone = normalizeUsPhone(contactPhone);
+  if (!phone) return { error: PHONE_ERROR };
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
   }
@@ -96,7 +99,7 @@ export async function signUpAction(
     business_name: businessName,
     seller_type: sellerType,
     dealership_name: dealershipName,
-    contact_phone: contactPhone,
+    contact_phone: phone,
     city,
     state,
   });
