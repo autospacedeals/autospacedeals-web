@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { normalizeUsPhone, PHONE_ERROR } from "@/lib/phone";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { suggestEmailFix } from "@/lib/email-typos";
+import { accountHome } from "@/lib/account-home";
 
 export type AuthState = {
   error: string | null;
@@ -22,13 +23,14 @@ export async function signInAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return { error: error.message };
   }
 
-  redirect("/broker/dashboard");
+  // A shopper signing in here lands on their own dashboard.
+  redirect(await accountHome(supabase, data.user));
 }
 
 export async function signUpAction(

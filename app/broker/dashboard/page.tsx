@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { serviceAccountEmail } from "@/lib/google-service-account";
+import { accountHome } from "@/lib/account-home";
 import { mapRowToDeal, type DealRow } from "@/lib/supabase/deals";
 import { signOutAction } from "../actions";
 import NewSubmissionForm from "./NewSubmissionForm";
@@ -39,13 +40,19 @@ export default async function BrokerDashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/broker/login");
 
-  const { data: broker } = await supabase
+  const { data: broker, error: brokerError } = await supabase
     .from("brokers")
     .select(
       "id, contact_name, business_name, seller_type, dealership_name, contact_phone, city, state, about"
     )
     .eq("id", user.id)
     .single<Broker>();
+  // Only broker accounts get this dashboard — a shopper (or the admin)
+  // signed in here goes to their own. (.single() reports "no row" as
+  // PGRST116; any other error is a failed lookup, not proof of no broker.)
+  if (!broker && (!brokerError || brokerError.code === "PGRST116")) {
+    redirect(await accountHome(supabase, user));
+  }
 
   const DEAL_COLUMNS =
     "id, slug, broker_id, year, make, model, trim, body_style, fuel, exterior, interior, " +

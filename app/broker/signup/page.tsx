@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import SignupForm from "./SignupForm";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { accountHome } from "@/lib/account-home";
 import { LogoMark } from "@/components/Logo";
 
 export const metadata: Metadata = {
@@ -18,7 +18,8 @@ export default async function BrokerSignupPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    redirect(isAdminEmail(user.email) ? "/admin/submissions" : "/broker/dashboard");
+    // A shopper account goes to its own dashboard, not the broker one.
+    redirect(await accountHome(supabase, user));
   }
 
   return (
