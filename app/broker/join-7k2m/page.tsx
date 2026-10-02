@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Broker signup lives at a less guessable address than /broker/signup and
+// isn't linked from the consumer site — brokers get the link directly.
 export default async function BrokerSignupPage() {
   // Someone already signed in (broker or admin) doesn't need the signup
   // form — send them straight to where they'd actually do something.

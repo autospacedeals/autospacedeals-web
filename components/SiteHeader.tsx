@@ -7,9 +7,9 @@ import { Menu, X, LogOut, ChevronRight } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
 import { LogoWordmark } from "@/components/Logo";
 
-// Shopper destinations only — the broker portal (/broker/signup,
-// /broker/login) is deliberately not linked anywhere on the consumer site;
-// brokers get its links directly. The calculators deliberately aren't in
+// Shopper destinations only — the broker portal (/broker/login,
+// /broker/join-7k2m) is deliberately not linked anywhere on the consumer
+// site; brokers get its links directly. The calculators deliberately aren't in
 // the nav — they're reached from the guide, so Guide stays marked current
 // on /calculator and /lease-end too. `match` decides which link is current.
 const NAV_LINKS = [

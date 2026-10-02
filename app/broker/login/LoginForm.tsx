@@ -53,9 +53,9 @@ export default function LoginForm() {
       </button>
 
       <p className="text-center text-sm text-fg-muted">
-        New here?{" "}
-        <Link href="/broker/signup" className="font-medium text-fg transition-colors hover:text-accent-fg">
-          Create a broker/dealer account
+        Need a dealer or broker account?{" "}
+        <Link href="/contact" className="font-medium text-fg transition-colors hover:text-accent-fg">
+          Contact us
         </Link>
       </p>
     </form>

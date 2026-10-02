@@ -23,12 +23,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.3,
     })),
-    {
-      url: `${SITE_URL}/submit-a-deal`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.4,
-    },
   ];
 
   const dealRoutes: MetadataRoute.Sitemap = deals.map((deal) => ({
