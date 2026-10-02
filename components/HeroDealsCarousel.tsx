@@ -17,6 +17,9 @@ export default function HeroDealsCarousel({ deals }: { deals: Deal[] }) {
     const track = trackRef.current;
     if (!track) return;
     const next = Math.max(0, Math.min(deals.length - 1, i));
+    // Set right away so a quick second click steps on from here rather
+    // than from wherever the smooth scroll has got to.
+    setIndex(next);
     track.scrollTo({ left: next * track.clientWidth, behavior: "smooth" });
   }
 
