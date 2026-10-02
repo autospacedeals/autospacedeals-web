@@ -199,10 +199,10 @@ export default function DealDetailView({
 
             <div className="callout mt-5 flex flex-wrap items-end justify-between gap-4">
               <div className="max-w-sm">
-                <p className="text-sm font-semibold text-fg">Effective monthly cost</p>
+                <p className="text-sm font-semibold text-fg">Effective Payment</p>
                 <p className="mt-1 text-[13px] leading-5 text-fg-secondary">
-                  Spreads due-at-signing across the term so you can compare deals with different
-                  upfront amounts fairly.
+                  (total monthly payments + due at signing) / lease term — a fair way to compare
+                  deals with different upfront amounts.
                 </p>
               </div>
               <p className="flex items-baseline gap-1.5">

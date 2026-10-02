@@ -68,8 +68,8 @@ export default function CompareModal({
     },
     { label: "Due at signing", render: (d) => formatCurrency(d.dueAtSigning) },
     {
-      label: "Effective monthly cost",
-      note: "payment + due at signing spread over the term",
+      label: "Effective Payment",
+      note: "(total monthly payments + due at signing) / lease term",
       render: (d) => formatCurrency(effectiveMonthly(d)),
     },
     { label: "Term", render: (d) => formatTerm(d.term) },
@@ -197,7 +197,7 @@ export default function CompareModal({
         )}
 
         <p className="border-t border-line px-5 py-4 text-xs leading-5 text-fg-muted sm:px-6">
-          Effective monthly cost is the fairest single number to compare across deals with
+          Effective Payment is the fairest single number to compare across deals with
           different due-at-signing amounts — a lower monthly payment with a much larger upfront
           cost isn&apos;t always the better deal.
         </p>

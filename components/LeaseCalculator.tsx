@@ -596,7 +596,7 @@ export default function LeaseCalculator() {
             )}
             <Result label="Due at signing" value={formatCurrency(result.dueAtSigning)} big />
             <Result label="Total lease cost" value={formatCurrency(result.totalLeaseCost)} />
-            <Result label="Effective monthly cost" value={formatCurrency(result.effectiveMonthly)} />
+            <Result label="Effective Payment" value={formatCurrency(result.effectiveMonthly)} />
           </div>
 
           <button

@@ -6,7 +6,7 @@ import { Calculator, ArrowRight, Scale } from "lucide-react";
 export const metadata: Metadata = pageMetadata({
   title: "Leasing Guide",
   description:
-    "Understand money factor, residual value, due at signing, and effective monthly cost before you sign a car lease.",
+    "Understand money factor, residual value, due at signing, and effective payment before you sign a car lease.",
   path: "/leasing-guide",
 });
 
@@ -108,22 +108,22 @@ export default function LeasingGuidePage() {
             </p>
             <p>
               A lower monthly payment with a large due-at-signing amount is not
-              always the better deal. Always compare the effective monthly cost.
+              always the better deal. Always compare the Effective Payment.
             </p>
           </Section>
 
-          <Section n={6} title="Effective Monthly Payment">
+          <Section n={6} title="Effective Payment">
             <p>
-              Effective monthly payment helps compare deals with different
-              upfront amounts.
+              Effective Payment helps compare deals with different upfront
+              amounts.
             </p>
             <p className="formula">
-              Effective Monthly = (Monthly Payment × Term + Due at Signing) ÷
-              Term
+              Effective Payment = (Total Monthly Payments + Due at Signing) ÷
+              Lease Term
             </p>
             <p>
               Example: $399/month for 36 months with $3,000 due at signing has
-              an effective monthly cost of about $482.
+              an Effective Payment of about $482 (($399 × 36 + $3,000) ÷ 36).
             </p>
           </Section>
 
