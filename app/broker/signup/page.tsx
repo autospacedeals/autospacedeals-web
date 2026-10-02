@@ -8,6 +8,8 @@ import { LogoMark } from "@/components/Logo";
 export const metadata: Metadata = {
   title: "Create a Broker/Dealer Account",
   description: "Sign up to manage your listings on Drive.",
+  // Reached only by direct link, never from search.
+  robots: { index: false, follow: false },
 };
 
 export default async function BrokerSignupPage() {

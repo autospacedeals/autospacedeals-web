@@ -8,6 +8,8 @@ import { LogoMark } from "@/components/Logo";
 export const metadata: Metadata = {
   title: "Broker/Dealer Login",
   description: "Sign in to your Drive broker or dealer account.",
+  // Reached only by direct link, never from search.
+  robots: { index: false, follow: false },
 };
 
 export default async function BrokerLoginPage() {

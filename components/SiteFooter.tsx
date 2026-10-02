@@ -7,7 +7,7 @@ export default function SiteFooter() {
     <footer className="relative mt-24 border-t border-line bg-canvas">
       <div aria-hidden="true" className="light-bar absolute inset-x-0 -top-px" />
       <div className="container-page pt-16 pb-10">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1.2fr]">
           <div>
             <LogoWordmark className="h-6 w-auto text-fg" />
             <p className="mt-4 max-w-xs text-sm leading-6 text-fg-muted">
@@ -27,17 +27,6 @@ export default function SiteFooter() {
               <li>
                 <Link href="/leasing-guide" className="link-quiet">
                   Leasing guide
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="text-[13px] font-semibold text-fg">Dealers &amp; brokers</p>
-            <ul className="mt-4 space-y-3 text-sm">
-              <li>
-                <Link href="/broker/signup" className="link-quiet">
-                  List your deals
                 </Link>
               </li>
               <li>

@@ -7,9 +7,9 @@ import { Menu, X, LogOut, ChevronRight } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
 import { LogoWordmark } from "@/components/Logo";
 
-// Trimmed to destinations that actually go somewhere — "About" and
-// "Brokers" used to just scroll to homepage sections; the broker link now
-// points straight at signup instead. The calculators deliberately aren't in
+// Shopper destinations only — the broker portal (/broker/signup,
+// /broker/login) is deliberately not linked anywhere on the consumer site;
+// brokers get its links directly. The calculators deliberately aren't in
 // the nav — they're reached from the guide, so Guide stays marked current
 // on /calculator and /lease-end too. `match` decides which link is current.
 const NAV_LINKS = [
@@ -20,7 +20,6 @@ const NAV_LINKS = [
     match: (p: string) =>
       p.startsWith("/leasing-guide") || p.startsWith("/calculator") || p.startsWith("/lease-end"),
   },
-  { href: "/broker/signup", label: "Brokers", match: () => false },
 ];
 
 // The signed-in label + destination in the header — a broker sees their
