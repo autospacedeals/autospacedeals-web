@@ -1,27 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
   Search,
   ArrowRight,
   SlidersHorizontal,
-  CircleAlert,
 } from "lucide-react";
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
 import {
   DEFAULT_FILTERS,
-  dealTitle,
   filterDeals,
   formatCurrency,
   LAST_VIEWED_DEAL_KEY,
-  markDealViewed,
   sortDeals,
   type DealFilters,
   type SortOption,
-  formatTerm,
 } from "@/lib/deal-utils";
 import DealCard from "@/components/DealCard";
+import HeroDealsCarousel from "@/components/HeroDealsCarousel";
 import CompareModal from "@/components/CompareModal";
 import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
@@ -54,6 +50,9 @@ const STEPS = [
   { title: "Standardized format", text: "Payment, term, mileage, fees — easy to compare." },
   { title: "Direct seller handoff", text: "Contact the dealer or broker directly." },
 ];
+
+// How many top deals the hero carousel steps through.
+const HERO_DEALS = 6;
 
 export default function HomeClient({
   initialDeals,
@@ -163,12 +162,12 @@ export default function HomeClient({
 
   const sellerCount = useMemo(() => new Set(deals.map((d) => d.sellerName)).size, [deals]);
 
-  // Hero stats line + desktop "featured deal" spotlight (display only).
+  // Hero stats line + desktop "Deals" carousel (display only).
   const lowestMonthly = useMemo(() => {
     const payments = deals.filter((d) => !d.onePay && d.payment > 0).map((d) => d.payment);
     return payments.length ? Math.min(...payments) : null;
   }, [deals]);
-  const spotlight = useMemo(() => sortDeals(deals, "featured", "All")[0] ?? null, [deals]);
+  const spotlight = useMemo(() => sortDeals(deals, "featured", "All").slice(0, HERO_DEALS), [deals]);
 
   const MAKES = useMemo(() => ["All", ...Array.from(new Set(deals.map((d) => d.make))).sort()], [deals]);
   const SELLERS = useMemo(
@@ -293,61 +292,10 @@ export default function HomeClient({
             )}
           </div>
 
-          {spotlight && (
-            <aside aria-label="Featured deal" className="hidden animate-fade-up [animation-delay:200ms] lg:block">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="label">Featured deal</p>
-                <a href="#deals" className="link-arrow pointer-coarse:-my-3 pointer-coarse:min-h-11">
-                  All deals <ArrowRight />
-                </a>
-              </div>
-              <Link
-                href={`/deals/${spotlight.slug}`}
-                onClick={() => markDealViewed(spotlight.id)}
-                className="card-interactive group block overflow-hidden shadow-pop"
-              >
-                <div className="media-stage aspect-[4/3]">
-                  <img src={spotlight.images[0]} alt={dealTitle(spotlight)} className="media-img" />
-                  {!spotlight.inStock && (
-                    <span className="tag absolute top-3 left-3">
-                      <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
-                    </span>
-                  )}
-                  {spotlight.sample ? (
-                    <p className="media-note media-note-warning">
-                      <CircleAlert /> Sample listing — photo not exact vehicle
-                    </p>
-                  ) : (
-                    spotlight.photoAutoSourced && <p className="media-note">Stock photo — may not be exact vehicle</p>
-                  )}
-                </div>
-                <div className="flex items-end justify-between gap-4 p-5">
-                  <div className="min-w-0">
-                    <p className="label">
-                      {spotlight.year} {spotlight.make}
-                    </p>
-                    <p className="type-card mt-1 truncate">
-                      {spotlight.model}
-                      {spotlight.trim ? ` ${spotlight.trim}` : ""}
-                    </p>
-                    <p className="mt-1.5 text-[13px] text-fg-muted">
-                      {!spotlight.onePay && `${formatCurrency(spotlight.dueAtSigning)} due · `}
-                      {formatTerm(spotlight.term)}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="price">{formatCurrency(spotlight.onePay ? spotlight.dueAtSigning : spotlight.payment)}</p>
-                    <p className="price-unit mt-1.5 text-xs">
-                      {spotlight.onePay
-                        ? "one-pay total"
-                        : spotlight.paymentTaxRate
-                          ? `/mo (incl. ~${spotlight.paymentTaxRate}% tax)`
-                          : "/mo + tax"}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            </aside>
+          {spotlight.length > 0 && (
+            <div className="hidden animate-fade-up [animation-delay:200ms] lg:block">
+              <HeroDealsCarousel deals={spotlight} />
+            </div>
           )}
         </div>
 
