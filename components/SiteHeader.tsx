@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, LogOut, ChevronRight, MessageSquare } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
+import { UnreadBadge, useUnreadMessages } from "@/components/messages/UnreadMessages";
 import { LogoWordmark } from "@/components/Logo";
 
 // Shopper destinations only — the broker portal (/broker/login,
@@ -49,6 +50,9 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
       : account?.href === "/broker/dashboard"
         ? "/broker/dashboard/messages"
         : null;
+  const unread = useUnreadMessages(
+    messagesHref === "/customer/messages" ? "customer" : messagesHref ? "broker" : null
+  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/75 backdrop-blur-xl backdrop-saturate-150">
@@ -79,8 +83,13 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
           {account ? (
             <>
               {messagesHref && (
-                <Link href={messagesHref} aria-label="Messages" className="btn btn-ghost btn-icon btn-sm">
+                <Link
+                  href={messagesHref}
+                  aria-label={unread > 0 ? `Messages, ${unread} unread` : "Messages"}
+                  className="btn btn-ghost btn-icon btn-sm relative"
+                >
                   <MessageSquare />
+                  <UnreadBadge count={unread} className="absolute -top-1 -right-1" />
                 </Link>
               )}
               <Link
@@ -144,7 +153,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
                   </Link>
                   {messagesHref && (
                     <Link href={messagesHref} onClick={() => setOpen(false)} className="btn btn-secondary col-span-2 row-start-2">
-                      <MessageSquare /> Messages
+                      <MessageSquare /> Messages <UnreadBadge count={unread} />
                     </Link>
                   )}
                   <form action={headerSignOutAction}>

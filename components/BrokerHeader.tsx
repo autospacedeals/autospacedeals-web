@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { LogoWordmark } from "@/components/Logo";
+import BrokerMessagesLink from "@/components/messages/BrokerMessagesLink";
 
 // Minimal top bar for the broker/dealer portal (/broker/*). Deliberately has
 // no shopper-facing nav (no "Browse deals", no consumer sign up/login) — the
@@ -26,9 +27,7 @@ export default function BrokerHeader() {
           <Link href="/" className="btn btn-ghost btn-sm">
             <ArrowLeft /> Back to main site
           </Link>
-          <Link href="/broker/dashboard/messages" className="btn btn-ghost btn-sm">
-            Messages
-          </Link>
+          <BrokerMessagesLink />
           <Link href="/contact" className="btn btn-ghost btn-sm hidden sm:inline-flex">
             Need help?
           </Link>

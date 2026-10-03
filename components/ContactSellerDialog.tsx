@@ -30,7 +30,9 @@ const TITLES: Record<ContactKind, string> = {
 
 function defaultMessage(deal: Deal, kind: ContactKind): string {
   const title = dealTitle(deal);
-  if (kind === "message") return `Hi ${deal.sellerName}, I have a question about the ${title}.\n\n`;
+  if (kind === "message") {
+    return `Hi ${deal.sellerName}, is the ${title} still available?\n\nThanks!`;
+  }
   if (kind === "availability") {
     return `Hi ${deal.sellerName}, is this deal still available?\n\n${title}\n${deal.city}, ${deal.state}\n\nThanks!`;
   }

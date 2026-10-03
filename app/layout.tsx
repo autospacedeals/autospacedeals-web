@@ -65,7 +65,7 @@ async function getHeaderAccount(): Promise<HeaderAccount | null> {
     }
 
     const { data: broker, error } = await withTimeout(
-      supabase.from("brokers").select("business_name").eq("id", user.id).single<{ business_name: string }>(),
+      supabase.from("brokers").select("business_name").eq("id", user.id).maybeSingle<{ business_name: string }>(),
       5000,
       "getHeaderAccount broker lookup"
     );
@@ -79,7 +79,7 @@ async function getHeaderAccount(): Promise<HeaderAccount | null> {
         .from("customers")
         .select("first_name")
         .eq("id", user.id)
-        .single<{ first_name: string }>(),
+        .maybeSingle<{ first_name: string }>(),
       5000,
       "getHeaderAccount customer lookup"
     );
