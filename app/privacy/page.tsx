@@ -71,6 +71,15 @@ export default function PrivacyPolicyPage() {
               us directly, we receive whatever you send.
             </p>
             <p>
+              <strong>Text messages.</strong> If you turn on &quot;Text me new
+              messages,&quot; we use the mobile number you confirm only to text you when you get a
+              new message on {SITE_NAME} and to receive your replies, which we add to the
+              conversation. We send texts through our provider, Twilio. No mobile information will
+              be shared with third parties or affiliates for marketing or promotional purposes;
+              text messaging opt-in data and consent are never shared with anyone. Reply STOP to
+              stop texts at any time.
+            </p>
+            <p>
               <strong>Automatically collected information.</strong> Like
               most websites, our hosting provider logs standard technical information (IP
               address, browser type, pages visited) for security and reliability. We use a small
@@ -115,7 +124,7 @@ export default function PrivacyPolicyPage() {
                 <strong>With service providers</strong> who host our
                 infrastructure and help the site function — currently Supabase (database,
                 authentication, and file storage), Vercel (hosting), Resend (sending the site&apos;s
-                emails), Google (the optional &quot;Continue with Google&quot; sign-in), Anthropic (AI processing of
+                emails), Twilio (text message alerts and sign-up codes, only if you turn texts on), Google (the optional &quot;Continue with Google&quot; sign-in), Anthropic (AI processing of
                 submitted spreadsheets/text/screenshots into listing data), and CarsXE (vehicle
                 stock photo lookups by year/make/model — no personal information is sent to
                 CarsXE)

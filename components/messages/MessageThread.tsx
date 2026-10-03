@@ -120,6 +120,7 @@ export default function MessageThread({
               <div className={`max-w-[85%] sm:max-w-[70%] ${right ? "text-right" : ""}`}>
                 <p className="mb-1 text-[11px] text-fg-muted">
                   {mine ? "You" : names[m.sender_role]} · {timeLabel(m.created_at)}
+                  {m.channel === "sms" && " · via text"}
                 </p>
                 <p
                   className={`inline-block rounded-2xl px-3.5 py-2.5 text-left text-sm leading-6 break-words whitespace-pre-wrap ${

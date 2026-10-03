@@ -13,8 +13,7 @@ import {
   MESSAGE_COLUMNS,
   MESSAGE_MAX,
   messagingRole,
-  notifyRecipient,
-  participantNames,
+  notifyOtherSide,
   type ConversationRow,
   type MessageRow,
 } from "@/lib/messages";
@@ -129,18 +128,8 @@ async function insertMessage(
     return { ok: false, error: "We couldn't send that message. Please try again." };
   }
 
-  // Tell the other side (best-effort; never fails the send).
-  const { data: c } = await supabase
-    .from("conversations")
-    .select("customer_id, broker_id")
-    .eq("id", conversationId)
-    .maybeSingle<{ customer_id: string; broker_id: string }>();
-  if (c) {
-    const names = await participantNames([c]);
-    const senderName =
-      role === "customer" ? names.customers.get(c.customer_id) ?? "A shopper" : names.brokers.get(c.broker_id) ?? "The seller";
-    await notifyRecipient(conversationId, role === "customer" ? "broker" : "customer", senderName, body);
-  }
+  // Tell the other side by email/text (best-effort; never fails the send).
+  await notifyOtherSide(conversationId, role, body);
   return { ok: true, message };
 }
 

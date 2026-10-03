@@ -69,6 +69,19 @@ Shoppers and brokers talk only through Drive: "Message seller" on a listing (sho
 - **Setup required**: run `0024_messaging.sql` in the Supabase SQL editor *before* deploying the messaging code (the site reads its new columns). It also enables Realtime for the `messages` table.
 - **Records**: messages can't be edited or deleted by users; clear them by hand in Supabase only if you need to.
 
+## Text messages (Twilio)
+
+Optional "Text me new messages" on both dashboards: a shopper/broker confirms a mobile number with a texted code (Twilio Verify), then every new message is also texted to them from Drive's number, and a text reply goes back into the conversation they were last texted about (shown as "via text"). STOP/START keep the setting in step with Twilio's own opt-out handling. See `lib/twilio.ts`, `app/messages/sms-actions.ts`, `app/api/twilio/sms/route.ts` and `supabase/migrations/0025_sms.sql`. Hidden and inert until all four env vars below are set.
+
+- **Setup required** (one-time):
+  1. Run `0025_sms.sql` in the Supabase SQL editor.
+  2. Twilio account (console.twilio.com) → upgrade from trial (add a payment method / funds).
+  3. Buy a number: a **toll-free** number is usually the fastest to get approved (Phone Numbers → Buy a number → Toll-free). Then submit **Toll-Free Verification** for it (use case: account notifications; opt-in: "users turn on texts on their account dashboard and confirm their number with a code"; link the privacy policy and terms). A local 10DLC number works too but needs A2P 10DLC brand + campaign registration instead.
+  4. Messaging → Services → create a service, add the number to it, and under Integration set "Send a webhook" for incoming messages to `https://www.idriveus.com/api/twilio/sms` (HTTP POST). Keep Advanced Opt-Out on (Twilio answers STOP/HELP).
+  5. Verify → Services → create a service (e.g. "Drive") for the confirmation codes.
+  6. Vercel env vars (Production): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID` (MG…), `TWILIO_VERIFY_SERVICE_SID` (VA…). Redeploy.
+- **Costs** (check Twilio's current pricing): a number is a dollar or two a month, texts about a cent each, Verify codes a few cents each.
+
 ## Google sign-in ("Continue with Google")
 
 Customers can sign in or sign up with their Google account (brokers still use email). The button on `/customer/login` and `/customer/signup` stays **hidden until `NEXT_PUBLIC_GOOGLE_SIGN_IN=true`** is set in Vercel. A first-time Google user is sent to `/customer/complete-profile` to add the zip code Google doesn't provide (that creates their `customers` row). If someone already has an email account with the same address, Supabase links Google to that same account. See `components/GoogleSignInButton.tsx` and `app/auth/callback/route.ts`.

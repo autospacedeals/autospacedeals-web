@@ -11,6 +11,8 @@ import ProfileEditor from "./ProfileEditor";
 import SavedDealsList from "./SavedDealsList";
 import SavedSearchesList from "./SavedSearchesList";
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
+import SmsSettings from "@/components/messages/SmsSettings";
+import { formatE164, isSmsConfigured } from "@/lib/twilio";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 
 export const dynamic = "force-dynamic";
@@ -84,10 +86,14 @@ export default async function CustomerDashboardPage() {
           .then(({ data }) => data?.signedUrl ?? null)
       : Promise.resolve(null),
   ]);
-  const [savedDeals, savedSearches, { data: conversations }] = await Promise.all([
+  const smsAvailable = isSmsConfigured();
+  const [savedDeals, savedSearches, { data: conversations }, { data: sms }] = await Promise.all([
     savedDealsPromise,
     savedSearchesPromise,
     supabase.from("conversations").select(CONVERSATION_COLUMNS).eq("customer_id", user.id).returns<ConversationRow[]>(),
+    smsAvailable
+      ? supabase.from("sms_settings").select("phone, enabled").eq("user_id", user.id).maybeSingle<{ phone: string | null; enabled: boolean }>()
+      : Promise.resolve({ data: null }),
   ]);
   const unreadMessages = (conversations ?? []).filter((c) => isUnreadFor("customer", c)).length;
 
@@ -166,8 +172,14 @@ export default async function CustomerDashboardPage() {
                 ? `${(conversations ?? []).length} conversation${(conversations ?? []).length === 1 ? "" : "s"} with sellers.`
                 : "Message a seller from any listing — replies show up here."}
             </p>
-            <div className="mt-4 border-t border-line pt-4">
+            <div className="mt-4 space-y-4 border-t border-line pt-4">
               <MessageEmailsToggle initialEnabled={customer?.message_emails ?? true} />
+              {smsAvailable && (
+                <SmsSettings
+                  enabledPhone={sms?.enabled && sms.phone ? formatE164(sms.phone) : null}
+                  defaultPhone={customer?.phone ?? ""}
+                />
+              )}
             </div>
           </section>
 

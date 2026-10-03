@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { emailLayoutHtml, emailLinkHtml, escapeHtml, isEmailConfigured, sendEmail, siteLink } from "@/lib/email";
+import { isSmsConfigured, sendSms } from "@/lib/twilio";
 
 export type MessageRole = "customer" | "broker";
 
@@ -173,5 +174,74 @@ export async function notifyRecipient(
       .eq("id", c.id);
   } catch (err) {
     console.error("notifyRecipient threw:", err);
+  }
+}
+
+// Tells the other side about a new message — by email and/or text, per
+// their settings. Used for messages sent on the site and for text replies.
+// Never throws.
+export async function notifyOtherSide(conversationId: string, senderRole: MessageRole, body: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: c } = await admin
+      .from("conversations")
+      .select("customer_id, broker_id")
+      .eq("id", conversationId)
+      .maybeSingle<{ customer_id: string; broker_id: string }>();
+    if (!c) return;
+    const names = await participantNames([c]);
+    const senderName =
+      senderRole === "customer"
+        ? names.customers.get(c.customer_id) ?? "A shopper"
+        : names.brokers.get(c.broker_id) ?? "The seller";
+    const recipientRole: MessageRole = senderRole === "customer" ? "broker" : "customer";
+    await Promise.all([
+      notifyRecipient(conversationId, recipientRole, senderName, body),
+      textRecipient(conversationId, recipientRole, senderName, body),
+    ]);
+  } catch (err) {
+    console.error("notifyOtherSide threw:", err);
+  }
+}
+
+// Texts a new message to the recipient if they've turned texts on (see
+// supabase/migrations/0025_sms.sql). Every message is texted — it's a
+// conversation — and the conversation is remembered so a text reply lands
+// in it.
+const SMS_SNIPPET = 280;
+
+async function textRecipient(conversationId: string, recipientRole: MessageRole, senderName: string, body: string) {
+  if (!isSmsConfigured()) return;
+  try {
+    const admin = createAdminClient();
+    const { data: c } = await admin
+      .from("conversations")
+      .select("id, customer_id, broker_id, deal_label")
+      .eq("id", conversationId)
+      .maybeSingle<{ id: string; customer_id: string; broker_id: string; deal_label: string }>();
+    if (!c) return;
+    const recipientId = recipientRole === "customer" ? c.customer_id : c.broker_id;
+    const { data: sms } = await admin
+      .from("sms_settings")
+      .select("phone, enabled, verified_at")
+      .eq("user_id", recipientId)
+      .maybeSingle<{ phone: string | null; enabled: boolean; verified_at: string | null }>();
+    if (!sms?.enabled || !sms.phone || !sms.verified_at) return;
+
+    const snippet = body.replace(/\s+/g, " ").trim();
+    const quoted = snippet.length > SMS_SNIPPET ? `${snippet.slice(0, SMS_SNIPPET - 1)}…` : snippet;
+    const about = c.deal_label ? ` about the ${c.deal_label}` : "";
+    const text =
+      `Drive · ${senderName}${about}: "${quoted}"\n\n` +
+      `Reply to this text to answer, or open ${siteLink(conversationPath(recipientRole, c.id))}`;
+    const sent = await sendSms(sms.phone, text);
+    if (sent) {
+      await admin
+        .from("sms_settings")
+        .update({ last_conversation_id: c.id, updated_at: new Date().toISOString() })
+        .eq("user_id", recipientId);
+    }
+  } catch (err) {
+    console.error("textRecipient threw:", err);
   }
 }

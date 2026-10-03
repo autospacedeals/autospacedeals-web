@@ -96,6 +96,19 @@ export default function TermsOfServicePage() {
             </p>
           </Section>
 
+          <Section title="Text Message Alerts">
+            <p>
+              {SITE_NAME} message alerts are an optional text-message program: when you turn on
+              &quot;Text me new messages&quot; and confirm your mobile number with the code we
+              text you, we text you each time you receive a new message on {SITE_NAME}, and you
+              can reply by text to answer it. Message frequency varies with your conversations.
+              Message and data rates may apply. Reply STOP to cancel at any time and HELP for help,
+              or turn texts off on your dashboard. Carriers are not liable for delayed or
+              undelivered messages. For help, contact us at rob@idriveus.com. See our Privacy
+              Policy for how we handle your number.
+            </p>
+          </Section>
+
           <Section title="Content You Submit">
             <p>
               You keep ownership of the content and documents you upload (listing details,

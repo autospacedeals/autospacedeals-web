@@ -5,6 +5,8 @@ import { LogOut, MessageSquare } from "lucide-react";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
+import SmsSettings from "@/components/messages/SmsSettings";
+import { formatE164, isSmsConfigured } from "@/lib/twilio";
 import { serviceAccountEmail } from "@/lib/google-service-account";
 import { accountHome } from "@/lib/account-home";
 import { mapRowToDeal, type DealRow } from "@/lib/supabase/deals";
@@ -136,13 +138,17 @@ export default async function BrokerDashboardPage() {
   // Contact phone and the message-email setting aren't readable through
   // the public API (0024_messaging.sql), so the broker's own come from the
   // server side.
-  const [{ data: privateProfile }, { data: conversations }] = await Promise.all([
+  const smsAvailable = isSmsConfigured();
+  const [{ data: privateProfile }, { data: conversations }, { data: sms }] = await Promise.all([
     createAdminClient()
       .from("brokers")
       .select("contact_phone, message_emails")
       .eq("id", user.id)
       .maybeSingle<{ contact_phone: string; message_emails: boolean }>(),
     supabase.from("conversations").select(CONVERSATION_COLUMNS).eq("broker_id", user.id).returns<ConversationRow[]>(),
+    smsAvailable
+      ? supabase.from("sms_settings").select("phone, enabled").eq("user_id", user.id).maybeSingle<{ phone: string | null; enabled: boolean }>()
+      : Promise.resolve({ data: null }),
   ]);
   const unreadMessages = (conversations ?? []).filter((c) => isUnreadFor("broker", c)).length;
 
@@ -174,8 +180,14 @@ export default async function BrokerDashboardPage() {
         </div>
       </div>
 
-      <div id="messages" className="mt-4 max-w-xl">
+      <div id="messages" className="mt-4 max-w-xl space-y-4">
         <MessageEmailsToggle initialEnabled={privateProfile?.message_emails ?? true} />
+        {smsAvailable && (
+          <SmsSettings
+            enabledPhone={sms?.enabled && sms.phone ? formatE164(sms.phone) : null}
+            defaultPhone={privateProfile?.contact_phone ?? ""}
+          />
+        )}
       </div>
 
       <AboutEditor about={broker?.about ?? null} brokerId={user.id} />
