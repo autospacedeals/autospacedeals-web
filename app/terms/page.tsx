@@ -96,9 +96,9 @@ export default function TermsOfServicePage() {
             </p>
           </Section>
 
-          <Section title="Text Message Alerts">
+          <Section title="SMS Terms">
             <p>
-              {SITE_NAME} message alerts are an optional text-message program: when you turn on
+              {SITE_NAME} text message alerts are an optional SMS program: when you turn on
               &quot;Text me new messages&quot; and confirm your mobile number with the code we
               text you, we text you each time you receive a new message on {SITE_NAME}, and you
               can reply by text to answer it. Message frequency varies with your conversations.

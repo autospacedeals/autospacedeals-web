@@ -74,10 +74,12 @@ export default function PrivacyPolicyPage() {
               <strong>Text messages.</strong> If you turn on &quot;Text me new
               messages,&quot; we use the mobile number you confirm only to text you when you get a
               new message on {SITE_NAME} and to receive your replies, which we add to the
-              conversation. We send texts through our provider, Twilio. No mobile information will
-              be shared with third parties or affiliates for marketing or promotional purposes;
-              text messaging opt-in data and consent are never shared with anyone. Reply STOP to
-              stop texts at any time.
+              conversation. We send texts through our provider, Twilio. We do not sell or share
+              your SMS opt-in data or personal information with third parties for marketing
+              purposes. No mobile information will be shared with third parties or affiliates for
+              marketing or promotional purposes; text messaging opt-in data and consent are never
+              shared with anyone. Reply STOP to stop texts at any time. More about {SITE_NAME}
+              text alerts: idriveus.com/text-alerts.
             </p>
             <p>
               <strong>Automatically collected information.</strong> Like

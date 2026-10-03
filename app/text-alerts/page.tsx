@@ -86,7 +86,9 @@ export default function TextAlertsPage() {
         </p>
         <h2>Privacy</h2>
         <p>
-          We use your mobile number only to send these alerts and receive your replies. No mobile
+          We use your mobile number only to send these alerts and receive your replies. We do not
+          sell or share your SMS opt-in data or personal information with third parties for
+          marketing purposes. No mobile
           information will be shared with third parties or affiliates for marketing or promotional
           purposes; text messaging opt-in data and consent are never shared with anyone. See our{" "}
           <Link href="/privacy" className="link">
