@@ -1,29 +1,24 @@
 "use client";
 
-import { Phone, MessageSquare, Mail, CalendarCheck, Sparkles, ChevronRight } from "lucide-react";
+import { MessageSquare, Mail, CalendarCheck, Sparkles, ChevronRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { phoneDigits } from "@/lib/deal-utils";
 import { GetMatchedButton } from "@/components/GetMatched";
 import { ContactSellerButton, type ContactKind } from "@/components/ContactSellerDialog";
 
 /**
- * Compact contact actions used on deal cards — just Call and Text so the
- * card stays scannable. Stops click-through to the card's link.
- * Call is tonal blue (the card's main action, but quieter than a filled
- * button, so a grid of 12 cards isn't 12 bright-blue buttons).
+ * Compact contact action used on deal cards — one "Message seller" button
+ * (sellers are reached only through Drive's messaging). Tonal rather than
+ * filled, so a grid of 12 cards isn't 12 bright-blue buttons. Stops
+ * click-through to the card's link.
  */
 export function ContactActionsCompact({ deal }: { deal: Deal }) {
-  const phone = phoneDigits(deal.sellerPhone);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
-    <div className="grid grid-cols-2 gap-2" onClick={stop}>
-      <a href={`tel:${phone}`} className="btn btn-tonal btn-sm">
-        <Phone /> Call
-      </a>
-      <a href={`sms:${phone}`} className="btn btn-secondary btn-sm">
-        <MessageSquare /> Text
-      </a>
+    <div onClick={stop}>
+      <ContactSellerButton deal={deal} kind="message" className="btn btn-tonal btn-sm w-full">
+        <MessageSquare /> Message seller
+      </ContactSellerButton>
     </div>
   );
 }
@@ -33,9 +28,9 @@ const ROW_CLASS =
 
 /**
  * Full contact / lead-flow actions used on the deal detail page.
- * Two big actions (Call is the page's one filled-blue button), then the
- * three quieter actions as a list instead of five equal buttons: two
- * emails to the seller, and "Get matched", which opens a dialog that emails
+ * One big "Message seller" button (the page's one filled-blue button), then
+ * the quieter actions as a list: two ready-written messages to the seller,
+ * and "Get matched", which opens a dialog that emails
  * the shopper the similar deals already shown on the page (`similarIds`,
  * computed by the page — see components/GetMatched.tsx). On a broker's
  * draft preview (`preview`) "Get matched" stays inert: the listing isn't
@@ -52,10 +47,7 @@ export function ContactActionsFull({
   alertsAvailable?: boolean;
   preview?: boolean;
 }) {
-  const phone = phoneDigits(deal.sellerPhone);
-
-  // Opened as a dialog rather than a mailto: link, which does nothing for
-  // anyone without a desktop email app — see ContactSellerDialog.
+  // Each opens the message dialog with a ready-written message.
   const more: { kind: ContactKind; label: string; icon: typeof Mail }[] = [
     { kind: "request", label: "Request this deal", icon: Mail },
     { kind: "availability", label: "Check availability", icon: CalendarCheck },
@@ -63,14 +55,15 @@ export function ContactActionsFull({
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2">
-        <a href={`tel:${phone}`} className="btn btn-primary btn-lg px-4">
-          <Phone /> Call seller
-        </a>
-        <a href={`sms:${phone}`} className="btn btn-secondary btn-lg px-4">
-          <MessageSquare /> Text seller
-        </a>
-      </div>
+      {preview ? (
+        <button type="button" disabled className="btn btn-primary btn-lg w-full px-4">
+          <MessageSquare /> Message seller
+        </button>
+      ) : (
+        <ContactSellerButton deal={deal} kind="message" className="btn btn-primary btn-lg w-full px-4">
+          <MessageSquare /> Message seller
+        </ContactSellerButton>
+      )}
       <ul className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line">
         {more.map(({ kind, label, icon: Icon }) => (
           <li key={label}>

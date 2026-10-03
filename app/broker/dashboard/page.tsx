@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import { LogOut, MessageSquare } from "lucide-react";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
+import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
 import { serviceAccountEmail } from "@/lib/google-service-account";
 import { accountHome } from "@/lib/account-home";
 import { mapRowToDeal, type DealRow } from "@/lib/supabase/deals";
@@ -27,7 +30,6 @@ interface Broker {
   business_name: string;
   seller_type: string;
   dealership_name: string | null;
-  contact_phone: string;
   city: string;
   state: string;
   about: string | null;
@@ -43,7 +45,7 @@ export default async function BrokerDashboardPage() {
   const { data: broker, error: brokerError } = await supabase
     .from("brokers")
     .select(
-      "id, contact_name, business_name, seller_type, dealership_name, contact_phone, city, state, about"
+      "id, contact_name, business_name, seller_type, dealership_name, city, state, about"
     )
     .eq("id", user.id)
     .single<Broker>();
@@ -57,7 +59,7 @@ export default async function BrokerDashboardPage() {
   const DEAL_COLUMNS =
     "id, slug, broker_id, year, make, model, trim, body_style, fuel, exterior, interior, " +
     "deal_type, msrp, selling_price, payment, due_at_signing, term, miles_per_year, apr, " +
-    "seller_type, seller_name, seller_dealership, seller_phone, seller_email, city, state, " +
+    "seller_type, seller_name, seller_dealership, city, state, " +
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
     "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at, " +
@@ -131,6 +133,19 @@ export default async function BrokerDashboardPage() {
     lastSyncError: s.last_sync_error,
   }));
 
+  // Contact phone and the message-email setting aren't readable through
+  // the public API (0024_messaging.sql), so the broker's own come from the
+  // server side.
+  const [{ data: privateProfile }, { data: conversations }] = await Promise.all([
+    createAdminClient()
+      .from("brokers")
+      .select("contact_phone, message_emails")
+      .eq("id", user.id)
+      .maybeSingle<{ contact_phone: string; message_emails: boolean }>(),
+    supabase.from("conversations").select(CONVERSATION_COLUMNS).eq("broker_id", user.id).returns<ConversationRow[]>(),
+  ]);
+  const unreadMessages = (conversations ?? []).filter((c) => isUnreadFor("broker", c)).length;
+
   return (
     <main className="container-page max-w-[1600px] py-10 sm:py-12">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -142,14 +157,25 @@ export default async function BrokerDashboardPage() {
           )}
           <p className="mt-1 text-sm break-words text-fg-muted">
             {broker?.contact_name && `${broker.contact_name} · `}
-            {broker?.city}, {broker?.state} · {broker?.contact_phone} · {user.email}
+            {broker?.city}, {broker?.state}
+            {privateProfile?.contact_phone ? ` · ${privateProfile.contact_phone}` : ""} · {user.email}
           </p>
         </div>
-        <form action={signOutAction}>
-          <button type="submit" className="btn btn-secondary btn-sm">
-            <LogOut /> Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-2">
+          <Link href="/broker/dashboard/messages" className="btn btn-primary btn-sm">
+            <MessageSquare /> Messages
+            {unreadMessages > 0 && <span className="pill pill-neutral">{unreadMessages} new</span>}
+          </Link>
+          <form action={signOutAction}>
+            <button type="submit" className="btn btn-secondary btn-sm">
+              <LogOut /> Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div id="messages" className="mt-4 max-w-xl">
+        <MessageEmailsToggle initialEnabled={privateProfile?.message_emails ?? true} />
       </div>
 
       <AboutEditor about={broker?.about ?? null} brokerId={user.id} />

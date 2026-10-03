@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data: broker } = await supabase
         .from("brokers")
-        .select("id, business_name, seller_type, dealership_name, contact_phone, city, state")
+        .select("id, business_name, seller_type, dealership_name, city, state")
         .eq("id", sync.broker_id)
         .single<BrokerRow>();
 
@@ -55,8 +55,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const { data: authUser } = await supabase.auth.admin.getUserById(sync.broker_id);
-      const result = await runSheetSync(supabase, sync, broker, authUser?.user?.email ?? undefined);
+      const result = await runSheetSync(supabase, sync, broker);
       results.push(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";

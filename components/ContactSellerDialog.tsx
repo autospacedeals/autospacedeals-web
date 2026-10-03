@@ -1,32 +1,36 @@
 "use client";
 
-// "Request this deal" / "Check availability" in a deal page's contact card.
-// These used to be plain mailto: links, which silently do nothing for anyone
-// without a desktop email app set up (most people on Gmail/Yahoo in the
-// browser). The row now opens a small dialog with the message already
-// written, and ways to send it that always work: text the seller, open it
-// in an email app, or copy the message and the seller's email to paste
-// anywhere. Nothing is sent through Drive — it all goes straight from the
-// shopper to the seller. Same dialog behaviour as GetMatched.tsx (portal,
-// focus trap, Escape/scrim to close).
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+// "Message seller" (and the "Request this deal" / "Check availability"
+// shortcuts) on a listing: a small dialog with a ready-written message the
+// shopper can edit, sent through Drive's own messaging (app/messages/
+// actions.ts) so the conversation stays on record — sellers' phone numbers
+// and emails aren't shown on the site. Needs a shopper account; anyone
+// else gets a log-in / sign-up prompt instead. Same dialog behaviour as
+// GetMatched.tsx (portal, focus trap, Escape/scrim to close).
+import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, Mail, MessageSquare, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { LogIn, Send, UserPlus, X } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { dealTitle, formatCurrency, phoneDigits } from "@/lib/deal-utils";
+import { dealTitle, formatCurrency } from "@/lib/deal-utils";
+import { useCustomerSession } from "@/components/CustomerSession";
+import { startConversationAction } from "@/app/messages/actions";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export type ContactKind = "request" | "availability";
+export type ContactKind = "message" | "request" | "availability";
 
 const TITLES: Record<ContactKind, string> = {
+  message: "Message seller",
   request: "Request this deal",
   availability: "Check availability",
 };
 
 function defaultMessage(deal: Deal, kind: ContactKind): string {
   const title = dealTitle(deal);
+  if (kind === "message") return `Hi ${deal.sellerName}, I have a question about the ${title}.\n\n`;
   if (kind === "availability") {
     return `Hi ${deal.sellerName}, is this deal still available?\n\n${title}\n${deal.city}, ${deal.state}\n\nThanks!`;
   }
@@ -83,23 +87,16 @@ function ContactSellerDialog({
   const messageId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const pressStartedOnScrim = useRef(false);
+  const session = useCustomerSession();
+  const pathname = usePathname();
+  const router = useRouter();
 
   const [message, setMessage] = useState(() => defaultMessage(deal, kind));
-  const [copied, setCopied] = useState<"message" | "email" | null>(null);
-  // Set when the browser refused both copy methods: the text is selected
-  // instead so the shopper can press the copy shortcut themselves.
-  const [manualCopy, setManualCopy] = useState<"message" | "email" | null>(null);
-  const messageRef = useRef<HTMLTextAreaElement>(null);
-  const emailRef = useRef<HTMLParagraphElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
-  const phone = phoneDigits(deal.sellerPhone);
-  const email = deal.sellerEmail?.trim() ?? "";
-  const subject = `${TITLES[kind]}: ${dealTitle(deal)}`;
-  // "?&body=" is the form both iOS and Android Messages accept.
-  const smsHref = phone ? `sms:${phone}?&body=${encodeURIComponent(message)}` : null;
-  const mailHref = email
-    ? `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
-    : null;
+  const status = session?.status ?? "anonymous";
+  const next = encodeURIComponent(pathname || "/");
 
   // Focus into the dialog on open, back to the row button on close; the
   // page behind doesn't scroll meanwhile.
@@ -143,53 +140,78 @@ function ContactSellerDialog({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(null), 2000);
-    return () => clearTimeout(t);
-  }, [copied]);
+  function send(e: React.FormEvent) {
+    e.preventDefault();
+    if (pending) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await startConversationAction({ dealId: deal.id, body: message });
+        if (result.ok) {
+          router.push(`/customer/messages/${result.conversationId}`);
+        } else {
+          setError(result.error);
+          if (result.code === "signed-out") session?.refresh();
+        }
+      } catch (err) {
+        console.error("startConversationAction threw:", err);
+        setError("We couldn't send that message. Please try again.");
+      }
+    });
+  }
 
-  async function copy(what: "message" | "email") {
-    const text = what === "message" ? `${subject}\n\n${message}` : email;
-    setManualCopy(null);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(what);
-      return;
-    } catch {
-      // Blocked (e.g. in-app browsers, some privacy settings) — try the
-      // older selection-based copy next.
-    }
-    const scratch = document.createElement("textarea");
-    scratch.value = text;
-    scratch.setAttribute("readonly", "");
-    scratch.style.position = "fixed";
-    scratch.style.opacity = "0";
-    dialogRef.current?.appendChild(scratch);
-    scratch.select();
-    let ok = false;
-    try {
-      ok = document.execCommand("copy");
-    } catch {
-      ok = false;
-    }
-    scratch.remove();
-    if (ok) {
-      setCopied(what);
-      return;
-    }
-    // Last resort: select it on screen and say how to copy.
-    if (what === "message" && messageRef.current) {
-      messageRef.current.focus();
-      messageRef.current.select();
-    } else if (emailRef.current) {
-      const range = document.createRange();
-      range.selectNodeContents(emailRef.current);
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-    }
-    setManualCopy(what);
+  let content: React.ReactNode;
+  if (status === "loading") {
+    content = <p className="text-sm text-fg-muted">One moment…</p>;
+  } else if (status === "customer") {
+    content = (
+      <form onSubmit={send}>
+        <p id={descId} className="text-sm text-fg-secondary">
+          Your message goes to {deal.sellerName} through Drive, and their replies show up in your
+          Messages. Edit it however you like first.
+        </p>
+        <label htmlFor={messageId} className="field-label mt-5">
+          Message
+        </label>
+        <textarea
+          id={messageId}
+          data-autofocus
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={7}
+          maxLength={4000}
+          required
+          className="textarea resize-y"
+        />
+        <div role="alert">{error && <p className="alert alert-danger mt-4">{error}</p>}</div>
+        <button type="submit" disabled={pending || !message.trim()} className="btn btn-primary mt-5 w-full">
+          <Send /> {pending ? "Sending…" : `Send to ${deal.sellerName}`}
+        </button>
+      </form>
+    );
+  } else if (status === "non-customer") {
+    content = (
+      <p id={descId} className="text-sm text-fg-secondary">
+        Messaging sellers needs a shopper account — this account is a dealer/broker or admin one.
+      </p>
+    );
+  } else {
+    content = (
+      <div>
+        <p id={descId} className="text-sm text-fg-secondary">
+          Log in or create a free account to message {deal.sellerName}. Your conversation is kept in
+          your Messages, and you&apos;ll get an email when they reply.
+        </p>
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <Link href={`/customer/login?next=${next}`} data-autofocus className="btn btn-primary">
+            <LogIn /> Log in
+          </Link>
+          <Link href="/customer/signup" className="btn btn-secondary">
+            <UserPlus /> Create account
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const dialog = (
@@ -218,68 +240,7 @@ function ContactSellerDialog({
             <X />
           </button>
         </div>
-
-        <div className="overflow-y-auto px-5 py-5 sm:px-6">
-          <p id={descId} className="text-sm text-fg-secondary">
-            Send {deal.sellerName} this message by text or email — you can edit it first. It goes
-            straight to them.
-          </p>
-
-          <label htmlFor={messageId} className="field-label mt-5">
-            Message
-          </label>
-          <textarea
-            ref={messageRef}
-            id={messageId}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={7}
-            className="textarea resize-y"
-          />
-
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            {smsHref && (
-              <a href={smsHref} data-autofocus className="btn btn-primary">
-                <MessageSquare /> Text {deal.sellerName}
-              </a>
-            )}
-            {mailHref && (
-              <a href={mailHref} data-autofocus={smsHref ? undefined : true} className="btn btn-secondary">
-                <Mail /> Open in email app
-              </a>
-            )}
-          </div>
-
-          <div className="mt-5 rounded-xl border border-line bg-hover p-4">
-            <p className="text-xs leading-5 text-fg-muted">
-              Use Gmail or another web email? Copy the message and send it to:
-            </p>
-            {email && (
-              <p ref={emailRef} className="mt-1 text-sm font-medium break-all text-fg">
-                {email}
-              </p>
-            )}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={() => copy("message")} className="btn btn-secondary btn-sm">
-                {copied === "message" ? <Check /> : <Copy />} {copied === "message" ? "Copied" : "Copy message"}
-              </button>
-              {email && (
-                <button type="button" onClick={() => copy("email")} className="btn btn-ghost btn-sm">
-                  {copied === "email" ? <Check /> : <Copy />} {copied === "email" ? "Copied" : "Copy email"}
-                </button>
-              )}
-            </div>
-            <p aria-live="polite" className={manualCopy ? "mt-3 text-xs text-fg-secondary" : "sr-only"}>
-              {manualCopy
-                ? `Your browser blocked copying — the ${manualCopy === "message" ? "message" : "email address"} is selected, press ⌘C (Ctrl+C on Windows) to copy it.`
-                : copied === "message"
-                  ? "Message copied"
-                  : copied === "email"
-                    ? "Email address copied"
-                    : ""}
-            </p>
-          </div>
-        </div>
+        <div className="overflow-y-auto px-5 py-5 sm:px-6">{content}</div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "October 1, 2026";
+const LAST_UPDATED = "October 3, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -38,8 +38,8 @@ export default function PrivacyPolicyPage() {
           <Section title="Information We Collect">
             <p>
               <strong>Account information.</strong> If you create a
-              customer account, we collect your first and last name, zip code, and email address
-              (required), and optionally your address, current vehicle, and photos of your
+              customer account, we collect your first and last name, zip code, email address, and
+              phone number (required), and optionally your address, current vehicle, and photos of your
               driver&apos;s license and insurance or AAA card. If you create a dealer/broker
               account, we collect your business name, contact name, phone number, city/state, and
               email address.
@@ -62,8 +62,13 @@ export default function PrivacyPolicyPage() {
               inventory.
             </p>
             <p>
-              <strong>Communications.</strong> If you email us or contact
-              a dealer/broker through the site, we (and they) receive whatever you send.
+              <strong>Messages.</strong> Shoppers and dealers/brokers talk to
+              each other through {SITE_NAME}&apos;s messaging. We store every message (who sent it,
+              when, and what it says) so there&apos;s a record of each conversation, and we may
+              review conversations to resolve disputes, prevent fraud or abuse, and keep the
+              marketplace working well. Only the two people in a conversation and {SITE_NAME} can
+              read it. If you turn on message emails, we also email you new messages. If you email
+              us directly, we receive whatever you send.
             </p>
             <p>
               <strong>Automatically collected information.</strong> Like
@@ -116,10 +121,12 @@ export default function PrivacyPolicyPage() {
                 CarsXE)
               </li>
               <li>
-                <strong>With the dealer/broker you contact</strong> — if
-                you reach out about a listing, we and the dealer/broker exchange whatever contact
-                information is needed for that conversation. A dealer/broker&apos;s business name,
-                city/state, and phone number are shown publicly on their listings and profile.
+                <strong>With the other person in a conversation</strong> — when
+                you message about a listing, the other side sees your messages and your display name
+                (a shopper&apos;s first name and last initial, or a dealer/broker&apos;s business
+                name). Phone numbers and email addresses aren&apos;t shown to them unless you share
+                them in a message. A dealer/broker&apos;s business name and city/state are shown
+                publicly on their listings and profile.
               </li>
               <li>
                 <strong>If required by law</strong> — to comply with legal

@@ -7,7 +7,7 @@
 import { deliveryLabel } from "@/lib/deal-location";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, MapPin, Flag, CircleAlert, Phone, MessageSquare } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin, Flag, CircleAlert, MessageSquare } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 import type { Deal } from "@/lib/deals-data";
@@ -18,13 +18,13 @@ import {
   formatCurrency,
   isNewlyPosted,
   msrpDiscountPercent,
-  phoneDigits,
   reportIssueMailtoHref,
   formatMileage,
   formatTerm,
   formatMsds,
 } from "@/lib/deal-utils";
 import { ContactActionsFull } from "@/components/ContactActions";
+import { ContactSellerButton } from "@/components/ContactSellerDialog";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
 import { RatingBadge } from "@/components/StarRating";
 import SaveDealButton from "@/components/SaveDealButton";
@@ -84,7 +84,6 @@ export default function DealDetailView({
   const packages = Array.isArray(deal.packages)
     ? deal.packages.filter((p): p is string => typeof p === "string" && p.length > 0)
     : [];
-  const phone = phoneDigits(deal.sellerPhone);
   const headline = formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment);
   const sellerRating =
     deal.brokerId && brokerRating && brokerRating.count > 0 && brokerRating.average != null
@@ -323,7 +322,7 @@ export default function DealDetailView({
                   )}
                   {deal.sellerDealership && <p className="text-sm text-fg-muted">at {deal.sellerDealership}</p>}
                   <p className="mt-1 text-sm text-fg-muted">
-                    {deal.city}, {deal.state} · {deal.sellerPhone}
+                    {deal.city}, {deal.state}
                   </p>
                   {/* Its own line, so the inline badge and the inline
                       "View seller profile" link below don't run together. */}
@@ -375,7 +374,7 @@ export default function DealDetailView({
         </section>
       )}
 
-      {/* Phones/tablets: price + Call/Text stay reachable. Sticky (not fixed)
+      {/* Phones/tablets: price + Message seller stay reachable. Sticky (not fixed)
           at the end of <main>, so it scrolls away before the footer. */}
       {!isPreview && (
         <div className="sticky bottom-0 z-40 -mx-4 mt-10 border-t border-line bg-canvas/90 backdrop-blur-xl sm:-mx-6 lg:hidden">
@@ -390,12 +389,9 @@ export default function DealDetailView({
                 {deal.onePay ? "One-pay total" : `${formatCurrency(deal.dueAtSigning)} due`} · {formatTerm(deal.term)}
               </p>
             </div>
-            <a href={`tel:${phone}`} className="btn btn-primary btn-sm">
-              <Phone /> Call
-            </a>
-            <a href={`sms:${phone}`} className="btn btn-secondary btn-sm">
-              <MessageSquare /> Text
-            </a>
+            <ContactSellerButton deal={deal} kind="message" className="btn btn-primary btn-sm">
+              <MessageSquare /> Message seller
+            </ContactSellerButton>
           </div>
         </div>
       )}

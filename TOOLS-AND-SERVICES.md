@@ -62,6 +62,13 @@ A signed-in customer can save their homepage filters ("Save this search", under 
 - **Setup required**: run `0018_match_email_log.sql` in the Supabase SQL editor, plus the Resend setup under "Transactional email" above. Until 0018 is run, only signed-in customers can use it — signed-out visitors are told to log in or try later.
 - **Limits**: at most 3 emails to the same address and 10 from the same IP address in any 24 hours, tracked in `match_email_log` (only the site's server can read it). The site deletes rows older than a week now and then; you can also clear the table by hand at any time.
 
+## Messaging
+
+Shoppers and brokers talk only through Drive: "Message seller" on a listing (shopper account required) starts a conversation per shopper + broker + listing; inboxes are at `/customer/messages`, `/broker/dashboard/messages`, and (read-only, everything) `/admin/messages`. New messages show up live (Supabase Realtime) and, if the recipient leaves "Email me when I get a new message" on (each dashboard), are emailed through Resend — at most one email per conversation until they've read it, or once an hour. Phone numbers and emails aren't shown anywhere public. See `lib/messages.ts`, `app/messages/actions.ts` and `supabase/migrations/0024_messaging.sql`.
+
+- **Setup required**: run `0024_messaging.sql` in the Supabase SQL editor *before* deploying the messaging code (the site reads its new columns). It also enables Realtime for the `messages` table.
+- **Records**: messages can't be edited or deleted by users; clear them by hand in Supabase only if you need to.
+
 ## Google sign-in ("Continue with Google")
 
 Customers can sign in or sign up with their Google account (brokers still use email). The button on `/customer/login` and `/customer/signup` stays **hidden until `NEXT_PUBLIC_GOOGLE_SIGN_IN=true`** is set in Vercel. A first-time Google user is sent to `/customer/complete-profile` to add the zip code Google doesn't provide (that creates their `customers` row). If someone already has an email account with the same address, Supabase links Google to that same account. See `components/GoogleSignInButton.tsx` and `app/auth/callback/route.ts`.

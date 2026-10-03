@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, LogIn, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, LogIn, MapPin } from "lucide-react";
 import { getBrokerProfile } from "@/lib/supabase/brokers";
 import { getPublishedDealsByBroker } from "@/lib/supabase/deals";
 import { getMyReview, getReviewsForBroker, type ReviewViewer } from "@/lib/supabase/reviews";
-import { phoneDigits } from "@/lib/deal-utils";
 import { formatAverageRating, reviewCountLabel, reviewDateLabel, reviewFullDate } from "@/lib/reviews";
 import BrokerListings from "@/components/BrokerListings";
 import { pageMetadata } from "@/lib/site";
@@ -68,7 +67,6 @@ export default async function BrokerProfilePage({
   const hasSummary = average != null;
   // Only invite a first review from someone who could actually leave one.
   const canReview = viewer.status === "customer" || viewer.status === "signed-out";
-  const phone = phoneDigits(broker.contactPhone);
 
   return (
     <main className="container-page max-w-6xl py-8 sm:py-12">
@@ -93,12 +91,6 @@ export default async function BrokerProfilePage({
               <span className="flex items-center gap-1.5">
                 <MapPin size={15} className="text-fg-faint" /> {broker.city}, {broker.state}
               </span>
-              <a
-                href={phone ? `tel:${phone}` : undefined}
-                className="flex min-h-9 items-center gap-1.5 font-medium text-fg transition-colors hover:text-accent-fg"
-              >
-                <Phone size={15} className="text-accent-fg" /> {broker.contactPhone || "No phone on file"}
-              </a>
             </div>
           </div>
         </div>
@@ -110,7 +102,7 @@ export default async function BrokerProfilePage({
         )}
 
         <p className="mt-6 text-xs leading-5 text-fg-muted">
-          Contacting {broker.businessName} connects you directly — Drive does not
+          Message {broker.businessName} from any of their listings below. Drive does not
           process payments or negotiate on your behalf.
         </p>
       </section>

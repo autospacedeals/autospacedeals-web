@@ -117,20 +117,16 @@ export async function stageDealDraftAction(
 
   const { data: broker } = await admin
     .from("brokers")
-    .select("business_name, seller_type, dealership_name, contact_phone, city, state")
+    .select("business_name, seller_type, dealership_name, city, state")
     .eq("id", brokerId)
     .single<{
       business_name: string;
       seller_type: string;
       dealership_name: string | null;
-      contact_phone: string;
       city: string;
       state: string;
     }>();
   if (!broker) return { error: "Couldn't find that broker's profile." };
-
-  const { data: authUser } = await admin.auth.admin.getUserById(brokerId);
-  const brokerEmail = authUser?.user?.email ?? "";
 
   const year = Number(formData.get("year"));
   const make = String(formData.get("make") || "").trim();
@@ -212,8 +208,6 @@ export async function stageDealDraftAction(
     seller_type: broker.seller_type,
     seller_name: broker.business_name,
     seller_dealership: broker.dealership_name,
-    seller_phone: broker.contact_phone,
-    seller_email: brokerEmail,
     verified: true,
     condition,
     incentives,

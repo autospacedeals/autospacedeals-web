@@ -121,8 +121,7 @@ export function planSheetSync(
 export async function runSheetSync(
   supabase: SupabaseClient,
   sync: SheetSyncRow,
-  broker: BrokerProfile,
-  brokerEmail: string | undefined
+  broker: BrokerProfile
 ): Promise<SheetSyncResult> {
   const nowIso = new Date().toISOString();
 
@@ -221,7 +220,7 @@ export async function runSheetSync(
 
   let addedCount = 0;
   if (toInsert.length > 0) {
-    const staging = await stageParsedDeals(supabase, sync.broker_id, brokerEmail, broker, null, toInsert, {
+    const staging = await stageParsedDeals(supabase, sync.broker_id, broker, null, toInsert, {
       status: sync.auto_publish ? "published" : "draft",
       sheetSyncId: sync.id,
     });

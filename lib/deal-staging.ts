@@ -12,7 +12,6 @@ export interface BrokerProfile {
   business_name: string;
   seller_type: string;
   dealership_name: string | null;
-  contact_phone: string;
   city: string;
   state: string;
 }
@@ -36,7 +35,6 @@ export interface StageOptions {
 export async function stageParsedDeals(
   supabase: SupabaseClient,
   userId: string,
-  userEmail: string | undefined,
   broker: BrokerProfile,
   submissionId: string | null,
   deals: ParsedDeal[],
@@ -94,8 +92,6 @@ export async function stageParsedDeals(
       seller_type: broker.seller_type,
       seller_name: broker.business_name,
       seller_dealership: broker.dealership_name,
-      seller_phone: broker.contact_phone,
-      seller_email: userEmail ?? "",
       city: d.city ?? broker.city,
       state: d.state ?? broker.state,
       delivery: d.delivery ?? null,

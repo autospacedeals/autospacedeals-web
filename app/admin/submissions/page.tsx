@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
@@ -82,7 +83,12 @@ export default async function AdminSubmissionsPage() {
   return (
     <main className="container-page max-w-5xl py-10 sm:py-12">
       <p className="eyebrow">Admin</p>
-      <h1 className="type-page mt-3 text-3xl sm:text-3xl">Submission queue</h1>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="type-page text-3xl sm:text-3xl">Submission queue</h1>
+        <Link href="/admin/messages" className="btn btn-secondary btn-sm">
+          All messages
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-fg-muted">
         {pendingCount} pending · {sorted.length} total. Brokers now add their own cars right after
         submitting a link/sheet/file, so nothing here needs your approval to go live. This is just

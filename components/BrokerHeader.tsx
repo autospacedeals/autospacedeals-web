@@ -26,12 +26,12 @@ export default function BrokerHeader() {
           <Link href="/" className="btn btn-ghost btn-sm">
             <ArrowLeft /> Back to main site
           </Link>
-          <a
-            href="mailto:rob@idriveus.com?subject=Broker%20portal%20help"
-            className="btn btn-ghost btn-sm hidden sm:inline-flex"
-          >
+          <Link href="/broker/dashboard/messages" className="btn btn-ghost btn-sm">
+            Messages
+          </Link>
+          <Link href="/contact" className="btn btn-ghost btn-sm hidden sm:inline-flex">
             Need help?
-          </a>
+          </Link>
         </div>
       </div>
     </header>

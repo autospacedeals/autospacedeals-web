@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LogOut, ChevronRight } from "lucide-react";
+import { Menu, X, LogOut, ChevronRight, MessageSquare } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
 import { LogoWordmark } from "@/components/Logo";
 
@@ -42,6 +42,13 @@ function initials(label: string) {
 export default function SiteHeader({ account }: { account: HeaderAccount | null }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() ?? "";
+  // Shoppers and brokers each have an inbox (admin has its own page).
+  const messagesHref =
+    account?.href === "/customer/dashboard"
+      ? "/customer/messages"
+      : account?.href === "/broker/dashboard"
+        ? "/broker/dashboard/messages"
+        : null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/75 backdrop-blur-xl backdrop-saturate-150">
@@ -71,6 +78,11 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
         <div className="flex min-w-0 items-center gap-2">
           {account ? (
             <>
+              {messagesHref && (
+                <Link href={messagesHref} aria-label="Messages" className="btn btn-ghost btn-icon btn-sm">
+                  <MessageSquare />
+                </Link>
+              )}
               <Link
                 href={account.href}
                 className="btn btn-ghost btn-sm hidden min-w-0 shrink pl-1.5 sm:inline-flex"
@@ -130,6 +142,11 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
                   <Link href={account.href} onClick={() => setOpen(false)} className="btn btn-secondary">
                     <span className="truncate">{account.label}</span>
                   </Link>
+                  {messagesHref && (
+                    <Link href={messagesHref} onClick={() => setOpen(false)} className="btn btn-secondary col-span-2 row-start-2">
+                      <MessageSquare /> Messages
+                    </Link>
+                  )}
                   <form action={headerSignOutAction}>
                     <button type="submit" onClick={() => setOpen(false)} className="btn btn-ghost w-full">
                       <LogOut /> Sign out

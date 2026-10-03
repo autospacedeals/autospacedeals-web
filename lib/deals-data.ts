@@ -68,8 +68,7 @@ export interface Deal {
   // Seller
   sellerType: SellerType;
   sellerName: string;
-  sellerPhone: string;
-  sellerEmail: string;
+  // No phone/email: shoppers reach sellers only through Drive's messaging.
   city: string;
   state: string; // 2-letter code
   // Links to the broker's public About page — null for sample/legacy

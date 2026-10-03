@@ -162,7 +162,7 @@ export async function createSubmissionAction(
 
   const { data: broker } = await supabase
     .from("brokers")
-    .select("business_name, seller_type, dealership_name, contact_phone, city, state")
+    .select("business_name, seller_type, dealership_name, city, state")
     .eq("id", user.id)
     .single<BrokerProfile>();
 
@@ -369,7 +369,7 @@ export async function createSubmissionAction(
   let stageFailed = 0;
   let stageLastError: string | null = null;
   if (broker && parsedDeals.length > 0 && inserted) {
-    const staging = await stageParsedDeals(supabase, user.id, user.email, broker, inserted.id, parsedDeals, {
+    const staging = await stageParsedDeals(supabase, user.id, broker, inserted.id, parsedDeals, {
       sheetSyncId,
     });
     stageFailed = staging.failed;
@@ -481,13 +481,12 @@ export async function createManualDealAction(
 
   const { data: broker } = await supabase
     .from("brokers")
-    .select("business_name, seller_type, dealership_name, contact_phone, city, state")
+    .select("business_name, seller_type, dealership_name, city, state")
     .eq("id", user.id)
     .single<{
       business_name: string;
       seller_type: string;
       dealership_name: string | null;
-      contact_phone: string;
       city: string;
       state: string;
     }>();
@@ -594,8 +593,6 @@ export async function createManualDealAction(
     seller_type: broker.seller_type,
     seller_name: broker.business_name,
     seller_dealership: broker.dealership_name,
-    seller_phone: broker.contact_phone,
-    seller_email: user.email ?? "",
     verified: true,
     condition,
     incentives,

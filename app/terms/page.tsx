@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/terms",
 });
 
-const LAST_UPDATED = "August 19, 2026";
+const LAST_UPDATED = "October 3, 2026";
 
 export default function TermsOfServicePage() {
   return (
@@ -83,6 +83,17 @@ export default function TermsOfServicePage() {
               <li>Harass, threaten, or abuse other users</li>
               <li>Attempt to interfere with or disrupt the site&apos;s normal operation</li>
             </ul>
+          </Section>
+
+          <Section title="Messaging">
+            <p>
+              Shoppers and dealers/brokers contact each other through {SITE_NAME}&apos;s on-site
+              messaging, which needs an account. Messages are stored and may be reviewed by{" "}
+              {SITE_NAME} to keep a record of each conversation, resolve disputes, and prevent
+              fraud or abuse — see our Privacy Policy. Keep messages about the listing and the
+              deal; the Acceptable Use rules above apply to everything you send. {SITE_NAME} isn&apos;t
+              a party to any deal you arrange, including anything agreed in messages.
+            </p>
           </Section>
 
           <Section title="Content You Submit">

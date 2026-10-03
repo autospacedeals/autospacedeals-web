@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, MapPin, Heart, Bell, ArrowRight } from "lucide-react";
+import { LogOut, MapPin, Heart, Bell, ArrowRight, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSavedDeals, SAVED_DEALS_LIST_LIMIT, type SavedDeals } from "@/lib/supabase/saved-deals";
 import { getSavedSearches, type SavedSearches } from "@/lib/supabase/saved-searches";
@@ -10,6 +10,8 @@ import { signOutAction } from "../actions";
 import ProfileEditor from "./ProfileEditor";
 import SavedDealsList from "./SavedDealsList";
 import SavedSearchesList from "./SavedSearchesList";
+import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
+import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ interface Customer {
   last_name: string;
   zip_code: string;
   phone: string | null;
+  message_emails: boolean;
   address: string | null;
   current_vehicle: string | null;
   drivers_license_path: string | null;
@@ -44,7 +47,7 @@ export default async function CustomerDashboardPage() {
   const { data: customer, error: customerError } = await supabase
     .from("customers")
     .select(
-      "first_name, last_name, zip_code, phone, address, current_vehicle, drivers_license_path, insurance_card_path"
+      "first_name, last_name, zip_code, phone, message_emails, address, current_vehicle, drivers_license_path, insurance_card_path"
     )
     .eq("id", user.id)
     .single<Customer>();
@@ -81,7 +84,12 @@ export default async function CustomerDashboardPage() {
           .then(({ data }) => data?.signedUrl ?? null)
       : Promise.resolve(null),
   ]);
-  const [savedDeals, savedSearches] = await Promise.all([savedDealsPromise, savedSearchesPromise]);
+  const [savedDeals, savedSearches, { data: conversations }] = await Promise.all([
+    savedDealsPromise,
+    savedSearchesPromise,
+    supabase.from("conversations").select(CONVERSATION_COLUMNS).eq("customer_id", user.id).returns<ConversationRow[]>(),
+  ]);
+  const unreadMessages = (conversations ?? []).filter((c) => isUnreadFor("customer", c)).length;
 
   return (
     <main className="container-page max-w-5xl py-10 sm:py-12">
@@ -143,6 +151,26 @@ export default async function CustomerDashboardPage() {
         </div>
 
         <div className="space-y-6 lg:col-span-2">
+          <section id="messages" aria-labelledby="messages-heading" className="panel sm:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="messages-heading" className="panel-title">
+                <MessageSquare /> Messages
+                {unreadMessages > 0 && <span className="pill pill-accent">{unreadMessages} unread</span>}
+              </h2>
+              <Link href="/customer/messages" className="link-arrow">
+                Open messages <ArrowRight />
+              </Link>
+            </div>
+            <p className="mt-2 text-sm text-fg-muted">
+              {(conversations ?? []).length > 0
+                ? `${(conversations ?? []).length} conversation${(conversations ?? []).length === 1 ? "" : "s"} with sellers.`
+                : "Message a seller from any listing — replies show up here."}
+            </p>
+            <div className="mt-4 border-t border-line pt-4">
+              <MessageEmailsToggle initialEnabled={customer?.message_emails ?? true} />
+            </div>
+          </section>
+
           <SavedDealsSection savedDeals={savedDeals} />
 
           <SavedSearchesSection savedSearches={savedSearches} />
