@@ -105,7 +105,8 @@ export default function TermsOfServicePage() {
               Message and data rates may apply. Reply STOP to cancel at any time and HELP for help,
               or turn texts off on your dashboard. Carriers are not liable for delayed or
               undelivered messages. For help, contact us at rob@idriveus.com. See our Privacy
-              Policy for how we handle your number.
+              Policy for how we handle your number, and our text alerts page
+              (idriveus.com/text-alerts) for how opting in works.
             </p>
           </Section>
 
