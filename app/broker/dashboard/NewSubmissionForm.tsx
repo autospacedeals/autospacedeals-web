@@ -283,8 +283,8 @@ function LinkForm({
               {sheetShareEmail ? (
                 <p className="field-hint">
                   Private sheet? Click &quot;Share&quot; in Google Sheets and add{" "}
-                  <span className="font-medium break-all text-fg-secondary select-all">{sheetShareEmail}</span> as a
-                  Viewer. Or set sharing to &quot;Anyone with the link can view&quot;.
+                  <span className="font-medium break-all text-fg-secondary select-all">{sheetShareEmail}</span>{" "}
+                  as a Viewer. Or set sharing to &quot;Anyone with the link can view&quot;.
                 </p>
               ) : (
                 <p className="field-hint">

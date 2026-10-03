@@ -13,26 +13,57 @@ interface ServiceAccountKey {
 
 let cachedKey: ServiceAccountKey | null | undefined;
 
+// The key file's JSON, however it was pasted into the env var: as-is,
+// wrapped in quotes or escaped as a JSON string, with stray text around
+// the braces, or base64-encoded.
+function parseKeyJson(raw: string): Record<string, unknown> | null {
+  const attempt = (text: string): Record<string, unknown> | null => {
+    try {
+      let value: unknown = JSON.parse(text);
+      // An escaped copy ("{\"type\": ...}") parses to a string first.
+      if (typeof value === "string") value = JSON.parse(value);
+      return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  };
+  const between = (text: string) => {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    return start >= 0 && end > start ? text.slice(start, end + 1) : null;
+  };
+  const candidates = [raw, between(raw)];
+  if (!raw.includes("{")) {
+    const decoded = Buffer.from(raw, "base64").toString("utf8");
+    candidates.push(decoded, between(decoded));
+  }
+  for (const text of candidates) {
+    const parsed = text ? attempt(text) : null;
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
 function readKey(): ServiceAccountKey | null {
   if (cachedKey !== undefined) return cachedKey;
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
   cachedKey = null;
   if (!raw) return null;
-  try {
-    // Accept the file's JSON as-is, or base64 of it.
-    const parsed = JSON.parse(raw.startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8"));
-    if (typeof parsed?.client_email === "string" && typeof parsed?.private_key === "string") {
-      cachedKey = {
-        client_email: parsed.client_email,
-        // Pasted keys sometimes carry literal "\n" instead of newlines.
-        private_key: parsed.private_key.replace(/\\n/g, "\n"),
-        token_uri: typeof parsed.token_uri === "string" ? parsed.token_uri : undefined,
-      };
-    } else {
-      console.error("GOOGLE_SERVICE_ACCOUNT_JSON is missing client_email or private_key");
-    }
-  } catch (err) {
-    console.error("GOOGLE_SERVICE_ACCOUNT_JSON isn't valid JSON:", err instanceof Error ? err.message : err);
+  const parsed = parseKeyJson(raw);
+  if (parsed && typeof parsed.client_email === "string" && typeof parsed.private_key === "string") {
+    cachedKey = {
+      client_email: parsed.client_email,
+      // Pasted keys sometimes carry literal "\n" instead of newlines.
+      private_key: parsed.private_key.replace(/\\n/g, "\n"),
+      token_uri: typeof parsed.token_uri === "string" ? parsed.token_uri : undefined,
+    };
+  } else {
+    // Describe the value's shape only — never log the key itself.
+    console.error(
+      `GOOGLE_SERVICE_ACCOUNT_JSON couldn't be read as a service-account key (length ${raw.length}, ` +
+        `starts with char code ${raw.charCodeAt(0)}, has "{": ${raw.includes("{")}, ` +
+        `has "private_key": ${raw.includes("private_key")}, has client_email: ${raw.includes("client_email")})`
+    );
   }
   return cachedKey;
 }
