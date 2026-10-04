@@ -6,7 +6,7 @@ import { Calculator, ArrowRight, Scale } from "lucide-react";
 export const metadata: Metadata = pageMetadata({
   title: "Leasing Guide",
   description:
-    "Understand money factor, residual value, due at signing, and effective payment before you sign a car lease.",
+    "Understand money factor, residual value, due at signing, effective payment, and MSDs before you sign a car lease.",
   path: "/leasing-guide",
 });
 
@@ -127,7 +127,44 @@ export default function LeasingGuidePage() {
             </p>
           </Section>
 
-          <Section n={7} title="Common Lease Incentives">
+          <Section n={7} title="What Are MSDs (Multiple Security Deposits)?">
+            <p>
+              Multiple security deposits are extra, refundable deposits you pay
+              when you start a lease. Each deposit is usually about one monthly
+              payment (rounded up), and each one lowers the lease&apos;s money
+              factor a little, so your monthly payment goes down. You get the
+              deposits back at the end of the lease, as long as everything on
+              the lease is paid up.
+            </p>
+            <p>
+              Not every brand offers them, and the rules change. The lender sets
+              the maximum number of deposits (often up to 7–10) and how much
+              each one lowers the money factor (often around 0.00007–0.0001
+              each). Always confirm with the dealer or broker.
+            </p>
+            <p className="formula">
+              Monthly savings ≈ Money factor reduction × (Selling price +
+              Residual value)
+            </p>
+            <p>
+              Example: a $60,000 car with a $35,000 residual and a $600 payment.
+              Seven $600 deposits ($4,200, refundable) that each cut the money
+              factor by 0.00007 lower it by 0.00049 — about 0.00049 × $95,000 ≈
+              $46 less per month, or roughly $1,670 saved over 36 months. That
+              works out to about a 13% yearly return on the deposits, risk-free,
+              which is why MSDs are popular when a brand offers them.
+            </p>
+            <p>
+              On Drive, a listing that says something like &quot;7 MSDs&quot;
+              means the advertised payment already assumes those deposits. The
+              deposits are paid at signing on top of the due-at-signing amount,
+              and they&apos;re not part of the Effective Payment because you get
+              them back. Skip MSDs if you&apos;d rather keep that cash free, and
+              ask what the payment is without them.
+            </p>
+          </Section>
+
+          <Section n={8} title="Common Lease Incentives">
             <ul>
               <li>Loyalty credit</li>
               <li>Conquest credit</li>
@@ -142,7 +179,7 @@ export default function LeasingGuidePage() {
             </p>
           </Section>
 
-          <Section n={8} title="Common Lease Mistakes">
+          <Section n={9} title="Common Lease Mistakes">
             <ul>
               <li>Only looking at monthly payment</li>
               <li>Ignoring the due-at-signing amount</li>
@@ -153,7 +190,7 @@ export default function LeasingGuidePage() {
             </ul>
           </Section>
 
-          <Section n={9} title="What Makes a Good Lease Deal?">
+          <Section n={10} title="What Makes a Good Lease Deal?">
             <ul>
               <li>Strong discount off MSRP</li>
               <li>Low money factor</li>
@@ -164,7 +201,7 @@ export default function LeasingGuidePage() {
             </ul>
           </Section>
 
-          <Section n={10} title="What Happens When Your Lease Ends?">
+          <Section n={11} title="What Happens When Your Lease Ends?">
             <p>
               At lease-end you usually have three options: buy the car at its residual (payoff)
               value, return it and walk away, or trade it in toward something new.
