@@ -25,7 +25,8 @@ export default function BrokerHeader() {
         </Link>
         <div className="flex items-center gap-1">
           <Link href="/" className="btn btn-ghost btn-sm">
-            <ArrowLeft /> Back to main site
+            <ArrowLeft /> <span className="sm:hidden">Main site</span>
+            <span className="hidden sm:inline">Back to main site</span>
           </Link>
           <BrokerMessagesLink />
           <Link href="/contact" className="btn btn-ghost btn-sm hidden sm:inline-flex">
