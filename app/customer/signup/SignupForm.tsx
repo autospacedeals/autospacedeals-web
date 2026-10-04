@@ -43,6 +43,12 @@ export default function SignupForm() {
           <input id="signup-first-name" required name="firstName" placeholder="Jordan" className={inputClass} />
         </div>
         <div>
+          <label htmlFor="signup-middle-name" className={labelClass}>
+            Middle name <span className="text-fg-faint">(optional)</span>
+          </label>
+          <input id="signup-middle-name" name="middleName" maxLength={80} autoComplete="additional-name" className={inputClass} />
+        </div>
+        <div>
           <label htmlFor="signup-last-name" className={labelClass}>
             Last name
           </label>

@@ -64,7 +64,7 @@ export async function listAccounts(): Promise<AdminAccount[]> {
     adminEmails(),
     allAuthUsers(),
     admin.from("brokers").select("id, business_name, contact_name, contact_phone, city, state"),
-    admin.from("customers").select("id, first_name, last_name, zip_code, phone"),
+    admin.from("customers").select("id, first_name, middle_name, last_name, zip_code, phone"),
     admin.from("deals").select("broker_id, status").neq("status", "removed"),
     admin.from("conversations").select("customer_id, broker_id"),
     admin.from("saved_deals").select("customer_id"),
@@ -72,7 +72,7 @@ export async function listAccounts(): Promise<AdminAccount[]> {
   ]);
 
   type BrokerRow = { id: string; business_name: string; contact_name: string | null; contact_phone: string | null; city: string; state: string };
-  type CustomerRow = { id: string; first_name: string; last_name: string; zip_code: string; phone: string | null };
+  type CustomerRow = { id: string; first_name: string; middle_name: string | null; last_name: string; zip_code: string; phone: string | null };
   const brokerById = new Map(((brokers.data ?? []) as BrokerRow[]).map((b) => [b.id, b]));
   const customerById = new Map(((customers.data ?? []) as CustomerRow[]).map((c) => [c.id, c]));
   const dealRows = (deals.data ?? []) as { broker_id: string | null; status: string }[];
@@ -115,7 +115,7 @@ export async function listAccounts(): Promise<AdminAccount[]> {
         return {
           ...base,
           kind: "shopper",
-          name: `${c.first_name} ${c.last_name}`.trim(),
+          name: [c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" "),
           contactName: null,
           phone: c.phone ? (normalizeUsPhone(c.phone) ?? c.phone) : null,
           location: `zip ${c.zip_code}`,

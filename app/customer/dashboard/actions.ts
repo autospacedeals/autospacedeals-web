@@ -40,6 +40,7 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<P
   if (!user) redirect("/customer/login");
 
   const firstName = String(formData.get("firstName") || "").trim();
+  const middleName = String(formData.get("middleName") || "").trim().slice(0, 80) || null;
   const lastName = String(formData.get("lastName") || "").trim();
   const zipCode = String(formData.get("zipCode") || "").trim();
   const address = String(formData.get("address") || "").trim() || null;
@@ -67,6 +68,7 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<P
   // whatever's already on file untouched otherwise.
   const update: Record<string, string | null> = {
     first_name: firstName,
+    middle_name: middleName,
     last_name: lastName,
     zip_code: zipCode,
     phone,

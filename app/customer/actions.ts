@@ -77,6 +77,7 @@ export async function signUpAction(
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
   const firstName = String(formData.get("firstName") || "").trim();
+  const middleName = String(formData.get("middleName") || "").trim().slice(0, 80) || null;
   const lastName = String(formData.get("lastName") || "").trim();
   const zipCode = String(formData.get("zipCode") || "").trim();
   const phoneRaw = String(formData.get("phone") || "").trim();
@@ -135,6 +136,7 @@ export async function signUpAction(
   const { error: profileError } = await admin.from("customers").insert({
     id: data.user.id,
     first_name: firstName,
+    middle_name: middleName,
     last_name: lastName,
     zip_code: zipCode,
     phone,
@@ -215,6 +217,7 @@ export async function completeProfileAction(
   formData: FormData
 ): Promise<AuthState> {
   const firstName = String(formData.get("firstName") || "").trim().slice(0, 80);
+  const middleName = String(formData.get("middleName") || "").trim().slice(0, 80) || null;
   const lastName = String(formData.get("lastName") || "").trim().slice(0, 80);
   const zipCode = String(formData.get("zipCode") || "").trim();
   const phoneRaw = String(formData.get("phone") || "").trim();
@@ -240,6 +243,7 @@ export async function completeProfileAction(
     const { error } = await supabase.from("customers").insert({
       id: user.id,
       first_name: firstName,
+      middle_name: middleName,
       last_name: lastName,
       zip_code: zipCode,
       phone,

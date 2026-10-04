@@ -21,7 +21,7 @@ export default function CompleteProfileForm({
   return (
     <form action={formAction} className="space-y-5">
       {next && <input type="hidden" name="next" value={next} />}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor="complete-first-name" className="field-label">
             First name
@@ -34,6 +34,12 @@ export default function CompleteProfileForm({
             defaultValue={firstName}
             className="input"
           />
+        </div>
+        <div>
+          <label htmlFor="complete-middle-name" className="field-label">
+            Middle name <span className="text-fg-faint">(optional)</span>
+          </label>
+          <input id="complete-middle-name" name="middleName" maxLength={80} autoComplete="additional-name" className="input" />
         </div>
         <div>
           <label htmlFor="complete-last-name" className="field-label">

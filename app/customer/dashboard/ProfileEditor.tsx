@@ -10,6 +10,7 @@ const fileInputClass = "file-input";
 
 interface ProfileEditorProps {
   firstName: string;
+  middleName: string;
   lastName: string;
   zipCode: string;
   phone: string;
@@ -23,6 +24,7 @@ interface ProfileEditorProps {
 
 export default function ProfileEditor({
   firstName,
+  middleName,
   lastName,
   zipCode,
   phone,
@@ -136,6 +138,19 @@ export default function ProfileEditor({
               name="firstName"
               defaultValue={firstName}
               required
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="profile-middle-name" className={labelClass}>
+              Middle name <span className="text-fg-faint">(optional)</span>
+            </label>
+            <input
+              id="profile-middle-name"
+              name="middleName"
+              defaultValue={middleName}
+              maxLength={80}
+              autoComplete="additional-name"
               className={inputClass}
             />
           </div>

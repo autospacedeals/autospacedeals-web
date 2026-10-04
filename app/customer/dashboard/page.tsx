@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 
 interface Customer {
   first_name: string;
+  middle_name: string | null;
   last_name: string;
   zip_code: string;
   phone: string | null;
@@ -49,7 +50,7 @@ export default async function CustomerDashboardPage() {
   const { data: customer, error: customerError } = await supabase
     .from("customers")
     .select(
-      "first_name, last_name, zip_code, phone, message_emails, address, current_vehicle, drivers_license_path, insurance_card_path"
+      "first_name, middle_name, last_name, zip_code, phone, message_emails, address, current_vehicle, drivers_license_path, insurance_card_path"
     )
     .eq("id", user.id)
     .single<Customer>();
@@ -67,6 +68,7 @@ export default async function CustomerDashboardPage() {
   // missing (e.g. the profile insert failed), degrade gracefully instead of
   // crashing the page.
   const firstName = customer?.first_name ?? "";
+  const middleName = customer?.middle_name ?? "";
   const lastName = customer?.last_name ?? "";
 
   // Short-lived signed URLs so the customer can view their own uploaded
@@ -121,7 +123,7 @@ export default async function CustomerDashboardPage() {
             <div>
               <dt className="label">Name</dt>
               <dd className="mt-1 font-medium text-fg">
-                {firstName} {lastName}
+                {[firstName, middleName, lastName].filter(Boolean).join(" ")}
               </dd>
             </div>
             <div>
@@ -144,6 +146,7 @@ export default async function CustomerDashboardPage() {
 
           <ProfileEditor
             firstName={firstName}
+            middleName={middleName}
             lastName={lastName}
             zipCode={customer?.zip_code ?? ""}
             phone={customer?.phone ?? ""}
