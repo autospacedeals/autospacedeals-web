@@ -62,9 +62,9 @@ export default async function AdminOverviewPage() {
           {accounts.slice(0, 8).map((a) => (
             <li key={a.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm">
               <span>
-                <span className="font-medium text-fg">{a.name !== "—" ? a.name : a.email}</span>
+                <span className="font-medium text-fg">{a.kind === "admin" || a.name === "—" ? a.email : a.name}</span>
                 <span className="ml-2 pill pill-neutral">
-                  {a.kind === "broker" ? "Broker" : a.kind === "shopper" ? "Shopper" : "Incomplete"}
+                  {a.kind === "broker" ? "Broker" : a.kind === "shopper" ? "Shopper" : a.kind === "admin" ? "Admin" : "Incomplete"}
                 </span>
                 <span className="ml-2 text-fg-muted">{a.email}</span>
               </span>

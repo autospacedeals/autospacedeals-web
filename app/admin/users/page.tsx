@@ -14,10 +14,10 @@ function Activity({ a }: { a: AdminAccount }) {
   const parts: string[] = [];
   if (a.kind === "broker") {
     parts.push(`${a.liveListings} live`);
-    if (a.draftListings) parts.push(`${a.draftListings} drafts`);
+    if (a.draftListings) parts.push(`${a.draftListings} draft${a.draftListings === 1 ? "" : "s"}`);
   } else if (a.kind === "shopper") {
-    if (a.savedDeals) parts.push(`${a.savedDeals} saved deals`);
-    if (a.savedSearches) parts.push(`${a.savedSearches} saved searches`);
+    if (a.savedDeals) parts.push(`${a.savedDeals} saved deal${a.savedDeals === 1 ? "" : "s"}`);
+    if (a.savedSearches) parts.push(`${a.savedSearches} saved search${a.savedSearches === 1 ? "" : "es"}`);
   }
   return (
     <span className="text-fg-muted">
@@ -103,12 +103,13 @@ export default async function AdminUsersPage() {
   const brokers = accounts.filter((a) => a.kind === "broker");
   const shoppers = accounts.filter((a) => a.kind === "shopper");
   const incomplete = accounts.filter((a) => a.kind === "incomplete");
+  const adminAccounts = accounts.filter((a) => a.kind === "admin");
 
   return (
     <main className="container-page py-8 sm:py-10">
       <h1 className="type-page text-3xl">Users</h1>
       <p className="mt-2 text-sm text-fg-muted">
-        {accounts.length} accounts · newest first. Click a conversation count to read that account&apos;s messages.
+        {`${accounts.length} accounts · newest first. Click a conversation count to read that account's messages.`}
       </p>
 
       <section className="mt-8">
@@ -121,12 +122,19 @@ export default async function AdminUsersPage() {
         <AccountTable accounts={shoppers} kind="shopper" />
       </section>
 
+      {adminAccounts.length > 0 && (
+        <section className="mt-10">
+          <h2 className="type-title mb-3">Admin accounts ({adminAccounts.length})</h2>
+          <AccountTable accounts={adminAccounts} kind="admin" />
+        </section>
+      )}
+
       {incomplete.length > 0 && (
         <section className="mt-10">
           <h2 className="type-title mb-1">Didn&apos;t finish signing up ({incomplete.length})</h2>
           <p className="mb-3 text-sm text-fg-muted">
             Created a login but no shopper or broker profile (e.g. stopped at the Google &quot;finish your account&quot;
-            step), or admin-only accounts.
+            step).
           </p>
           <AccountTable accounts={incomplete} kind="incomplete" />
         </section>

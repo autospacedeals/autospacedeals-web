@@ -3,10 +3,12 @@
 // users and private profile fields with the service role; only call it
 // after requireAdmin().
 import { createAdminClient } from "@/lib/supabase/server";
+import { adminEmails } from "@/lib/admin";
+import { normalizeUsPhone } from "@/lib/phone";
 
 export interface AdminAccount {
   id: string;
-  kind: "broker" | "shopper" | "incomplete";
+  kind: "broker" | "shopper" | "admin" | "incomplete";
   name: string; // business name (broker) or first + last (shopper)
   contactName: string | null; // broker's contact person
   email: string;
@@ -58,7 +60,8 @@ function countBy<T>(rows: T[] | null, key: (row: T) => string | null): Map<strin
 
 export async function listAccounts(): Promise<AdminAccount[]> {
   const admin = createAdminClient();
-  const [users, brokers, customers, deals, conversations, saved, searches] = await Promise.all([
+  const [admins, users, brokers, customers, deals, conversations, saved, searches] = await Promise.all([
+    adminEmails(),
     allAuthUsers(),
     admin.from("brokers").select("id, business_name, contact_name, contact_phone, city, state"),
     admin.from("customers").select("id, first_name, last_name, zip_code, phone"),
@@ -103,7 +106,7 @@ export async function listAccounts(): Promise<AdminAccount[]> {
           kind: "broker",
           name: b.business_name,
           contactName: b.contact_name,
-          phone: b.contact_phone,
+          phone: b.contact_phone ? (normalizeUsPhone(b.contact_phone) ?? b.contact_phone) : null,
           location: `${b.city}, ${b.state}`,
           conversations: convByBroker.get(u.id) ?? 0,
         };
@@ -114,12 +117,21 @@ export async function listAccounts(): Promise<AdminAccount[]> {
           kind: "shopper",
           name: `${c.first_name} ${c.last_name}`.trim(),
           contactName: null,
-          phone: c.phone,
+          phone: c.phone ? (normalizeUsPhone(c.phone) ?? c.phone) : null,
           location: `zip ${c.zip_code}`,
           conversations: convByCustomer.get(u.id) ?? 0,
         };
       }
-      return { ...base, kind: "incomplete", name: "—", contactName: null, phone: null, location: "—", conversations: 0 };
+      const isAdmin = admins.has((u.email ?? "").toLowerCase());
+      return {
+        ...base,
+        kind: isAdmin ? "admin" : "incomplete",
+        name: isAdmin ? "Admin" : "—",
+        contactName: null,
+        phone: null,
+        location: "—",
+        conversations: 0,
+      };
     })
     .sort((a, b) => b.signedUpAt.localeCompare(a.signedUpAt));
 }
