@@ -10,7 +10,16 @@ export const metadata: Metadata = pageMetadata({
   path: "/contact",
 });
 
-export default async function ContactPage() {
+// ?topic=dealer or ?topic=listing preselects the topic (e.g. the footer's
+// "List your deals" link).
+const TOPIC_PARAMS: Record<string, string> = {
+  dealer: "Dealer or broker account",
+  listing: "A listing",
+};
+
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ topic?: string }> }) {
+  const { topic } = await searchParams;
+  const defaultTopic = (topic && TOPIC_PARAMS[topic]) || undefined;
   // Signed-in visitors don't have to type their email.
   let email = "";
   try {
@@ -39,7 +48,7 @@ export default async function ContactPage() {
             we&apos;ll reply by email.
           </p>
           <div className="mt-8">
-            <ContactForm defaultEmail={email} />
+            <ContactForm defaultEmail={email} defaultTopic={defaultTopic} />
           </div>
         </div>
       </div>

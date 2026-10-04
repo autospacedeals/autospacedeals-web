@@ -10,7 +10,13 @@ const initialState: ContactState = { status: "idle" };
 // Same list as the server action, which falls back to "Something else".
 const TOPICS = ["Shopping for a car", "Dealer or broker account", "A listing", "Something else"];
 
-export default function ContactForm({ defaultEmail = "" }: { defaultEmail?: string }) {
+export default function ContactForm({
+  defaultEmail = "",
+  defaultTopic,
+}: {
+  defaultEmail?: string;
+  defaultTopic?: string;
+}) {
   const [state, formAction, pending] = useActionState(sendContactAction, initialState);
 
   if (state.status === "sent") {
@@ -69,7 +75,7 @@ export default function ContactForm({ defaultEmail = "" }: { defaultEmail?: stri
         <select
           id="contact-topic"
           name="topic"
-          defaultValue={values?.topic ?? TOPICS[0]}
+          defaultValue={values?.topic ?? defaultTopic ?? TOPICS[0]}
           className="select"
         >
           {TOPICS.map((t) => (

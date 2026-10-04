@@ -46,9 +46,15 @@ const QUICK_PICKS: { label: string; patch: Partial<DealFilters> }[] = [
 ];
 
 const STEPS = [
-  { title: "Brokers post directly", text: "Live immediately, no approval wait." },
-  { title: "Standardized format", text: "Payment, term, mileage, fees — easy to compare." },
-  { title: "Direct seller handoff", text: "Contact the dealer or broker directly." },
+  { title: "Real offers from sellers", text: "Dealers and brokers post their current lease deals themselves." },
+  {
+    title: "Every deal, same format",
+    text: "Payment, due at signing, term, mileage and fees laid out the same way, so you can compare side by side.",
+  },
+  {
+    title: "Message the seller here",
+    text: "Ask questions or lock in a deal without handing out your number. Every conversation stays on record.",
+  },
 ];
 
 // How many top deals the hero carousel steps through.
