@@ -8,6 +8,9 @@
 // Anyone can send it, so a hidden "website" field catches form-filling bots
 // and each IP address gets at most CONTACT_LIMIT messages a day, counted in
 // match_email_log (the Get matched send log, 0018 — rows with no deal).
+//
+// Every message is also saved in contact_messages (0028) and listed at
+// /admin/contact, so it isn't lost if the email gets filtered.
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { withTimeout } from "@/lib/supabase/with-timeout";
@@ -60,6 +63,8 @@ export async function sendContactAction(_prev: ContactState, formData: FormData)
     footerHtml: "Sent from the contact form on idriveus.com. Reply to this email to answer them.",
   });
 
+  const savedId = await saveMessage({ name, email, topic, message, ip });
+
   const sent = await sendEmail({
     to: SUPPORT_INBOX,
     replyTo: email,
@@ -67,11 +72,57 @@ export async function sendContactAction(_prev: ContactState, formData: FormData)
     html,
     text,
   });
+  if (sent.ok && savedId) await markEmailed(savedId);
   if (!sent.ok) {
     console.error("contact form: send failed:", sent.error);
+    // Saved for the admin page, so it still reached us.
+    if (savedId) return { status: "sent" };
     return fail(`We couldn't send your message. Please try again, or email ${SUPPORT_INBOX} directly.`);
   }
   return { status: "sent" };
+}
+
+// Stores the message for /admin/contact; returns its id, or null if the
+// table can't be used (the email still goes out).
+async function saveMessage(row: {
+  name: string;
+  email: string;
+  topic: string;
+  message: string;
+  ip: string | null;
+}): Promise<string | null> {
+  try {
+    const { data, error } = await withTimeout(
+      createAdminClient()
+        .from("contact_messages")
+        .insert({ ...row, name: row.name || null })
+        .select("id")
+        .single<{ id: string }>(),
+      5000,
+      "contact message insert"
+    );
+    if (error) {
+      console.error("contact form: save failed:", error.message);
+      return null;
+    }
+    return data.id;
+  } catch (err) {
+    console.error("contact form: save threw:", err);
+    return null;
+  }
+}
+
+async function markEmailed(id: string): Promise<void> {
+  try {
+    const { error } = await withTimeout(
+      createAdminClient().from("contact_messages").update({ emailed: true }).eq("id", id),
+      5000,
+      "contact message update"
+    );
+    if (error) console.error("contact form: mark emailed failed:", error.message);
+  } catch (err) {
+    console.error("contact form: mark emailed threw:", err);
+  }
 }
 
 async function requesterIp(): Promise<string | null> {
