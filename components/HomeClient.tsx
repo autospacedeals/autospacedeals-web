@@ -279,9 +279,9 @@ export default function HomeClient({
 
             {deals.length > 0 && (
               <p className="mt-7 animate-fade-up text-sm text-fg-muted [animation-delay:280ms]">
-                <span className="font-semibold text-fg">{deals.length}</span> live deals from{" "}
+                <span className="font-semibold text-fg">{deals.length}</span> live deal{deals.length === 1 ? "" : "s"} from{" "}
                 <span className="font-semibold text-fg">{sellerCount}</span>{" "}
-                dealers &amp; brokers
+                {sellerCount === 1 ? "dealer or broker" : "dealers & brokers"}
                 {lowestMonthly != null && (
                   <>
                     {" "}

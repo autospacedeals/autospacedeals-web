@@ -42,7 +42,7 @@ export default function SiteFooter() {
             <ul className="mt-4 space-y-3 text-sm text-fg-muted">
               <li className="flex items-start gap-2 leading-6">
                 <ShieldCheck size={16} className="mt-1 shrink-0 text-success" />
-                <span>Every listing shows real contact info for the dealer or broker who posted it — you deal with them directly.</span>
+                <span>Every listing comes from the dealer or broker who posted it. Message them right here on Drive, and you deal with them directly.</span>
               </li>
               <li>
                 <Link href="/contact" className="link-quiet">
