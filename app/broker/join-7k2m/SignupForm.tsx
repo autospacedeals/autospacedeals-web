@@ -6,6 +6,7 @@ import { CircleAlert, MailCheck, UserPlus } from "lucide-react";
 import { signUpAction, type AuthState } from "../actions";
 import EmailInput from "@/components/EmailInput";
 import LegalConsent from "@/components/LegalConsent";
+import { submitKeepingValues } from "@/lib/keep-form-values";
 
 const initialState: AuthState = { error: null };
 
@@ -35,7 +36,7 @@ export default function SignupForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="broker-signup-seller-type" className={labelClass}>

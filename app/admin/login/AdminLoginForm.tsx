@@ -4,13 +4,14 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { LogIn } from "lucide-react";
 import { adminSignInAction, type AdminLoginState } from "./actions";
+import { submitKeepingValues } from "@/lib/keep-form-values";
 
 const initialState: AdminLoginState = { error: null };
 
 export default function AdminLoginForm({ next }: { next: string | null }) {
   const [state, formAction, pending] = useActionState(adminSignInAction, initialState);
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-5">
       {next && <input type="hidden" name="next" value={next} />}
       <div>
         <label htmlFor="admin-email" className="field-label">

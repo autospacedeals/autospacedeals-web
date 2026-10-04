@@ -19,6 +19,7 @@ import type { ParsedDeal } from "@/lib/parse-inventory";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
+import { submitKeepingValues } from "@/lib/keep-form-values";
 
 const initialState: SubmissionState = { error: null };
 
@@ -198,7 +199,7 @@ function LinkForm({
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-4">
       <div>
         <label className={labelClass}>Source type</label>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -398,7 +399,7 @@ function ManualForm({
   };
 
   return (
-    <form action={formAction} className="space-y-4" key={resetCount}>
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-4" key={resetCount}>
       {submissionId && <input type="hidden" name="submissionId" value={submissionId} />}
       <div className="space-y-6 rounded-xl border border-line bg-hover p-4">
         <div>

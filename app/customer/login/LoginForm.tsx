@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { LogIn } from "lucide-react";
 import { signInAction, type AuthState } from "../actions";
+import { submitKeepingValues } from "@/lib/keep-form-values";
 
 const initialState: AuthState = { error: null };
 
@@ -14,7 +15,7 @@ export default function LoginForm({ next = null }: { next?: string | null }) {
   const [state, formAction, pending] = useActionState(signInAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-5">
       {/* Re-validated on the server — this is only a hint of where to go. */}
       {next && <input type="hidden" name="next" value={next} />}
       <div>

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { UserCheck } from "lucide-react";
 import { completeProfileAction, type AuthState } from "../actions";
 import LegalConsent from "@/components/LegalConsent";
+import { submitKeepingValues } from "@/lib/keep-form-values";
 
 const initialState: AuthState = { error: null };
 
@@ -19,7 +20,7 @@ export default function CompleteProfileForm({
   const [state, formAction, pending] = useActionState(completeProfileAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-5">
       {next && <input type="hidden" name="next" value={next} />}
       <div className="grid gap-4 sm:grid-cols-3">
         <div>

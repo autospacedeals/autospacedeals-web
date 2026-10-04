@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { KeyRound } from "lucide-react";
 import { resetPasswordAction, type AuthState } from "../actions";
+import { submitKeepingValues } from "@/lib/keep-form-values";
 
 const initialState: AuthState = { error: null };
 
@@ -13,7 +14,7 @@ export default function ResetPasswordForm() {
   const [state, formAction, pending] = useActionState(resetPasswordAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-5">
       <div>
         <label htmlFor="reset-password" className={labelClass}>
           New password

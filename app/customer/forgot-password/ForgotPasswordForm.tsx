@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { Mail, CheckCircle2 } from "lucide-react";
 import { requestPasswordResetAction, type ResetRequestState } from "../actions";
+import { submitKeepingValues } from "@/lib/keep-form-values";
 
 const initialState: ResetRequestState = { error: null };
 
@@ -22,7 +23,7 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-5">
       <div>
         <label htmlFor="forgot-email" className="field-label">
           Email
