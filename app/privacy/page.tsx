@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "October 3, 2026";
+const LAST_UPDATED = "October 4, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -56,6 +56,18 @@ export default function PrivacyPolicyPage() {
               time from your Google Account&apos;s security settings (Third-party apps &amp; services).
             </p>
             <p>
+              <strong>Activity on the site.</strong> If you have an account,
+              we keep the deals you save, the searches you save for alerts, and any reviews you
+              write about a dealer or broker. Reviews are public: they appear on that dealer or
+              broker&apos;s profile with your first name.
+            </p>
+            <p>
+              <strong>Location.</strong> If you use &quot;Closest to my
+              location,&quot; your browser asks permission to share your approximate location.
+              It&apos;s used only in your browser to sort deals by state — we don&apos;t store it or
+              send it to our servers.
+            </p>
+            <p>
               <strong>Listing content.</strong> Dealers and brokers submit
               vehicle listing details — pricing, terms, photos, and descriptions — either directly
               or by uploading a spreadsheet, pasting text, or uploading a screenshot of their
@@ -67,8 +79,9 @@ export default function PrivacyPolicyPage() {
               when, and what it says) so there&apos;s a record of each conversation, and we may
               review conversations to resolve disputes, prevent fraud or abuse, and keep the
               marketplace working well. Only the two people in a conversation and {SITE_NAME} can
-              read it. If you turn on message emails, we also email you new messages. If you email
-              us directly, we receive whatever you send.
+              read it (at {SITE_NAME}, that means a small number of team members with admin
+              access). If you turn on message emails, we also email you new messages. If you email
+              us or use our contact form, we receive whatever you send.
             </p>
             <p>
               <strong>Text messages.</strong> If you turn on &quot;Text me new
@@ -87,7 +100,10 @@ export default function PrivacyPolicyPage() {
               address, browser type, pages visited) for security and reliability. We use a small
               number of essential cookies to keep you signed in — we don&apos;t use advertising or
               cross-site tracking cookies, and we don&apos;t run third-party analytics on the site
-              today.
+              today. If we ever add advertising or measurement tools (for example, an ad
+              platform&apos;s tracking pixel), we&apos;ll update this policy first and give you a
+              way to opt out of any &quot;sale&quot; or &quot;sharing&quot; of your information
+              before they&apos;re used.
             </p>
           </Section>
 
@@ -114,8 +130,10 @@ export default function PrivacyPolicyPage() {
             </ul>
             <p>
               Driver&apos;s license and insurance/AAA card photos, if you choose to upload them,
-              are used only to help verify who you are and aren&apos;t shared with dealers/
-              brokers or shown publicly.
+              are &quot;sensitive personal information&quot; under California law. We use them only
+              to help verify who you are; they&apos;re stored privately, aren&apos;t shared with
+              dealers/brokers or shown publicly, and aren&apos;t used to infer anything about you.
+              Your account password is handled by our authentication provider and we never see it.
             </p>
           </Section>
 
@@ -152,11 +170,33 @@ export default function PrivacyPolicyPage() {
             </ul>
           </Section>
 
+          <Section title="Categories of Information (California Notice)">
+            <p>
+              California law asks us to describe what we collect in its terms. In the last 12
+              months we have collected: <strong>identifiers</strong> (name, email, phone, account
+              ID); <strong>customer records</strong> (zip code, address, current vehicle, if you
+              give them); <strong>commercial information</strong> (deals you save or ask about, and
+              your messages); <strong>internet activity</strong> (basic server logs);
+              <strong> sensitive personal information</strong> (driver&apos;s license and
+              insurance/AAA card photos if you upload them, and your account login); and, for
+              dealers/brokers, <strong>professional information</strong> (business name, role,
+              dealership). We get this information from you, from Google if you sign in with it,
+              and from dealers/brokers&apos; own listings. We use it only for the purposes above
+              and share it only as described above. We have not sold or shared personal
+              information for cross-context behavioral advertising, and we don&apos;t knowingly
+              collect information from anyone under 18.
+            </p>
+          </Section>
+
           <Section title="Data Retention & Security">
             <p>
-              We keep your information for as long as your account is active, or as long as we
-              need it for the purposes described above. You can ask us to delete your account and
-              associated data at any time by emailing us (see below).
+              We keep account information for as long as your account is active. Messages are kept
+              as long as either person in the conversation still has an account, so the record
+              stays complete for both sides, and we may keep information longer when needed to
+              resolve a dispute, prevent fraud, or meet a legal obligation. Server logs are kept
+              for a short time by our hosting provider. You can ask us to delete your account and
+              associated data at any time by emailing us (see below); messages you sent may remain
+              visible to the other person in that conversation.
             </p>
             <p>
               We rely on our infrastructure providers&apos; security practices (encryption in
@@ -173,15 +213,25 @@ export default function PrivacyPolicyPage() {
               a copy of it, ask us to correct or delete it, and opt out of the sale or sharing of
               it for cross-context advertising. We don&apos;t sell personal information or share
               it for cross-context behavioral advertising, so there&apos;s nothing to opt out of
-              on that front today.
+              on that front today. If your browser sends a Global Privacy Control signal, we treat
+              it as a request to opt out of any future sale or sharing. California residents may
+              also ask what personal information we&apos;ve disclosed to others for their direct
+              marketing purposes (we don&apos;t do this).
             </p>
             <p>
               To exercise any of these rights, or if you&apos;re in another state with similar
               privacy protections, email{" "}
               <a href="mailto:rob@idriveus.com" className="link">
                 rob@idriveus.com
+              </a>{" "}
+              or use our{" "}
+              <a href="/contact" className="link">
+                contact form
               </a>
-              . We won&apos;t discriminate against you for exercising these rights.
+              . We&apos;ll confirm your identity (usually by replying to the email on your account)
+              before acting on a request, respond within 45 days, and won&apos;t discriminate
+              against you for exercising these rights. You can use an authorized agent to make a
+              request for you.
             </p>
           </Section>
 

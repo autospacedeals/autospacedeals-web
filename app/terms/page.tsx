@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/terms",
 });
 
-const LAST_UPDATED = "October 3, 2026";
+const LAST_UPDATED = "October 4, 2026";
 
 export default function TermsOfServicePage() {
   return (
@@ -57,9 +57,26 @@ export default function TermsOfServicePage() {
               the broker must review and confirm before it goes live, and the broker remains fully
               responsible for what they publish.
             </p>
+            <p>By listing on {SITE_NAME}, a dealer or broker also agrees that they:</p>
+            <ul>
+              <li>
+                Hold every license their business requires (for example, a California DMV dealer
+                license or autobroker endorsement) and keep it current
+              </li>
+              <li>
+                Follow all laws that apply to vehicle advertising and leasing, including required
+                disclosures for advertised payments (such as the total due at signing, term, and
+                mileage allowance), and don&apos;t engage in bait-and-switch advertising
+              </li>
+              <li>
+                Only list vehicles and deals they can actually provide on the advertised terms, and
+                remove or update listings promptly when a vehicle sells or a deal changes
+              </li>
+              <li>Respond to shoppers honestly and treat them fairly</li>
+            </ul>
             <p>
-              Listings that are repeatedly inaccurate, misleading, or posted in bad faith may be
-              edited or removed, and accounts may be suspended.
+              Listings that are inaccurate, misleading, or posted in bad faith may be edited or
+              removed, and accounts may be suspended.
             </p>
           </Section>
 
@@ -96,6 +113,33 @@ export default function TermsOfServicePage() {
             </p>
           </Section>
 
+          <Section title="Reviews">
+            <p>
+              Shoppers can review dealers and brokers. Reviews must be honest and based on your own
+              experience, and they&apos;re shown publicly with your first name. We may remove
+              reviews that are fake, abusive, off-topic, or written by (or for) the business being
+              reviewed, but we don&apos;t edit reviews to change their meaning and we don&apos;t
+              remove them just for being negative.
+            </p>
+          </Section>
+
+          <Section title="Fees">
+            <p>
+              {SITE_NAME} is currently free for shoppers and for dealers/brokers. If we ever
+              introduce fees, we&apos;ll tell dealers/brokers in advance and they&apos;ll only apply
+              once you agree to them.
+            </p>
+          </Section>
+
+          <Section title="Emails">
+            <p>
+              By creating an account, you agree that we can email you about your account, your
+              messages, and anything you ask us to send (like saved-search alerts). You can turn off
+              message emails and alerts at any time; we&apos;ll still send essential account emails
+              such as password resets.
+            </p>
+          </Section>
+
           <Section title="SMS Terms">
             <p>
               {SITE_NAME} text message alerts are an optional SMS program: when you turn on
@@ -117,7 +161,8 @@ export default function TermsOfServicePage() {
               {" "}
               {SITE_NAME} a license to display, process, and distribute it on the site for the
               purpose of operating the marketplace. Don&apos;t upload anything you don&apos;t have
-              the rights to.
+              the rights to. If you believe something on {SITE_NAME} infringes your copyright or
+              other rights, email us with the details and we&apos;ll review it promptly.
             </p>
           </Section>
 
@@ -125,7 +170,9 @@ export default function TermsOfServicePage() {
             <p>
               {SITE_NAME} relies on third-party services to operate, including Vercel (hosting),
               Supabase (database, authentication, and file storage), Anthropic (AI-assisted
-              parsing of submitted listing content), and CarsXE (fallback vehicle stock photos).
+              parsing of submitted listing content), CarsXE (fallback vehicle stock photos), Resend
+              (email), Twilio (text messages), and Google (optional sign-in and private Google
+              Sheet imports).
               We&apos;re not responsible for outages or issues caused by these providers.
             </p>
           </Section>
@@ -143,15 +190,36 @@ export default function TermsOfServicePage() {
               To the fullest extent permitted by law, {SITE_NAME} and its founders aren&apos;t
               liable for any indirect, incidental, or consequential damages arising from your use
               of the site or any transaction, deal, or interaction with a dealer or broker you
-              connect with through it.
+              connect with through it. Our total liability for any claim relating to the site is
+              limited to $100. Some places don&apos;t allow these limits, so they may not apply to
+              you.
+            </p>
+          </Section>
+
+          <Section title="Indemnification">
+            <p>
+              If you use {SITE_NAME} in a way that breaks these terms or the law — including, for
+              dealers and brokers, anything about your listings, advertising, or deals — you agree
+              to cover the costs (including reasonable legal fees) of any claim brought against{" "}
+              {SITE_NAME} or its founders because of it.
+            </p>
+          </Section>
+
+          <Section title="Disputes">
+            <p>
+              If you have a problem with {SITE_NAME}, please contact us first — most issues can be
+              sorted out quickly. If we can&apos;t resolve it within 30 days, either of us may bring
+              the claim in small claims court, or otherwise in the state or federal courts located
+              in Los Angeles County, California. Disputes about a vehicle or deal are between you
+              and the dealer or broker.
             </p>
           </Section>
 
           <Section title="Termination">
             <p>
               We may suspend or terminate access to the site for anyone who violates these terms
-              or misuses the platform. You may stop using the site or delete your account at any
-              time.
+              or misuses the platform. You may stop using the site at any time, and you can ask us
+              to delete your account by emailing us.
             </p>
           </Section>
 
@@ -159,6 +227,12 @@ export default function TermsOfServicePage() {
             <p>
               These terms are governed by the laws of the State of California, without regard to
               conflict-of-law principles.
+            </p>
+            <p>
+              California users: under California Civil Code §1789.3, you can reach the Complaint
+              Assistance Unit of the Division of Consumer Services of the California Department of
+              Consumer Affairs in writing at 1625 North Market Blvd., Suite N 112, Sacramento, CA
+              95834, or by phone at (800) 952-5210.
             </p>
           </Section>
 

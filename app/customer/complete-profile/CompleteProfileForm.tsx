@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { UserCheck } from "lucide-react";
 import { completeProfileAction, type AuthState } from "../actions";
+import LegalConsent from "@/components/LegalConsent";
 
 const initialState: AuthState = { error: null };
 
@@ -85,6 +86,7 @@ export default function CompleteProfileForm({
         </p>
       )}
 
+      <LegalConsent action="finishing your account" />
       <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
         <UserCheck /> {pending ? "Saving..." : "Finish"}
       </button>

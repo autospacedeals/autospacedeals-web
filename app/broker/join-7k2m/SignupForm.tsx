@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CircleAlert, MailCheck, UserPlus } from "lucide-react";
 import { signUpAction, type AuthState } from "../actions";
 import EmailInput from "@/components/EmailInput";
+import LegalConsent from "@/components/LegalConsent";
 
 const initialState: AuthState = { error: null };
 
@@ -162,6 +163,7 @@ export default function SignupForm() {
         </p>
       )}
 
+      <LegalConsent />
       <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
         <UserPlus /> {pending ? "Creating account..." : "Create account"}
       </button>
