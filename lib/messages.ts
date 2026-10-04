@@ -65,7 +65,7 @@ export async function messagingRole(
   supabase: SupabaseClient,
   user: { id: string; email?: string | null }
 ): Promise<MessageRole | "admin" | null> {
-  if (isAdminEmail(user.email)) return "admin";
+  if (await isAdminEmail(user.email)) return "admin";
   const [{ data: customer }, { data: broker }] = await Promise.all([
     supabase.from("customers").select("id").eq("id", user.id).maybeSingle(),
     supabase.from("brokers").select("id").eq("id", user.id).maybeSingle(),

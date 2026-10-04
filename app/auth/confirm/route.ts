@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       }
       const next = safeNextPath(searchParams.get("next"));
       if (next) return NextResponse.redirect(`${origin}${next}`);
-      if (isAdminEmail(data.user.email)) return NextResponse.redirect(`${origin}/admin/submissions`);
+      if (await isAdminEmail(data.user.email)) return NextResponse.redirect(`${origin}/admin`);
       // Brokers and customers share the signup email; send each to their own dashboard.
       const { data: broker } = await supabase.from("brokers").select("id").eq("id", data.user.id).maybeSingle();
       return NextResponse.redirect(`${origin}${broker ? "/broker/dashboard" : "/customer/dashboard"}`);

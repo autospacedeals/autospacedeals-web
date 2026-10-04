@@ -1,23 +1,16 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { Incentive } from "@/lib/deals-data";
 import { parseJsonField, sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
 import { parseLocationFields } from "@/lib/deal-location";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
 
 async function assertAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user || !isAdminEmail(user.email)) {
-    redirect("/broker/login");
-  }
+  await requireAdmin("/admin/submissions");
 }
 
 // One-off maintenance action: re-fetch CarsXE photos for the sample/demo

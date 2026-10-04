@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin";
 import { reviewSubmissionAction } from "./actions";
 import StageDealForm from "./StageDealForm";
 import RefreshSamplePhotosButton from "./RefreshSamplePhotosButton";
@@ -49,11 +48,7 @@ const STATUS_ORDER: Record<Submission["status"], number> = {
 };
 
 export default async function AdminSubmissionsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user || !isAdminEmail(user.email)) redirect("/broker/login");
+  await requireAdmin("/admin/submissions");
 
   const admin = createAdminClient();
   const { data: submissions } = await admin

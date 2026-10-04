@@ -34,6 +34,7 @@ export async function InboxPage({
   emptyMessage,
   backHref,
   backLabel,
+  filterAccountId = null,
 }: {
   supabase: SupabaseClient;
   viewer: Viewer;
@@ -43,10 +44,15 @@ export async function InboxPage({
   emptyMessage: string;
   backHref: string;
   backLabel: string;
+  // Admin only: just this account's conversations (either side).
+  filterAccountId?: string | null;
 }) {
   let query = supabase.from("conversations").select(CONVERSATION_COLUMNS);
   if (viewer === "customer" && userId) query = query.eq("customer_id", userId);
   if (viewer === "broker" && userId) query = query.eq("broker_id", userId);
+  if (viewer === "admin" && filterAccountId && /^[0-9a-f-]{36}$/i.test(filterAccountId)) {
+    query = query.or(`customer_id.eq.${filterAccountId},broker_id.eq.${filterAccountId}`);
+  }
   const { data, error } = await query
     .order("last_message_at", { ascending: false })
     .limit(INBOX_LIMIT)

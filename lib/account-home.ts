@@ -5,7 +5,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { isAdminEmail } from "@/lib/admin";
 
 export async function accountHome(supabase: SupabaseClient, user: Pick<User, "id" | "email">): Promise<string> {
-  if (isAdminEmail(user.email)) return "/admin/submissions";
+  if (await isAdminEmail(user.email)) return "/admin";
   const { data: broker } = await supabase.from("brokers").select("id").eq("id", user.id).maybeSingle();
   return broker ? "/broker/dashboard" : "/customer/dashboard";
 }

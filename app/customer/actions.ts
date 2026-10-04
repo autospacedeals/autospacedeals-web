@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { normalizeUsPhone, PHONE_ERROR } from "@/lib/phone";
+import { accountHome } from "@/lib/account-home";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site";
 import { safeNextPath } from "@/lib/safe-next-path";
@@ -195,12 +196,14 @@ export async function resetPasswordAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password });
+  const { data: updated, error } = await supabase.auth.updateUser({ password });
   if (error) {
     return { error: error.message };
   }
 
-  redirect("/customer/dashboard");
+  // Shoppers, brokers and admins all use this page (admins set their first
+  // password here from their invite email), so each goes to their own home.
+  redirect(updated.user ? await accountHome(supabase, updated.user) : "/customer/dashboard");
 }
 
 // Second step of "Continue with Google": the person is signed in but has no

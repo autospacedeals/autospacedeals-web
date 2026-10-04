@@ -26,7 +26,7 @@ export default async function CompleteProfilePage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/customer/login");
-  if (isAdminEmail(user.email)) redirect("/admin/submissions");
+  if (await isAdminEmail(user.email)) redirect("/admin");
 
   const [{ data: customer }, { data: broker }] = await Promise.all([
     supabase.from("customers").select("id").eq("id", user.id).maybeSingle(),

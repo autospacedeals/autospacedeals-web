@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user && !isAdminEmail(user.email)) {
+      if (user && !(await isAdminEmail(user.email))) {
         const [{ data: customer }, { data: broker }] = await Promise.all([
           supabase.from("customers").select("id").eq("id", user.id).maybeSingle(),
           supabase.from("brokers").select("id").eq("id", user.id).maybeSingle(),

@@ -60,7 +60,7 @@ async function getHeaderAccount(): Promise<HeaderAccount | null> {
     } = await withTimeout(supabase.auth.getUser(), 5000, "getUser");
     if (!user) return null;
 
-    if (isAdminEmail(user.email)) {
+    if (await isAdminEmail(user.email)) {
       return { label: "Admin", href: "/admin/submissions" };
     }
 

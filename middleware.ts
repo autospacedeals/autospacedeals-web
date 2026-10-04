@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdminEmail } from "@/lib/admin";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -39,8 +38,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (isAdminRoute && !isAdminEmail(user?.email)) {
-    const redirectUrl = new URL("/broker/login", request.url);
+  // Signed-out visitors go to the admin login; whether a signed-in account
+  // is actually an admin is checked by each admin page (lib/admin.ts
+  // requireAdmin), since the admin list lives in the database.
+  if (isAdminRoute && path !== "/admin/login" && !user) {
+    const redirectUrl = new URL("/admin/login", request.url);
     redirectUrl.searchParams.set("next", path);
     return NextResponse.redirect(redirectUrl);
   }

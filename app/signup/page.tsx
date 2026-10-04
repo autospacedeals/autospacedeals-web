@@ -13,7 +13,7 @@ export default async function SignupPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    if (isAdminEmail(user.email)) redirect("/admin/submissions");
+    if (await isAdminEmail(user.email)) redirect("/admin");
     const { data: broker } = await supabase
       .from("brokers")
       .select("id")

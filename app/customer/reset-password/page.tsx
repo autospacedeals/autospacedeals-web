@@ -27,7 +27,7 @@ export default async function ResetPasswordPage() {
       <div className="mx-auto w-full max-w-md">
         <div className="panel p-8 shadow-pop sm:p-10">
           <LogoMark decorative className="size-10 text-fg" />
-          <p className="label mt-6">Customer account</p>
+          <p className="label mt-6">Your account</p>
           <h1 className="type-page mt-1 text-3xl sm:text-3xl">Set a new password</h1>
           <p className="mt-2 text-sm text-fg-muted">Choose a new password for your account.</p>
           <div className="mt-8">
