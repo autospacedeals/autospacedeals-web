@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { alertAdminsNewBroker } from "@/lib/admin-alerts";
 import { normalizeUsPhone, PHONE_ERROR } from "@/lib/phone";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { suggestEmailFix } from "@/lib/email-typos";
@@ -118,6 +120,11 @@ export async function signUpAction(
     }
     return { error: "We couldn't finish creating your account. Please try again in a moment." };
   }
+
+  // Let the admins know (after the response, so it never slows sign-up).
+  after(() =>
+    alertAdminsNewBroker({ businessName, contactName, sellerType, dealershipName, email, phone, city, state })
+  );
 
   if (!data.session) {
     return { error: null, needsConfirmation: true };
