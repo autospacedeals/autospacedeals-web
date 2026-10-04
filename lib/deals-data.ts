@@ -136,6 +136,8 @@ export interface Deal {
   // added by hand, from photos/pasted text, or a one-off upload). Only
   // loaded on the broker dashboard, which groups listings by it.
   sheetSyncId?: string | null;
+  // The tab of that sheet it came from.
+  sheetTab?: string | null;
 
   // Set when the seller is a dealership salesperson (sellerType
   // "Salesperson") rather than an independent broker — the dealership

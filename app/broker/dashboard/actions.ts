@@ -5,17 +5,23 @@ import { revalidatePath } from "next/cache";
 import type { Incentive } from "@/lib/deals-data";
 import { parseJsonField, sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
 import { parseLocationFields } from "@/lib/deal-location";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { slugify, parseMsrpInput } from "@/lib/deal-utils";
 import { fetchCarsxePhoto, fetchCarsxePhotos } from "@/lib/carsxe";
-import { parseInventoryBuffer, parseInventoryCsv, type ParsedDeal } from "@/lib/parse-inventory";
+import { parseInventoryBuffer, parseTabs, type ParsedDeal, type SkippedRow, type TabRowCache } from "@/lib/parse-inventory";
 import {
   parseFreeTextWithAI,
   parseImageWithAI,
   type SupportedImageType,
 } from "@/lib/ai-parse-inventory";
-import { fetchGoogleSheetCsv } from "@/lib/google-sheet";
+import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
+import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
+
+// A skipped row's reason, naming its tab when the sheet has more than one.
+function skipReason(s: SkippedRow, multiTab: boolean): string {
+  return multiTab && s.tab ? `${s.tab} tab, row ${s.row}: ${s.reason}` : s.reason;
+}
 
 // Supabase Storage rejects object keys containing spaces, colons, and other
 // punctuation — which is exactly what Mac/Windows screenshot and export
@@ -179,6 +185,9 @@ export async function createSubmissionAction(
   let skippedCount = 0;
   let skipReasons: string[] = [];
   let skippedDeals: Partial<ParsedDeal>[] = [];
+  let sheetTabs: string[] = [];
+  let skippedTabs: string[] = [];
+  let sheetRowCache: TabRowCache = {};
 
   if (sourceType === "excel_file") {
     const file = formData.get("file") as File | null;
@@ -195,13 +204,14 @@ export async function createSubmissionAction(
         const result = await parseInventoryBuffer(buffer, broker.state);
         parsedDeals = result.parsed;
         skippedCount = result.skipped.length;
-        skipReasons = result.skipped.map((s) => s.reason);
+        const multiTab = new Set(result.skipped.map((s) => s.tab)).size > 1;
+        skipReasons = result.skipped.map((s) => skipReason(s, multiTab));
         skippedDeals = result.skipped.map((s) => s.partial);
         logSkippedRows("excel_file", result.skipped);
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
             error:
-              "We opened the file but couldn't find any rows on the first sheet — check the file and try again, or add cars manually below.",
+              "We opened the file but couldn't find any rows in it — check the file and try again, or add cars manually below.",
           };
         }
       } catch (err) {
@@ -234,23 +244,31 @@ export async function createSubmissionAction(
         return { error: "Couldn't find your broker profile — try signing in again." };
       }
 
-      const fetched = await fetchGoogleSheetCsv(sourceUrl);
+      const fetched = await fetchGoogleSheetTabs(sourceUrl);
       if (!fetched.ok) {
         return { error: fetched.error };
       }
+      sheetTabs = fetched.tabs.map((t) => t.name);
+      // The tabs the broker picked in step one (listSheetTabsAction); all of
+      // them if none came through. Only those tabs' cars are read.
+      const picked = new Set(formData.getAll("tabs").map(String));
+      const tabsToRead = picked.size ? fetched.tabs.filter((t) => picked.has(t.name)) : fetched.tabs;
+      skippedTabs = picked.size ? sheetTabs.filter((t) => !picked.has(t)) : [];
 
       try {
-        const result = await parseInventoryCsv(fetched.csvText, broker.state);
+        const result = await parseTabs(tabsToRead, broker.state);
         parsedDeals = result.parsed;
+        sheetRowCache = result.cache;
         skippedCount = result.skipped.length;
-        skipReasons = result.skipped.map((s) => s.reason);
+        const multiTab = tabsToRead.length > 1;
+        skipReasons = result.skipped.map((s) => skipReason(s, multiTab));
         skippedDeals = result.skipped.map((s) => s.partial);
         logSkippedRows("google_sheet", result.skipped);
 
         if (parsedDeals.length === 0 && skippedCount === 0) {
           return {
             error:
-              "We opened the sheet but couldn't find any rows on the first tab. Make sure your inventory is on the first sheet tab, or add cars manually below.",
+              "We opened the sheet but couldn't find any rows on its tabs (hidden tabs are skipped). Check the sheet, or add cars manually below.",
           };
         }
       } catch (err) {
@@ -356,7 +374,16 @@ export async function createSubmissionAction(
     const autoPublish = formData.get("autoPublish") === "on";
     const { data: sync, error: syncError } = await supabase
       .from("sheet_syncs")
-      .insert({ broker_id: user.id, sheet_url: sourceUrl, auto_publish: autoPublish })
+      .insert({
+        broker_id: user.id,
+        sheet_url: sourceUrl,
+        auto_publish: autoPublish,
+        tabs: sheetTabs,
+        // Tabs left unchecked stay off until the broker switches them on.
+        disabled_tabs: skippedTabs,
+        // So the first scheduled check doesn't re-read every row.
+        row_cache: sheetRowCache,
+      })
       .select("id")
       .single<{ id: string }>();
     if (syncError) {
@@ -399,6 +426,25 @@ export async function createSubmissionAction(
     skippedDeals,
     sheetSynced: sheetSyncId !== null,
   };
+}
+
+// Step one of linking a Google Sheet: just the tab names (and how many
+// rows each has), read without the AI, so the broker can pick which tabs to
+// import before any cars are read.
+export async function listSheetTabsAction(
+  sheetUrl: string
+): Promise<{ error: string | null; tabs?: { name: string; rows: number }[] }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+  const url = sheetUrl.trim();
+  if (!url) return { error: "Paste your Google Sheet link first." };
+  const fetched = await fetchGoogleSheetTabs(url);
+  if (!fetched.ok) return { error: fetched.error };
+  if (fetched.tabs.length === 0) return { error: "We opened the sheet but every tab is hidden or empty." };
+  return { error: null, tabs: fetched.tabs.map((t) => ({ name: t.name, rows: t.rows.length })) };
 }
 
 // Google Sheet auto-sync management — pause/resume, toggle auto-publish, or
@@ -460,6 +506,71 @@ export async function deleteSheetSyncAction(id: string): Promise<{ error: string
   if (error) return { error: error.message };
 
   revalidatePath("/broker/dashboard");
+  return { error: null };
+}
+
+// Switches one tab of a synced sheet off or on. Off: its cars come down
+// right away and later checks skip it. On: the sheet is checked right away
+// so the tab's cars come back without waiting for the next scheduled check.
+export async function setSheetTabEnabledAction(
+  id: string,
+  tab: string,
+  enabled: boolean
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+  if (!id || !tab) return { error: "Missing sheet or tab." };
+
+  const { data: sync } = await supabase
+    .from("sheet_syncs")
+    .select("id, tabs, disabled_tabs, active")
+    .eq("id", id)
+    .eq("broker_id", user.id)
+    .maybeSingle<{ id: string; tabs: string[]; disabled_tabs: string[]; active: boolean }>();
+  if (!sync) return { error: "Couldn't find that sheet." };
+
+  const disabled = new Set(sync.disabled_tabs ?? []);
+  if (enabled) disabled.delete(tab);
+  else disabled.add(tab);
+  const { error } = await supabase
+    .from("sheet_syncs")
+    .update({ disabled_tabs: [...disabled] })
+    .eq("id", id)
+    .eq("broker_id", user.id);
+  if (error) return { error: error.message };
+
+  if (!enabled) {
+    // Cars from before tabs were tracked have no tab yet; they came from
+    // the first tab (the only one read back then).
+    const nowIso = new Date().toISOString();
+    const base = () =>
+      supabase
+        .from("deals")
+        .update({ status: "removed", removed_at: nowIso })
+        .eq("sheet_sync_id", id)
+        .eq("broker_id", user.id)
+        .in("status", ["draft", "published"]);
+    const { error: removeError } = await base().eq("sheet_tab", tab);
+    if (removeError) return { error: removeError.message };
+    if (sync.tabs?.[0] === tab) await base().is("sheet_tab", null);
+  } else if (sync.active) {
+    const admin = createAdminClient();
+    const [{ data: row }, { data: broker }] = await Promise.all([
+      admin.from("sheet_syncs").select(SHEET_SYNC_COLUMNS).eq("id", id).single<SheetSyncRow>(),
+      admin
+        .from("brokers")
+        .select("business_name, seller_type, dealership_name, city, state")
+        .eq("id", user.id)
+        .single<BrokerProfile>(),
+    ]);
+    if (row && broker) await runSheetSync(admin, row, broker);
+  }
+
+  revalidatePath("/broker/dashboard");
+  revalidatePath("/");
   return { error: null };
 }
 

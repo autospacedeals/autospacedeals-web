@@ -114,7 +114,8 @@ export async function classifyVehicles(vehicles: VehicleIdentity[]): Promise<Veh
         .join("\n");
       const response = await client.messages.create({
         model: MODEL,
-        max_tokens: 4096,
+        // Enough for a couple hundred distinct cars from a big sheet.
+        max_tokens: 12000,
         output_config: { effort: "low" },
         tools: [CLASSIFY_TOOL],
         tool_choice: { type: "tool", name: CLASSIFY_TOOL.name },

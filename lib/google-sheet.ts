@@ -4,6 +4,10 @@
 // "Anyone with the link" is read through its public export; a private one
 // the broker has shared with Drive's service account (see
 // lib/google-service-account.ts) is read through the Drive API instead.
+//
+// The sheet is downloaded once as .xlsx, which carries every tab (the CSV
+// export only has the first) plus the formatting needed to spot crossed-out
+// rows. Hidden tabs are skipped — brokers hide tabs they're not using.
 
 import * as XLSX from "xlsx";
 import { serviceAccountEmail, serviceAccountToken } from "@/lib/google-service-account";
@@ -13,7 +17,15 @@ export function extractGoogleSheetId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export type FetchSheetResult = { ok: true; csvText: string } | { ok: false; error: string };
+// One visible tab: its name and its rows, keyed by the header row, with
+// crossed-out rows already left out. Rows keep SheetJS's non-enumerable
+// __rowNum__ (0-based sheet row).
+export interface SheetTab {
+  name: string;
+  rows: Record<string, unknown>[];
+}
+
+export type FetchSheetResult = { ok: true; tabs: SheetTab[] } | { ok: false; error: string };
 
 // How to share a sheet so we can read it, for the error messages.
 function sharingHelp(): string {
@@ -23,11 +35,17 @@ function sharingHelp(): string {
     : 'In Google Sheets, click "Share" → set to "Anyone with the link" → Viewer, then try again.';
 }
 
-// Fetches the CSV export of a Google Sheet's first tab. A private sheet's
-// public export URL redirects to a Google sign-in / "request access" HTML
-// page instead of CSV, which we detect — then try the service account, and
-// report how to share it if that can't read it either.
-export async function fetchGoogleSheetCsv(sheetUrl: string): Promise<FetchSheetResult> {
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+function isZip(buf: Buffer): boolean {
+  return buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b; // "PK"
+}
+
+// Downloads the sheet (every tab) and reads it. A private sheet's public
+// export answers with a Google sign-in / "request access" HTML page instead
+// of a file, which we detect — then try the service account, and report how
+// to share it if that can't read it either.
+export async function fetchGoogleSheetTabs(sheetUrl: string): Promise<FetchSheetResult> {
   const sheetId = extractGoogleSheetId(sheetUrl);
   if (!sheetId) {
     return {
@@ -38,23 +56,16 @@ export async function fetchGoogleSheetCsv(sheetUrl: string): Promise<FetchSheetR
   }
 
   try {
-    const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`, {
+    const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`, {
       // Google's export endpoint sometimes behaves differently (or blocks)
       // requests without a browser-like User-Agent.
       headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
+      cache: "no-store",
     });
-
-    const publicText = res.ok ? await res.text() : "";
-    const isPublic = res.ok && !/^\s*<(!doctype|html)/i.test(publicText);
-    if (!isPublic) return await fetchPrivateSheetCsv(sheetId, res.ok ? null : res.status);
-    const csvText = publicText;
-
-    // Brokers often cross out a sold car instead of deleting its row. The CSV
-    // export drops all formatting, so read the strikethrough from the xlsx
-    // export and leave those rows out. Best-effort: if that read fails, fall
-    // back to the plain CSV rather than failing the whole import.
-    const struckRows = await fetchStruckRows(sheetId);
-    return { ok: true, csvText: struckRows.size ? dropCsvRecords(csvText, struckRows) : csvText };
+    const buf = res.ok ? Buffer.from(await res.arrayBuffer()) : null;
+    const file = buf && isZip(buf) ? buf : await fetchPrivateSheet(sheetId, res.ok ? null : res.status);
+    if (!Buffer.isBuffer(file)) return file;
+    return { ok: true, tabs: readWorkbookTabs(file) };
   } catch (err) {
     console.error("Failed to fetch Google Sheet:", err);
     return {
@@ -64,14 +75,13 @@ export async function fetchGoogleSheetCsv(sheetUrl: string): Promise<FetchSheetR
   }
 }
 
-// ---------------------------------------------------------------------------
-// Crossed-out rows
-// ---------------------------------------------------------------------------
-
-// A sheet that isn't public: read it as Drive's service account, which
+// A sheet that isn't public: download it as Drive's service account, which
 // only sees files that were shared with it. `publicStatus` is the public
 // export's HTTP error, if it gave one rather than a sign-in page.
-async function fetchPrivateSheetCsv(sheetId: string, publicStatus: number | null): Promise<FetchSheetResult> {
+async function fetchPrivateSheet(
+  sheetId: string,
+  publicStatus: number | null
+): Promise<Buffer | { ok: false; error: string }> {
   const token = await serviceAccountToken();
   if (!token) {
     return {
@@ -81,10 +91,10 @@ async function fetchPrivateSheetCsv(sheetId: string, publicStatus: number | null
         : `That Google Sheet isn't shared with us yet. ${sharingHelp()}`,
     };
   }
-  const res = await fetch(driveExportUrl(sheetId, "text/csv"), {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(sheetId)}/export?mimeType=${encodeURIComponent(XLSX_MIME)}`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
+  );
   if (!res.ok) {
     if (res.status !== 403 && res.status !== 404) {
       console.error("Drive export of a private sheet failed:", res.status, (await res.text()).slice(0, 300));
@@ -97,39 +107,54 @@ async function fetchPrivateSheetCsv(sheetId: string, publicStatus: number | null
           : `Couldn't open that Google Sheet (error ${res.status}). Try again in a minute, or add cars manually below.`,
     };
   }
-  const csvText = await res.text();
-  const struckRows = await fetchStruckRows(sheetId, token);
-  return { ok: true, csvText: struckRows.size ? dropCsvRecords(csvText, struckRows) : csvText };
+  return Buffer.from(await res.arrayBuffer());
 }
 
-function driveExportUrl(sheetId: string, mimeType: string): string {
-  return `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(sheetId)}/export?mimeType=${encodeURIComponent(mimeType)}`;
-}
-
-const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-// Sheet row number (1-based) → the text of that row's first filled cell,
-// for every row where most of the filled cells are struck through. With a
-// service-account token, reads the private sheet through the Drive API.
-async function fetchStruckRows(sheetId: string, token?: string): Promise<Map<number, string>> {
-  try {
-    const res = token
-      ? await fetch(driveExportUrl(sheetId, XLSX_MIME), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
-      : await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`, {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
-        });
-    if (!res.ok) return new Map();
-    return findStruckRows(Buffer.from(await res.arrayBuffer()));
-  } catch (err) {
-    console.error("Couldn't read sheet formatting (crossed-out rows will be kept):", err);
-    return new Map();
+// Every visible tab of a workbook (.xlsx/.xls/.csv), crossed-out rows
+// removed. Also used for uploaded Excel files.
+export function readWorkbookTabs(file: Buffer | ArrayBuffer): SheetTab[] {
+  const buf = Buffer.isBuffer(file) ? file : Buffer.from(file);
+  const workbook = XLSX.read(buf, { type: "buffer" });
+  // Best-effort: if the formatting can't be read, keep every row rather
+  // than failing the whole import.
+  let struck = new Map<string, Set<number>>();
+  if (isZip(buf)) {
+    try {
+      struck = findStruckRowsByTab(buf);
+    } catch (err) {
+      console.error("Couldn't read sheet formatting (crossed-out rows will be kept):", err);
+    }
   }
+
+  const tabs: SheetTab[] = [];
+  workbook.SheetNames.forEach((name, i) => {
+    if (workbook.Workbook?.Sheets?.[i]?.Hidden) return;
+    const sheet = workbook.Sheets[name];
+    if (!sheet) return;
+    const skip = struck.get(name);
+    // raw: false gives each cell as displayed ("$599", "36/10k"), like the
+    // CSV export did.
+    const rows = XLSX.utils
+      .sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false })
+      .filter((row) => !skip?.has(rowNumber(row)));
+    tabs.push({ name, rows });
+  });
+  return tabs;
 }
 
-// Reads strikethrough straight from the xlsx XML — the xlsx package's
-// community build doesn't expose font styles. Looks at the first tab only,
-// same as the CSV export.
-export function findStruckRows(xlsx: Buffer): Map<number, string> {
+// 1-based sheet row a sheet_to_json row came from.
+export function rowNumber(row: Record<string, unknown>): number {
+  return ((row as { __rowNum__?: number }).__rowNum__ ?? -1) + 1;
+}
+
+// ---------------------------------------------------------------------------
+// Crossed-out rows
+// ---------------------------------------------------------------------------
+
+// Tab name → sheet row numbers (1-based) where most of the filled cells are
+// struck through. Read straight from the xlsx XML — the xlsx package's
+// community build doesn't expose font styles.
+export function findStruckRowsByTab(xlsx: Buffer): Map<string, Set<number>> {
   const zip = XLSX.CFB.read(xlsx, { type: "buffer" });
   const file = (name: string): string | null => {
     const i = zip.FullPaths.findIndex((p: string) => p.toLowerCase().endsWith("/" + name.toLowerCase()));
@@ -160,40 +185,46 @@ export function findStruckRows(xlsx: Buffer): Map<number, string> {
   };
   const shared = (file("xl/sharedStrings.xml") ?? "").match(/<si>[\s\S]*?<\/si>/g) ?? [];
 
-  // First tab = first <sheet> in workbook.xml, resolved through its rels.
-  const rId = (file("xl/workbook.xml") ?? "").match(/<sheet\b[^>]*\br:id="([^"]+)"/)?.[1];
-  const target = rId
-    ? (file("xl/_rels/workbook.xml.rels") ?? "").match(new RegExp(`<Relationship\\b[^>]*Id="${rId}"[^>]*Target="([^"]+)"`))?.[1] ??
-      (file("xl/_rels/workbook.xml.rels") ?? "").match(new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${rId}"`))?.[1]
-    : undefined;
-  const sheet = file(`xl/${(target ?? "worksheets/sheet1.xml").replace(/^\/?xl\//, "")}`) ?? "";
+  // Each <sheet name=… r:id=…> in workbook.xml, resolved through its rels.
+  const rels = file("xl/_rels/workbook.xml.rels") ?? "";
+  const targetOf = (rId: string) =>
+    rels.match(new RegExp(`<Relationship\\b[^>]*Id="${rId}"[^>]*Target="([^"]+)"`))?.[1] ??
+    rels.match(new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${rId}"`))?.[1];
 
-  const result = new Map<number, string>();
-  for (const row of sheet.match(/<row\b[\s\S]*?(?:<\/row>|\/>)/g) ?? []) {
-    const rowNum = Number(row.match(/<row\b[^>]*\br="(\d+)"/)?.[1]);
-    if (!rowNum) continue;
-    let filled = 0;
-    let struck = 0;
-    let firstText = "";
-    for (const c of row.match(/<c\b[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g) ?? []) {
-      const cellStruck = struckXf[Number(c.match(/\bs="(\d+)"/)?.[1] ?? 0)] === true;
-      const type = c.match(/\bt="([^"]+)"/)?.[1];
-      let cell: { text: string; struck: boolean };
-      if (type === "s") {
-        cell = runs(shared[Number(c.match(/<v>(\d+)<\/v>/)?.[1] ?? -1)] ?? "", cellStruck);
-      } else if (type === "inlineStr") {
-        cell = runs(c.match(/<is>[\s\S]*?<\/is>/)?.[0] ?? "", cellStruck);
-      } else {
-        cell = { text: decodeXml(c.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? ""), struck: cellStruck };
+  const result = new Map<string, Set<number>>();
+  for (const tag of (file("xl/workbook.xml") ?? "").match(/<sheet\b[^>]*>/g) ?? []) {
+    const name = decodeXml(tag.match(/\bname="([^"]*)"/)?.[1] ?? "");
+    const rId = tag.match(/\br:id="([^"]+)"/)?.[1];
+    const target = rId ? targetOf(rId) : undefined;
+    if (!name || !target) continue;
+    const sheet = file(`xl/${target.replace(/^\/?xl\//, "")}`) ?? "";
+
+    const rowsStruck = new Set<number>();
+    for (const row of sheet.match(/<row\b[\s\S]*?(?:<\/row>|\/>)/g) ?? []) {
+      const rowNum = Number(row.match(/<row\b[^>]*\br="(\d+)"/)?.[1]);
+      if (!rowNum) continue;
+      let filled = 0;
+      let struck = 0;
+      for (const c of row.match(/<c\b[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g) ?? []) {
+        const cellStruck = struckXf[Number(c.match(/\bs="(\d+)"/)?.[1] ?? 0)] === true;
+        const type = c.match(/\bt="([^"]+)"/)?.[1];
+        let cell: { text: string; struck: boolean };
+        if (type === "s") {
+          cell = runs(shared[Number(c.match(/<v>(\d+)<\/v>/)?.[1] ?? -1)] ?? "", cellStruck);
+        } else if (type === "inlineStr") {
+          cell = runs(c.match(/<is>[\s\S]*?<\/is>/)?.[0] ?? "", cellStruck);
+        } else {
+          cell = { text: decodeXml(c.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? ""), struck: cellStruck };
+        }
+        if (!cell.text.trim()) continue;
+        filled++;
+        if (cell.struck) struck++;
       }
-      if (!cell.text.trim()) continue;
-      filled++;
-      if (cell.struck) struck++;
-      if (!firstText) firstText = cell.text.trim();
+      // Most of the row, not just one cell — a single crossed-out old price
+      // next to a new one shouldn't take the car down.
+      if (filled > 0 && struck * 2 > filled) rowsStruck.add(rowNum);
     }
-    // Most of the row, not just one cell — a single crossed-out old price
-    // next to a new one shouldn't take the car down.
-    if (filled > 0 && struck * 2 > filled) result.set(rowNum, firstText);
+    if (rowsStruck.size) result.set(name, rowsStruck);
   }
   return result;
 }
@@ -207,58 +238,4 @@ function decodeXml(s: string): string {
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/&amp;/g, "&");
-}
-
-// Removes the given sheet rows from Google's CSV export. CSV record N is
-// sheet row N (the export keeps empty rows), but a quoted cell can span
-// lines, so records are split quote-aware. Each drop is sanity-checked
-// against the row's first cell text; if the numbering doesn't line up, it
-// falls back to the first record that starts with that text.
-export function dropCsvRecords(csv: string, struck: Map<number, string>): string {
-  const records: string[] = [];
-  let start = 0;
-  let inQuotes = false;
-  for (let i = 0; i < csv.length; i++) {
-    const ch = csv[i];
-    if (ch === '"') inQuotes = !inQuotes;
-    else if (ch === "\n" && !inQuotes) {
-      records.push(csv.slice(start, i + 1));
-      start = i + 1;
-    }
-  }
-  if (start < csv.length) records.push(csv.slice(start));
-
-  // First non-empty field of a CSV record (quote-aware).
-  const firstField = (record: string) => {
-    const line = record.replace(/\r?\n$/, "");
-    let field = "";
-    let quoted = false;
-    for (let i = 0; i <= line.length; i++) {
-      const ch = line[i];
-      if (quoted) {
-        if (ch === '"' && line[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else if (ch === '"') quoted = false;
-        else field += ch ?? "";
-      } else if (ch === '"') quoted = true;
-      else if (ch === "," || ch === undefined) {
-        if (field.trim()) return field.trim();
-        field = "";
-      } else field += ch;
-    }
-    return "";
-  };
-
-  const drop = new Set<number>();
-  for (const [rowNum, text] of struck) {
-    const idx = rowNum - 1;
-    if (idx < records.length && firstField(records[idx]).includes(text.slice(0, 40))) {
-      drop.add(idx);
-      continue;
-    }
-    const fallback = records.findIndex((r, i) => !drop.has(i) && firstField(r).includes(text.slice(0, 40)));
-    if (fallback >= 0) drop.add(fallback);
-  }
-  return records.filter((_, i) => !drop.has(i)).join("");
 }

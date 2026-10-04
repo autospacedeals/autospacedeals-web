@@ -13,6 +13,7 @@ import {
 import {
   createSubmissionAction,
   createManualDealAction,
+  listSheetTabsAction,
   type SubmissionState,
 } from "./actions";
 import type { ParsedDeal } from "@/lib/parse-inventory";
@@ -123,7 +124,30 @@ function LinkForm({
     "google_sheet" | "excel_file" | "free_text" | "screenshot"
   >("google_sheet");
   const [keepSynced, setKeepSynced] = useState(false);
+  // Google Sheet step one: the sheet's tabs, and which ones to import.
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [sheetTabs, setSheetTabs] = useState<{ name: string; rows: number }[] | null>(null);
+  const [pickedTabs, setPickedTabs] = useState<string[]>([]);
+  const [findingTabs, setFindingTabs] = useState(false);
+  const [tabsError, setTabsError] = useState<string | null>(null);
   const uid = useId();
+
+  async function findTabs() {
+    setFindingTabs(true);
+    setTabsError(null);
+    const result = await listSheetTabsAction(sheetUrl);
+    setFindingTabs(false);
+    if (result.error || !result.tabs) {
+      setTabsError(result.error ?? "Couldn't read that sheet.");
+      setSheetTabs(null);
+      return;
+    }
+    setSheetTabs(result.tabs);
+    setPickedTabs(result.tabs.filter((t) => t.rows > 0).map((t) => t.name));
+  }
+
+  const isSheet = sourceType === "google_sheet";
+  const pickedRows = (sheetTabs ?? []).filter((t) => pickedTabs.includes(t.name)).reduce((n, t) => n + t.rows, 0);
 
   // Jump straight to the new drafts instead of making the broker scroll up
   // to find them — the section only exists once there's at least one
@@ -271,14 +295,68 @@ function LinkForm({
           <label htmlFor={`${uid}-sourceUrl`} className={labelClass}>
             Google Sheet share link
           </label>
-          <input
-            required
-            type="url"
-            id={`${uid}-sourceUrl`}
-            name="sourceUrl"
-            placeholder="https://docs.google.com/spreadsheets/..."
-            className={inputClass}
-          />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              required
+              type="url"
+              id={`${uid}-sourceUrl`}
+              name="sourceUrl"
+              value={sheetUrl}
+              onChange={(e) => {
+                setSheetUrl(e.target.value);
+                setSheetTabs(null);
+                setTabsError(null);
+              }}
+              placeholder="https://docs.google.com/spreadsheets/..."
+              className={`${inputClass} min-w-0 flex-1`}
+            />
+            <button
+              type="button"
+              onClick={findTabs}
+              disabled={findingTabs || !sheetUrl.trim()}
+              className="btn btn-secondary shrink-0"
+            >
+              {findingTabs ? "Opening sheet…" : sheetTabs ? "Re-check tabs" : "Find tabs"}
+            </button>
+          </div>
+          {tabsError && (
+            <p role="alert" className="alert alert-danger mt-2">
+              {tabsError}
+            </p>
+          )}
+          {sheetTabs && (
+            <fieldset className="mt-3 rounded-xl border border-line bg-hover p-3.5">
+              <legend className="sr-only">Tabs to import</legend>
+              <p className="text-sm font-medium text-fg">Which tabs should we pull cars from?</p>
+              <p className="mt-0.5 text-xs text-fg-muted">
+                Uncheck outdated tabs — we only read the ones you leave checked. Hidden tabs are skipped.
+              </p>
+              <ul className="mt-2.5 grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                {sheetTabs.map((t) => (
+                  <li key={t.name}>
+                    <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm text-fg">
+                      <input
+                        type="checkbox"
+                        name="tabs"
+                        value={t.name}
+                        checked={pickedTabs.includes(t.name)}
+                        onChange={(e) =>
+                          setPickedTabs((prev) =>
+                            e.target.checked ? [...prev, t.name] : prev.filter((n) => n !== t.name)
+                          )
+                        }
+                        className="checkbox"
+                      />
+                      <span className="min-w-0 truncate">{t.name}</span>
+                      <span className="shrink-0 text-xs text-fg-muted">
+                        {t.rows === 0 ? "empty" : `${t.rows} row${t.rows === 1 ? "" : "s"}`}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+          )}
           {sourceType === "google_sheet" && (
             <>
               {sheetShareEmail ? (
@@ -344,9 +422,24 @@ function LinkForm({
         </p>
       )}
 
-      <button type="submit" disabled={pending} className="btn btn-primary">
-        <Upload /> {pending ? "Importing..." : "Import cars"}
+      <button
+        type="submit"
+        disabled={pending || (isSheet && (!sheetTabs || pickedTabs.length === 0))}
+        className="btn btn-primary"
+      >
+        <Upload />{" "}
+        {pending
+          ? "Importing..."
+          : isSheet && sheetTabs
+            ? `Import cars from ${pickedTabs.length} tab${pickedTabs.length === 1 ? "" : "s"}`
+            : "Import cars"}
       </button>
+      {isSheet && !sheetTabs && <p className="field-hint">Paste the link and click &quot;Find tabs&quot; first.</p>}
+      {isSheet && pending && pickedRows > 40 && (
+        <p role="status" className="field-hint">
+          Reading about {pickedRows} rows — this can take a minute or two. Keep this page open.
+        </p>
+      )}
     </form>
   );
 }

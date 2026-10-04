@@ -8,9 +8,13 @@
 // published directly if the broker opted into auto-publish for this sheet);
 // cars that disappear get soft-removed the same way a manual removal works,
 // so they're recoverable from "Removed" if they come back.
+//
+// Every visible tab is read. Tabs the broker switched off (disabled_tabs)
+// are left out, and their cars come down. Each row's parse is cached on the
+// sync (row_cache), so a check only sends new or changed rows to the AI.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parseInventoryCsv, computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
-import { fetchGoogleSheetCsv } from "@/lib/google-sheet";
+import { parseTabs, computeMatchSignature, type ParsedDeal, type TabRowCache } from "@/lib/parse-inventory";
+import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 
 export interface SheetSyncRow {
@@ -18,7 +22,11 @@ export interface SheetSyncRow {
   broker_id: string;
   sheet_url: string;
   auto_publish: boolean;
+  disabled_tabs: string[] | null;
+  row_cache: TabRowCache | null;
 }
+
+export const SHEET_SYNC_COLUMNS = "id, broker_id, sheet_url, auto_publish, disabled_tabs, row_cache";
 
 export interface SheetSyncResult {
   syncId: string;
@@ -30,6 +38,7 @@ export interface SheetSyncResult {
 
 export interface ActiveDealRow {
   id: string;
+  sheet_tab?: string | null;
   match_signature: string | null;
   created_at: string;
   year: number;
@@ -60,7 +69,13 @@ const MAX_UNFLAGGED_REMOVALS = 3;
 export function planSheetSync(
   parsedDeals: ParsedDeal[],
   existingRows: ActiveDealRow[]
-): { toInsert: ParsedDeal[]; toUpdate: { id: string; deal: ParsedDeal }[]; toRemoveIds: string[] } {
+): {
+  toInsert: ParsedDeal[];
+  toUpdate: { id: string; deal: ParsedDeal }[];
+  toRemoveIds: string[];
+  // Listings that still match their row exactly, for keeping sheet_tab current.
+  matched: { id: string; deal: ParsedDeal }[];
+} {
   // Group the freshly-parsed sheet rows and the currently active listings by
   // signature, then reconcile counts per signature — this also handles a
   // broker listing several identical units at the same price reasonably
@@ -83,19 +98,31 @@ export function planSheetSync(
 
   const unmatchedSheet: ParsedDeal[] = [];
   const unmatchedDb: ActiveDealRow[] = [];
+  const matched: { id: string; deal: ParsedDeal }[] = [];
 
   const allSignatures = new Set([...sheetBySignature.keys(), ...dbBySignature.keys()]);
   for (const sig of allSignatures) {
     const sheetList = sheetBySignature.get(sig) ?? [];
     const dbList = dbBySignature.get(sig) ?? [];
-    if (sheetList.length > dbList.length) {
-      unmatchedSheet.push(...sheetList.slice(dbList.length));
-    } else if (dbList.length > sheetList.length) {
-      // Oldest-first so the listing that's genuinely been there longest is
-      // the one assumed sold/removed first.
-      const sorted = [...dbList].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
-      unmatchedDb.push(...sorted.slice(0, dbList.length - sheetList.length));
+    // Prefer pairing each listing with a row from the tab it came from.
+    const sameTabFirst = [...sheetList].sort((a, b) => {
+      const inDb = (d: ParsedDeal) => (dbList.some((r) => r.sheet_tab === d.sheetTab) ? 0 : 1);
+      return inDb(a) - inDb(b);
+    });
+    // Newest first, so when there are more listings than rows the oldest
+    // ones are left over — the listing that's genuinely been there longest
+    // is the one assumed sold/removed first.
+    const dbSorted = [...dbList].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    const pairs = Math.min(sheetList.length, dbList.length);
+    const usedDb = new Set<number>();
+    for (const d of sameTabFirst.slice(0, pairs)) {
+      let j = dbSorted.findIndex((r, k) => !usedDb.has(k) && r.sheet_tab === d.sheetTab);
+      if (j < 0) j = dbSorted.findIndex((_, k) => !usedDb.has(k));
+      usedDb.add(j);
+      matched.push({ id: dbSorted[j].id, deal: d });
     }
+    unmatchedSheet.push(...sameTabFirst.slice(pairs));
+    unmatchedDb.push(...dbSorted.filter((_, k) => !usedDb.has(k)));
   }
 
   // Pair leftovers for the same car: that's a repriced (or re-termed)
@@ -115,7 +142,7 @@ export function planSheetSync(
     else toInsert.push(d);
   }
   const toRemoveIds = [...dbByVehicle.values()].flat().map((r) => r.id);
-  return { toInsert, toUpdate, toRemoveIds };
+  return { toInsert, toUpdate, toRemoveIds, matched };
 }
 
 export async function runSheetSync(
@@ -124,55 +151,83 @@ export async function runSheetSync(
   broker: BrokerProfile
 ): Promise<SheetSyncResult> {
   const nowIso = new Date().toISOString();
+  const fail = async (message: string): Promise<SheetSyncResult> => {
+    await supabase.from("sheet_syncs").update({ last_synced_at: nowIso, last_sync_error: message }).eq("id", sync.id);
+    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: message };
+  };
 
-  const fetched = await fetchGoogleSheetCsv(sync.sheet_url);
-  if (!fetched.ok) {
-    await supabase
-      .from("sheet_syncs")
-      .update({ last_synced_at: nowIso, last_sync_error: fetched.error })
-      .eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: fetched.error };
-  }
+  const fetched = await fetchGoogleSheetTabs(sync.sheet_url);
+  if (!fetched.ok) return fail(fetched.error);
+
+  const disabled = new Set(sync.disabled_tabs ?? []);
+  const enabledTabs = fetched.tabs.filter((t) => !disabled.has(t.name));
 
   let parsedDeals: ParsedDeal[];
   let skippedCount: number;
+  let rowCache: TabRowCache;
+  let rowsRead: number;
   try {
-    const result = await parseInventoryCsv(fetched.csvText, broker.state);
+    const result = await parseTabs(enabledTabs, broker.state, sync.row_cache ?? {});
     parsedDeals = result.parsed;
     skippedCount = result.skipped.length;
+    // Switched-off tabs that still exist keep their cache for later.
+    const kept = Object.fromEntries(
+      Object.entries(sync.row_cache ?? {}).filter(([tab]) => disabled.has(tab) && fetched.tabs.some((t) => t.name === tab))
+    );
+    rowCache = { ...kept, ...result.cache };
+    rowsRead = result.rowsRead;
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to parse the sheet.";
     console.error(`Sheet sync ${sync.id}: parse failed:`, err);
-    await supabase.from("sheet_syncs").update({ last_synced_at: nowIso, last_sync_error: message }).eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: message };
+    return fail(err instanceof Error ? err.message : "Failed to parse the sheet.");
   }
 
-  // A totally empty read (no rows parsed AND none skipped) almost always
-  // means something went wrong with the fetch/read itself — never treat
-  // "we read nothing" as "delete everything."
-  if (parsedDeals.length === 0 && skippedCount === 0) {
-    const message = "Last check found no rows on the sheet's first tab — skipped to avoid removing everything.";
-    await supabase.from("sheet_syncs").update({ last_synced_at: nowIso, last_sync_error: message }).eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: message };
-  }
+  // Remember the tab list either way, so the broker can switch tabs on/off.
+  await supabase
+    .from("sheet_syncs")
+    .update({ tabs: fetched.tabs.map((t) => t.name) })
+    .eq("id", sync.id);
 
   const { data: existingRows, error: fetchExistingError } = await supabase
     .from("deals")
-    .select("id, match_signature, created_at, year, make, model, trim")
+    .select("id, sheet_tab, match_signature, created_at, year, make, model, trim")
     .eq("sheet_sync_id", sync.id)
     .in("status", ["draft", "published"])
     .returns<ActiveDealRow[]>();
 
   if (fetchExistingError) {
     console.error(`Sheet sync ${sync.id}: failed to load existing deals:`, fetchExistingError.message);
-    await supabase
-      .from("sheet_syncs")
-      .update({ last_synced_at: nowIso, last_sync_error: fetchExistingError.message })
-      .eq("id", sync.id);
-    return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: fetchExistingError.message };
+    return fail(fetchExistingError.message);
   }
 
-  const { toInsert, toUpdate, toRemoveIds } = planSheetSync(parsedDeals, existingRows ?? []);
+  // Cars from a tab the broker switched off come down (the switch itself
+  // already does this; this catches anything left over).
+  const offTabRows = (existingRows ?? []).filter((r) => r.sheet_tab && disabled.has(r.sheet_tab));
+  const activeRows = (existingRows ?? []).filter((r) => !(r.sheet_tab && disabled.has(r.sheet_tab)));
+  let removedCount = 0;
+  if (offTabRows.length > 0) {
+    const { data } = await supabase
+      .from("deals")
+      .update({ status: "removed", removed_at: nowIso })
+      .in(
+        "id",
+        offTabRows.map((r) => r.id)
+      )
+      .select("id");
+    removedCount += data?.length ?? 0;
+  }
+
+  // A totally empty read (no rows on any switched-on tab) almost always
+  // means something went wrong with the fetch/read itself — never treat
+  // "we read nothing" as "delete everything."
+  if (parsedDeals.length === 0 && skippedCount === 0 && rowsRead === 0) {
+    return fail(
+      enabledTabs.length === 0
+        ? "Every tab is switched off, so nothing was checked."
+        : "Last check found no rows on the sheet — skipped to avoid removing everything."
+    );
+  }
+
+  const { toInsert, toUpdate, toRemoveIds, matched } = planSheetSync(parsedDeals, activeRows);
 
   let updatedCount = 0;
   for (const { id, deal: d } of toUpdate) {
@@ -187,6 +242,7 @@ export async function runSheetSync(
         broker_fee: d.brokerFee,
         one_pay: d.onePay,
         match_signature: computeMatchSignature(d),
+        sheet_tab: d.sheetTab ?? null,
         updated_at: nowIso,
       })
       .eq("id", id);
@@ -197,9 +253,21 @@ export async function runSheetSync(
     }
   }
 
-  const activeCount = existingRows?.length ?? 0;
+  // Keep each listing's tab current (cars from before tabs were tracked, or
+  // a renamed tab), one update per tab.
+  const byTab = new Map<string, string[]>();
+  const rowById = new Map(activeRows.map((r) => [r.id, r]));
+  for (const { id, deal } of matched) {
+    if (!deal.sheetTab || rowById.get(id)?.sheet_tab === deal.sheetTab) continue;
+    byTab.set(deal.sheetTab, [...(byTab.get(deal.sheetTab) ?? []), id]);
+  }
+  for (const [tab, ids] of byTab) {
+    const { error } = await supabase.from("deals").update({ sheet_tab: tab }).in("id", ids);
+    if (error) console.error(`Sheet sync ${sync.id}: failed to set sheet_tab:`, error.message);
+  }
+
+  const activeCount = activeRows.length;
   let removalsSkipped = false;
-  let removedCount = 0;
   if (toRemoveIds.length > 0) {
     const tooMany = toRemoveIds.length > MAX_UNFLAGGED_REMOVALS && toRemoveIds.length > activeCount * 0.5;
     if (tooMany) {
@@ -213,7 +281,7 @@ export async function runSheetSync(
       if (removeError) {
         console.error(`Sheet sync ${sync.id}: failed to remove deals:`, removeError.message);
       } else {
-        removedCount = removedRows?.length ?? 0;
+        removedCount += removedRows?.length ?? 0;
       }
     }
   }
@@ -238,6 +306,7 @@ export async function runSheetSync(
       last_sync_added: addedCount,
       last_sync_removed: removedCount,
       last_sync_error: lastSyncError,
+      row_cache: rowCache,
     })
     .eq("id", sync.id);
 

@@ -6,6 +6,7 @@ import {
   toggleSheetSyncActiveAction,
   toggleSheetSyncAutoPublishAction,
   deleteSheetSyncAction,
+  setSheetTabEnabledAction,
 } from "./actions";
 import MyListings from "./MyListings";
 import type { Deal } from "@/lib/deals-data";
@@ -19,6 +20,9 @@ export interface SheetSync {
   lastSyncAdded: number;
   lastSyncRemoved: number;
   lastSyncError: string | null;
+  // Tab names from the last read, and the ones switched off.
+  tabs: string[];
+  disabledTabs: string[];
 }
 
 function formatSyncedAt(iso: string | null): string {
@@ -55,6 +59,7 @@ export default function SheetSyncManager({
   listingsBySync?: Record<string, Deal[]>;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyNote, setBusyNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (syncs.length === 0) return null;
@@ -65,6 +70,21 @@ export default function SheetSyncManager({
     const result = await action();
     if (result.error) setError(result.error);
     setBusyId(null);
+    setBusyNote(null);
+  }
+
+  function toggleTab(sync: SheetSync, tab: string, enabled: boolean, liveCount: number) {
+    if (
+      !enabled &&
+      liveCount > 0 &&
+      !window.confirm(
+        `Switch off the "${tab}" tab? Its ${liveCount} live ${liveCount === 1 ? "car comes" : "cars come"} down now. You can switch it back on anytime.`
+      )
+    ) {
+      return;
+    }
+    setBusyNote(enabled ? `Checking the "${tab}" tab — this can take a minute for a lot of cars…` : null);
+    void run(sync.id, () => setSheetTabEnabledAction(sync.id, tab, enabled));
   }
 
   return (
@@ -153,6 +173,46 @@ export default function SheetSyncManager({
                   Auto-publish new listings found on future checks (off = they land as drafts for you
                   to confirm)
                 </label>
+
+                <div className="mt-4 border-t border-line pt-3">
+                  <p className="text-xs font-medium text-fg-secondary">Tabs to pull cars from</p>
+                  {sync.tabs.length === 0 ? (
+                    <p className="mt-1.5 text-xs text-fg-muted">The sheet&apos;s tabs show up here after its next check.</p>
+                  ) : (
+                    <>
+                      <ul className="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                        {sync.tabs.map((tab) => {
+                          const on = !sync.disabledTabs.includes(tab);
+                          const liveCount = listings.filter((d) => d.sheetTab === tab).length;
+                          return (
+                            <li key={tab}>
+                              <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm text-fg has-[:disabled]:cursor-not-allowed">
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  disabled={busyId === sync.id}
+                                  onChange={(e) => toggleTab(sync, tab, e.target.checked, liveCount)}
+                                  className="checkbox"
+                                />
+                                <span className={`min-w-0 truncate ${on ? "" : "text-fg-muted line-through"}`}>{tab}</span>
+                                {on && liveCount > 0 && <span className="shrink-0 text-xs text-fg-muted">{liveCount} live</span>}
+                              </label>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <p className="mt-1.5 text-xs text-fg-muted">
+                        Uncheck an outdated tab to take its cars down and stop pulling it; check it again
+                        when it&apos;s ready. New tabs are pulled automatically. Hidden tabs are skipped.
+                      </p>
+                    </>
+                  )}
+                  {busyId === sync.id && busyNote && (
+                    <p role="status" className="mt-2 flex items-center gap-1.5 text-xs text-fg-secondary">
+                      <Loader2 size={12} className="animate-spin" /> {busyNote}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <p className="mt-4 mb-3 text-sm font-medium text-fg">

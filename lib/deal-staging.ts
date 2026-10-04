@@ -7,6 +7,7 @@ import { classifyVehicles } from "@/lib/vehicle-classify";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
 import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
+import { mapLimit } from "@/lib/concurrency";
 
 export interface BrokerProfile {
   business_name: string;
@@ -51,7 +52,9 @@ export async function stageParsedDeals(
   // style for the whole batch in one go so they're searchable/filterable.
   const classes = await classifyVehicles(deals);
 
-  for (const [i, d] of deals.entries()) {
+  // Several at a time — a 200-car sheet would take minutes one by one (each
+  // car looks up a photo).
+  await mapLimit(deals, 8, async (d, i) => {
     let images: string[] = [];
     const photo = await fetchCarsxePhoto({
       year: d.year,
@@ -69,6 +72,7 @@ export async function stageParsedDeals(
       broker_id: userId,
       submission_id: submissionId,
       sheet_sync_id: sheetSyncId,
+      sheet_tab: sheetSyncId ? (d.sheetTab ?? null) : null,
       match_signature: sheetSyncId ? computeMatchSignature(d) : null,
       year: d.year,
       make: d.make,
@@ -119,7 +123,7 @@ export async function stageParsedDeals(
     } else {
       staged++;
     }
-  }
+  });
 
   return { staged, failed, lastError };
 }

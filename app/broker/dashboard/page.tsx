@@ -21,6 +21,10 @@ import SheetSyncManager, { type SheetSync } from "./SheetSyncManager";
 // Always fetch fresh so the broker's own edits (price changes, drafts
 // confirmed, listings removed) show up immediately, not from a stale cache.
 export const dynamic = "force-dynamic";
+// Server actions on this page include reading a whole Google Sheet (every
+// tab, in AI batches) and saving its cars, which can take a few minutes for
+// a big inventory.
+export const maxDuration = 300;
 
 export const metadata: Metadata = {
   title: "Broker Dashboard",
@@ -65,7 +69,7 @@ export default async function BrokerDashboardPage() {
     "verified, in_stock, popularity, date_posted, badge, notes, packages, images, " +
     "source_url, sample, one_pay, status, submission_id, condition, incentives, photo_auto_sourced, " +
     "due_at_signing_tax_rate, payment_tax_rate, mask_msrp, msrp_masked_label, broker_fee, removed_at, " +
-    "sheet_sync_id, msd_count, msd_total, mileage_options, delivery";
+    "sheet_sync_id, sheet_tab, msd_count, msd_total, mileage_options, delivery";
 
   const { data: myDealRows, error: dealsError } = await supabase
     .from("deals")
@@ -94,7 +98,7 @@ export default async function BrokerDashboardPage() {
 
   const { data: sheetSyncRows } = await supabase
     .from("sheet_syncs")
-    .select("id, sheet_url, auto_publish, active, last_synced_at, last_sync_added, last_sync_removed, last_sync_error")
+    .select("id, sheet_url, auto_publish, active, last_synced_at, last_sync_added, last_sync_removed, last_sync_error, tabs, disabled_tabs")
     .eq("broker_id", user.id)
     .order("created_at", { ascending: false })
     .returns<
@@ -107,6 +111,8 @@ export default async function BrokerDashboardPage() {
         last_sync_added: number;
         last_sync_removed: number;
         last_sync_error: string | null;
+        tabs: string[] | null;
+        disabled_tabs: string[] | null;
       }[]
     >();
 
@@ -133,6 +139,8 @@ export default async function BrokerDashboardPage() {
     lastSyncAdded: s.last_sync_added,
     lastSyncRemoved: s.last_sync_removed,
     lastSyncError: s.last_sync_error,
+    tabs: s.tabs ?? [],
+    disabledTabs: s.disabled_tabs ?? [],
   }));
 
   // Contact phone and the message-email setting aren't readable through

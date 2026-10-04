@@ -75,6 +75,7 @@ export interface DealRow {
   msd_total?: number | null;
   removed_at: string | null;
   sheet_sync_id?: string | null;
+  sheet_tab?: string | null;
 }
 
 export function mapRowToDeal(row: DealRow): Deal {
@@ -132,6 +133,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     status: row.status,
     removedAt: row.removed_at ?? null,
     sheetSyncId: row.sheet_sync_id ?? null,
+    sheetTab: row.sheet_tab ?? null,
   };
 }
 

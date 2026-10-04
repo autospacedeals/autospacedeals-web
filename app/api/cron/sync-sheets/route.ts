@@ -6,11 +6,13 @@
 // lib/sheet-sync.ts for the actual reconciliation logic.
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { runSheetSync, type SheetSyncRow } from "@/lib/sheet-sync";
+import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
 import type { BrokerProfile } from "@/lib/deal-staging";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// A big sheet's first read (or a lot of changed rows) means several AI
+// batches; later checks only re-read changed rows and finish quickly.
+export const maxDuration = 300;
 
 interface BrokerRow extends BrokerProfile {
   id: string;
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const { data: syncs, error: syncsError } = await supabase
     .from("sheet_syncs")
-    .select("id, broker_id, sheet_url, auto_publish")
+    .select(SHEET_SYNC_COLUMNS)
     .eq("active", true)
     .returns<SheetSyncRow[]>();
 

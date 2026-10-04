@@ -14,7 +14,9 @@
 // run, fast, and good enough for the fairly formulaic way these sheets get
 // written. Rows it can't confidently parse are skipped and reported back
 // rather than guessed at, so nothing wrong ends up in a broker's queue.
-import * as XLSX from "xlsx";
+import { createHash } from "node:crypto";
+import { readWorkbookTabs, rowNumber, type SheetTab } from "./google-sheet";
+import { mapLimit } from "./concurrency";
 
 export interface ParsedDeal {
   year: number;
@@ -50,10 +52,16 @@ export interface ParsedDeal {
   incentives?: { name: string; amount: number; includedInPrice: boolean; monthly?: number }[];
   // Other mileage tiers the source prices, e.g. "10k +$23 · 12k +$45".
   mileageOptions?: { milesPerYear: number; monthlyDelta: number }[];
+  // Where a spreadsheet row came from: its sheet row number and tab name
+  // (see parseTabs). Synced sheets store the tab on the deal so a broker
+  // can switch a tab off.
+  sourceRow?: number;
+  sheetTab?: string | null;
 }
 
 export interface SkippedRow {
   row: number;
+  tab?: string;
   reason: string;
   // Whatever fields the parser DID manage to read before hitting one it
   // couldn't determine (e.g. everything but MSRP) — carried through so the
@@ -255,43 +263,163 @@ function parseLocationCell(text: string, fallbackState: string): string {
   return REGION_STATE[key] ?? fallbackState;
 }
 
-async function parseRowsWithAiOrHeuristic(
+// ---------------------------------------------------------------------------
+// Whole workbooks: every tab, in batches, with a per-row cache
+// ---------------------------------------------------------------------------
+
+// Rows sent to the AI per call. A call returns at most a few thousand
+// tokens of listings, so a 200-car sheet is read as ~10 batches in parallel.
+const ROWS_PER_BATCH = 20;
+const PARALLEL_BATCHES = 6;
+
+// What a row parsed to last time (sheet syncs keep this between runs, so
+// only new or changed rows are read again): its listings and skipped rows.
+export type RowParseCache = Record<string, { p: ParsedDeal[]; s: SkippedRow[] }>;
+// Kept per tab, so a tab that's switched off keeps its cache for when it's
+// switched back on.
+export type TabRowCache = Record<string, RowParseCache>;
+
+export interface TabsParseResult extends ParseResult {
+  // Only the tabs that were read.
+  cache: TabRowCache;
+  rowsRead: number;
+}
+
+function cellValues(row: Record<string, unknown>): string[] {
+  return Object.values(row).map((v) => String(v ?? "").trim());
+}
+
+// A row with only a cell or two filled in: a banner ("SoCal — pick-up
+// only"), a section title or a note, which can apply to the cars below it.
+function isNoteRow(row: Record<string, unknown>): boolean {
+  return cellValues(row).filter(Boolean).length < 3;
+}
+
+function hash(value: unknown): string {
+  return createHash("sha1").update(JSON.stringify(value)).digest("base64url");
+}
+
+// Reads every listing from every tab. Each tab is split into batches read
+// in parallel; a batch's banner/note rows from the rest of the tab ride
+// along as context. Rows found in `cache` (same content, same tab notes,
+// same headers) reuse their earlier result instead of being read again.
+export async function parseTabs(
+  tabs: SheetTab[],
+  brokerState: string,
+  cache: TabRowCache = {}
+): Promise<TabsParseResult> {
+  const nextCache: TabRowCache = {};
+  const parsed: ParsedDeal[] = [];
+  const skipped: SkippedRow[] = [];
+  const batches: { tab: string; rows: Record<string, unknown>[]; ids: number[]; keys: string[]; context: string }[] = [];
+  let rowsRead = 0;
+
+  for (const tab of tabs) {
+    if (tab.rows.length === 0) continue;
+    rowsRead += tab.rows.length;
+    const headers = Object.keys(tab.rows[0]);
+    const notes = tab.rows.filter(isNoteRow);
+    const context = notes.map((r) => `row ${rowNumber(r)}: ${cellValues(r).filter(Boolean).join(" | ")}`).join("\n");
+    const notesKey = hash(notes.map(cellValues));
+
+    let pending: { row: Record<string, unknown>; id: number; key: string }[] = [];
+    const flush = () => {
+      if (pending.length === 0) return;
+      batches.push({
+        tab: tab.name,
+        rows: pending.map((p) => p.row),
+        ids: pending.map((p) => p.id),
+        keys: pending.map((p) => p.key),
+        context,
+      });
+      pending = [];
+    };
+    const tabCache = cache[tab.name] ?? {};
+    const nextTabCache: RowParseCache = (nextCache[tab.name] = {});
+    for (const [i, row] of tab.rows.entries()) {
+      const id = rowNumber(row) > 0 ? rowNumber(row) : i + 2;
+      const key = hash([brokerState, headers, notesKey, cellValues(row)]);
+      const hit = tabCache[key];
+      if (hit) {
+        nextTabCache[key] = hit;
+        parsed.push(...hit.p.map((d) => ({ ...d, sourceRow: id, sheetTab: tab.name })));
+        skipped.push(...hit.s.map((r) => ({ ...r, row: id, tab: tab.name })));
+        continue;
+      }
+      pending.push({ row, id, key });
+      if (pending.length >= ROWS_PER_BATCH) flush();
+    }
+    flush();
+  }
+
+  // Loaded once up front — batches start together.
+  const ai = process.env.ANTHROPIC_API_KEY && batches.length ? await import("./ai-parse-inventory") : null;
+  const results = await mapLimit(batches, PARALLEL_BATCHES, async (b) => {
+    const { result, attributed } = await parseBatch(ai?.parseRowsWithAI ?? null, b.rows, b.ids, b.context, brokerState);
+    return { b, result, attributed };
+  });
+
+  for (const { b, result, attributed } of results) {
+    parsed.push(...result.parsed.map((d) => ({ ...d, sheetTab: b.tab })));
+    skipped.push(...result.skipped.map((r) => ({ ...r, tab: b.tab })));
+    // Only cache when every listing is tied to a row — otherwise a row could
+    // be remembered as "no cars" when its car just wasn't labeled.
+    if (!attributed) continue;
+    b.ids.forEach((id, i) => {
+      (nextCache[b.tab] ??= {})[b.keys[i]] = {
+        p: result.parsed.filter((d) => d.sourceRow === id).map(stripSource),
+        s: result.skipped.filter((r) => r.row === id).map(({ row, reason, partial }) => ({ row, reason, partial })),
+      };
+    });
+  }
+
+  return { parsed, skipped, cache: nextCache, rowsRead };
+}
+
+function stripSource(d: ParsedDeal): ParsedDeal {
+  const copy = { ...d };
+  delete copy.sourceRow;
+  delete copy.sheetTab;
+  return copy;
+}
+
+// One batch: the AI pass when it's configured, the heuristic parser as the
+// fallback (no key, an API error, or nothing usable back for rows that look
+// like cars). `attributed` is true when the result can be cached per row.
+async function parseBatch(
+  parseRowsWithAI: typeof import("./ai-parse-inventory").parseRowsWithAI | null,
   rows: Record<string, unknown>[],
+  ids: number[],
+  context: string,
   brokerState: string
-): Promise<ParseResult> {
-  if (process.env.ANTHROPIC_API_KEY) {
+): Promise<{ result: ParseResult; attributed: boolean }> {
+  if (parseRowsWithAI) {
     try {
-      const { parseRowsWithAI } = await import("./ai-parse-inventory");
-      const result = await parseRowsWithAI(rows, brokerState);
-      if (result.parsed.length > 0 || result.skipped.length > 0) return result;
-      // AI returned nothing usable — fall through to the heuristic pass
-      // rather than reporting an empty result.
+      const result = await parseRowsWithAI(rows, brokerState, { rowIds: ids, context: context || undefined });
+      const idSet = new Set(ids);
+      const attributed =
+        result.parsed.every((d) => d.sourceRow != null && idSet.has(d.sourceRow)) &&
+        result.skipped.every((r) => idSet.has(r.row));
+      if (result.parsed.length > 0 || result.skipped.length > 0 || rows.every(isNoteRow)) {
+        return { result, attributed };
+      }
     } catch (err) {
-      console.error("AI inventory parsing failed, falling back to heuristic parser:", err);
+      console.error("AI inventory parsing failed for a batch, falling back to heuristic parser:", err);
     }
   }
-  return parseRows(rows, brokerState);
+  const result = parseRows(rows, brokerState);
+  // The heuristic parser numbers rows as if the batch started at sheet row
+  // 2 (under the header); map back to the real sheet rows.
+  return {
+    result: { parsed: result.parsed, skipped: result.skipped.map((r) => ({ ...r, row: ids[r.row - 2] ?? r.row })) },
+    attributed: false,
+  };
 }
 
-export async function parseInventoryBuffer(
-  buffer: ArrayBuffer,
-  brokerState: string
-): Promise<ParseResult> {
-  const workbook = XLSX.read(buffer, { type: "array" });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-
-  return parseRowsWithAiOrHeuristic(rows, brokerState);
-}
-
-export async function parseInventoryCsv(
-  csvText: string,
-  brokerState: string
-): Promise<ParseResult> {
-  const workbook = XLSX.read(csvText, { type: "string" });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-  return parseRowsWithAiOrHeuristic(rows, brokerState);
+// An uploaded Excel/CSV file: every visible tab.
+export async function parseInventoryBuffer(buffer: ArrayBuffer, brokerState: string): Promise<ParseResult> {
+  const { parsed, skipped } = await parseTabs(readWorkbookTabs(buffer), brokerState);
+  return { parsed, skipped };
 }
 
 // Multiple security deposits written into a listing's text: "w/ 7 MSDs",

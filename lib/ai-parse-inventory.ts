@@ -35,6 +35,11 @@ const EXTRACT_TOOL = {
         items: {
           type: "object" as const,
           properties: {
+            sourceRow: {
+              type: ["number", "null"],
+              description:
+                "For a table with a # column: the # of the row this listing was read from. null otherwise.",
+            },
             year: { type: "number", description: "4-digit model year" },
             make: { type: "string", description: "Manufacturer, e.g. Porsche" },
             model: { type: "string", description: "Model name, e.g. Taycan" },
@@ -206,12 +211,15 @@ const COMBINED_CELL_GUIDANCE =
   `available") applies to every car under it until another one starts: city "SoCal", state CA, ` +
   `delivery "pickup".`;
 
-function rowsToTable(rows: Record<string, unknown>[]): string {
+// Pipe-delimited table, headers first. With `ids`, a leading # column
+// numbers each row so the model can say which row each listing came from.
+function rowsToTable(rows: Record<string, unknown>[], ids?: number[]): string {
   if (rows.length === 0) return "";
   const headers = Object.keys(rows[0]);
-  const lines = [headers.join(" | ")];
-  for (const row of rows) {
-    lines.push(headers.map((h) => String(row[h] ?? "")).join(" | "));
+  const lines = [(ids ? ["#", ...headers] : headers).join(" | ")];
+  for (const [i, row] of rows.entries()) {
+    const cells = headers.map((h) => String(row[h] ?? ""));
+    lines.push((ids ? [String(ids[i]), ...cells] : cells).join(" | "));
   }
   return lines.join("\n");
 }
@@ -232,6 +240,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
   const skipped: SkippedRow[] = [];
 
   candidates.forEach((c, idx) => {
+    const sourceRow = typeof c.sourceRow === "number" ? c.sourceRow : undefined;
     const year = typeof c.year === "number" ? c.year : null;
     const make = typeof c.make === "string" && c.make.trim() ? c.make.trim() : null;
     const model = typeof c.model === "string" && c.model.trim() ? c.model.trim() : null;
@@ -304,7 +313,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (notes) partial.notes = notes;
       if (statedIncentives.length > 0) partial.incentives = toParsedIncentives(statedIncentives);
       if (mileageOptions.length > 0) partial.mileageOptions = mileageOptions;
-      skipped.push({ row: idx + 1, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
+      skipped.push({ row: sourceRow ?? idx + 1, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
       return;
     }
 
@@ -330,6 +339,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       onePay,
       incentives: toParsedIncentives(statedIncentives),
       mileageOptions,
+      sourceRow,
     });
   });
 
@@ -338,29 +348,44 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
 
 export async function parseRowsWithAI(
   rows: Record<string, unknown>[],
-  brokerState: string
+  brokerState: string,
+  // For one batch of a bigger sheet (see parseTabs in parse-inventory.ts):
+  // each row's sheet row number, so listings can be traced back to their
+  // row, and the tab's banner/note rows from elsewhere in the sheet.
+  options: { rowIds?: number[]; context?: string } = {}
 ): Promise<ParseResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || rows.length === 0) return { parsed: [], skipped: [] };
 
-  const table = rowsToTable(rows);
+  const table = rowsToTable(rows, options.rowIds);
   const client = new Anthropic({ apiKey });
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    // Room for a full batch (~20 rows) of listings with incentives and
+    // mileage tiers; callers split bigger sheets into batches.
+    max_tokens: 16000,
     tools: [EXTRACT_TOOL],
     tool_choice: { type: "tool", name: "extract_deals" },
     messages: [
       {
         role: "user",
         content:
-          `Extract every car lease listing from this broker inventory sheet (pipe-delimited, first line is headers).\n\n` +
+          `Extract every car lease listing from this broker inventory sheet (pipe-delimited, first line is headers` +
+          `${options.rowIds ? "; the # column is each row's number in the sheet — put it in sourceRow" : ""}).\n\n` +
           `Columns vary by broker. ${COMBINED_CELL_GUIDANCE} ` +
           `Use your knowledge of car makes/models to fill in make when only a model name is given. ` +
           `Tolerate typos. If a field genuinely isn't determinable for a row, use null for it ` +
           `rather than guessing — do not fabricate numbers. Skip rows that aren't actual vehicle ` +
-          `listings (blank rows, totals, headers repeated mid-sheet, etc).\n\n${table}`,
+          `listings (blank rows, totals, headers repeated mid-sheet, etc).\n\n` +
+          (options.context
+            ? `This is one part of a longer sheet. These banner/note rows (with their sheet row numbers) ` +
+              `are on the same tab. Don't list them as cars. A banner about location, shipping, or terms ` +
+              `for "the cars below" applies only to rows with a HIGHER # than the banner, up to the next ` +
+              `banner of the same kind — never to rows above it. A note that clearly covers the whole ` +
+              `sheet (e.g. "all prices include loyalty") applies to every row.\n${options.context}\n\nRows to extract:\n`
+            : "") +
+          table,
       },
     ],
   });
