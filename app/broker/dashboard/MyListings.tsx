@@ -175,9 +175,13 @@ function deriveDraft(deal: Deal): RowDraft {
 export default function MyListings({
   deals,
   emptyMessage = "You don't have any live listings yet — use the form below to add one.",
+  asAdmin = false,
 }: {
   deals: Deal[];
   emptyMessage?: string;
+  // On /admin/listings: saves and removals go through the admin path (any
+  // broker's listing) instead of the broker's own.
+  asAdmin?: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -281,7 +285,7 @@ export default function MyListings({
     setBulkError(null);
     setBulkDeleting(true);
     try {
-      const result = await deleteDealsAction(Array.from(selected));
+      const result = await deleteDealsAction(Array.from(selected), asAdmin);
       if (result.error) setBulkError(result.error);
       else setSelected(new Set());
     } catch {
@@ -366,6 +370,7 @@ export default function MyListings({
           <tbody>
             {deals.map((deal) => (
               <ListingRow
+                asAdmin={asAdmin}
                 key={deal.id}
                 deal={deal}
                 selected={selected.has(deal.id)}
@@ -380,10 +385,12 @@ export default function MyListings({
 }
 
 function ListingRow({
+  asAdmin,
   deal,
   selected,
   onToggleSelect,
 }: {
+  asAdmin: boolean;
   deal: Deal;
   selected: boolean;
   onToggleSelect: () => void;
@@ -459,6 +466,7 @@ function ListingRow({
         )
       );
       fd.set("images", draft.images);
+      if (asAdmin) fd.set("asAdmin", "1");
 
       const result = await updateDealAction(fd);
       if (result.error) setError(result.error);
@@ -520,6 +528,7 @@ function ListingRow({
     try {
       const fd = new FormData();
       fd.set("id", deal.id);
+      if (asAdmin) fd.set("asAdmin", "1");
       const result = await deleteDealAction(fd);
       if (result?.error) setError(result.error);
     } catch {

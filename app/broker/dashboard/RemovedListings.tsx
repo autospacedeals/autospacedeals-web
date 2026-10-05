@@ -18,7 +18,7 @@ function formatRemovedAt(iso: string | null | undefined): string {
 // this go up / come down" record — exists at all, and so a listing pulled
 // by mistake can be brought back with one click instead of re-entering it
 // from scratch.
-export default function RemovedListings({ deals }: { deals: Deal[] }) {
+export default function RemovedListings({ deals, asAdmin = false }: { deals: Deal[]; asAdmin?: boolean }) {
   const [open, setOpen] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export default function RemovedListings({ deals }: { deals: Deal[] }) {
   async function handleRestore(id: string) {
     setRestoringId(id);
     setError(null);
-    const result = await restoreDealAction(id);
+    const result = await restoreDealAction(id, asAdmin);
     if (result.error) setError(result.error);
     setRestoringId(null);
   }

@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import type { Incentive } from "@/lib/deals-data";
 import { parseJsonField, sanitizeIncentives, sanitizeMileageOptions } from "@/lib/deal-options";
 import { parseLocationFields } from "@/lib/deal-location";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { isAdminEmail } from "@/lib/admin";
 import { slugify, parseMsrpInput } from "@/lib/deal-utils";
 import { fetchCarsxePhoto, fetchCarsxePhotos } from "@/lib/carsxe";
 import { parseInventoryBuffer, parseTabs, type ParsedDeal, type SkippedRow, type TabRowCache } from "@/lib/parse-inventory";
@@ -142,6 +144,29 @@ export async function repullPhotoAction(input: {
     };
   }
   return { imageUrl: fresh, error: null };
+}
+
+// Who's editing a listing: the broker (their own rows only, through their
+// own session) or a Drive admin from /admin/listings (any broker's row,
+// through the service role — checked against the admin list here, never
+// trusted from the form).
+async function dealEditor(asAdmin: boolean): Promise<{ client: SupabaseClient; brokerId: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (asAdmin) {
+    if (!user || !(await isAdminEmail(user.email))) redirect("/admin/login");
+    return { client: createAdminClient(), brokerId: null };
+  }
+  if (!user) redirect("/broker/login");
+  return { client: supabase, brokerId: user.id };
+}
+
+function revalidateListings() {
+  revalidatePath("/broker/dashboard");
+  revalidatePath("/admin/listings");
+  revalidatePath("/");
 }
 
 // Parses the hidden `incentives` field (JSON string written by
@@ -735,11 +760,7 @@ export async function createManualDealAction(
 // -----------------------------------------------------------------------------
 
 export async function updateDealAction(formData: FormData): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/broker/login");
+  const { client, brokerId } = await dealEditor(formData.get("asAdmin") === "1");
 
   const id = String(formData.get("id") || "");
   if (!id) return { error: "Missing deal id." };
@@ -815,7 +836,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
     if (photo) finalImages = [photo];
   }
 
-  const { error } = await supabase
+  let query = client
     .from("deals")
     .update({
       year,
@@ -853,12 +874,12 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       photo_auto_sourced: photoAutoSourced,
       one_pay: onePay,
     })
-    .eq("id", id)
-    .eq("broker_id", user.id);
+    .eq("id", id);
+  if (brokerId) query = query.eq("broker_id", brokerId);
+  const { error } = await query;
 
   if (error) return { error: error.message };
-  revalidatePath("/broker/dashboard");
-  revalidatePath("/");
+  revalidateListings();
   return { error: null };
 }
 
@@ -916,24 +937,20 @@ export async function deleteSubmissionAction(formData: FormData): Promise<{ erro
 // listings" history (with when it went live and when it came down) and can
 // be restored if it was taken down by mistake.
 export async function deleteDealAction(formData: FormData): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/broker/login");
+  const { client, brokerId } = await dealEditor(formData.get("asAdmin") === "1");
 
   const id = String(formData.get("id") || "");
   if (!id) return { error: "Missing deal id." };
 
-  const { error } = await supabase
+  let query = client
     .from("deals")
     .update({ status: "removed", removed_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("broker_id", user.id);
+    .eq("id", id);
+  if (brokerId) query = query.eq("broker_id", brokerId);
+  const { error } = await query;
   if (error) return { error: error.message };
 
-  revalidatePath("/broker/dashboard");
-  revalidatePath("/");
+  revalidateListings();
   return { error: null };
 }
 
@@ -941,26 +958,24 @@ export async function deleteDealAction(formData: FormData): Promise<{ error: str
 // view of the broker's listings. Scoped to the caller's own rows the same
 // way the single-delete action is, so a broker can never delete someone
 // else's listing even if IDs were tampered with client-side.
-export async function deleteDealsAction(ids: string[]): Promise<{ error: string | null; deletedCount: number }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/broker/login");
+export async function deleteDealsAction(
+  ids: string[],
+  asAdmin = false
+): Promise<{ error: string | null; deletedCount: number }> {
+  const { client, brokerId } = await dealEditor(asAdmin);
 
   const cleanIds = ids.filter(Boolean);
   if (cleanIds.length === 0) return { error: "No listings selected.", deletedCount: 0 };
 
-  const { error, data: removedRows } = await supabase
+  let query = client
     .from("deals")
     .update({ status: "removed", removed_at: new Date().toISOString() })
-    .in("id", cleanIds)
-    .eq("broker_id", user.id)
-    .select("id");
+    .in("id", cleanIds);
+  if (brokerId) query = query.eq("broker_id", brokerId);
+  const { error, data: removedRows } = await query.select("id");
   if (error) return { error: error.message, deletedCount: 0 };
 
-  revalidatePath("/broker/dashboard");
-  revalidatePath("/");
+  revalidateListings();
   return { error: null, deletedCount: removedRows?.length ?? 0 };
 }
 
@@ -968,25 +983,21 @@ export async function deleteDealsAction(ids: string[]): Promise<{ error: string 
 // removed_at. Scoped to the caller's own rows and only fires on rows that
 // are actually currently removed, so it can't be used to resurrect
 // something else or double-publish a draft.
-export async function restoreDealAction(id: string): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/broker/login");
+export async function restoreDealAction(id: string, asAdmin = false): Promise<{ error: string | null }> {
+  const { client, brokerId } = await dealEditor(asAdmin);
 
   if (!id) return { error: "Missing deal id." };
 
-  const { error } = await supabase
+  let query = client
     .from("deals")
     .update({ status: "published", removed_at: null })
     .eq("id", id)
-    .eq("broker_id", user.id)
     .eq("status", "removed");
+  if (brokerId) query = query.eq("broker_id", brokerId);
+  const { error } = await query;
   if (error) return { error: error.message };
 
-  revalidatePath("/broker/dashboard");
-  revalidatePath("/");
+  revalidateListings();
   return { error: null };
 }
 

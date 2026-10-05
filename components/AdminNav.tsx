@@ -8,7 +8,7 @@ const LINKS = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/messages", label: "Messages" },
   { href: "/admin/contact", label: "Contact" },
-  { href: "/admin/submissions", label: "Submissions" },
+  { href: "/admin/listings", label: "Listings" },
   { href: "/admin/google-reader", label: "Sheets reader" },
   { href: "/admin/admins", label: "Admins" },
 ];

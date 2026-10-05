@@ -61,7 +61,7 @@ async function getHeaderAccount(): Promise<HeaderAccount | null> {
     if (!user) return null;
 
     if (await isAdminEmail(user.email)) {
-      return { label: "Admin", href: "/admin/submissions" };
+      return { label: "Admin", href: "/admin" };
     }
 
     const { data: broker, error } = await withTimeout(
