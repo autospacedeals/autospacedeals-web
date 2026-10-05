@@ -30,9 +30,14 @@ export default function LoginForm() {
         />
       </div>
       <div>
-        <label htmlFor="broker-login-password" className={labelClass}>
-          Password
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="broker-login-password" className={labelClass}>
+            Password
+          </label>
+          <Link href="/customer/forgot-password" className="link-quiet mb-1.5 text-[13px] font-medium">
+            Forgot password?
+          </Link>
+        </div>
         <input
           id="broker-login-password"
           required
