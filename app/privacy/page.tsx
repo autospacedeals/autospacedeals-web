@@ -98,9 +98,12 @@ export default function PrivacyPolicyPage() {
               <strong>Automatically collected information.</strong> Like
               most websites, our hosting provider logs standard technical information (IP
               address, browser type, pages visited) for security and reliability. We use a small
-              number of essential cookies to keep you signed in — we don&apos;t use advertising or
-              cross-site tracking cookies, and we don&apos;t run third-party analytics on the site
-              today. If we ever add advertising or measurement tools (for example, an ad
+              number of essential cookies to keep you signed in, plus two first-party cookies of our
+              own: a random visitor ID and a note of how you found us (for example, which ad or
+              website sent you). We use them to count visits and listing views, and which ads lead
+              to conversations with sellers. That information stays with {SITE_NAME}; it isn&apos;t
+              shared with ad platforms. We don&apos;t use advertising or cross-site tracking cookies,
+              and we don&apos;t run third-party analytics on the site today. If we ever add advertising or measurement tools (for example, an ad
               platform&apos;s tracking pixel), we&apos;ll update this policy first and give you a
               way to opt out of any &quot;sale&quot; or &quot;sharing&quot; of your information
               before they&apos;re used.

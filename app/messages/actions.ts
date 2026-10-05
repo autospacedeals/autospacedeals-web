@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { dealTitle } from "@/lib/deal-utils";
 import { getPublishedDealsByIds } from "@/lib/supabase/deals";
+import { OUTCOMES_ENABLED, currentVisitSource, isLeadOutcome, saveConversationOutcome } from "@/lib/leads";
 import {
   CONVERSATION_COLUMNS,
   MESSAGE_COLUMNS,
@@ -59,6 +60,17 @@ export async function startConversationAction(input: {
     .maybeSingle<{ id: string }>();
   let conversationId = existing?.id ?? null;
   if (!conversationId) {
+    // Credited to how the shopper found us: this visit's source, else the
+    // one they signed up with.
+    let source = await currentVisitSource();
+    if (!source) {
+      const { data: me } = await supabase
+        .from("customers")
+        .select("signup_source, signup_campaign")
+        .eq("id", user.id)
+        .maybeSingle<{ signup_source: string | null; signup_campaign: string | null }>();
+      if (me?.signup_source) source = { source: me.signup_source, campaign: me.signup_campaign };
+    }
     const { data: created, error } = await supabase
       .from("conversations")
       .insert({
@@ -66,6 +78,8 @@ export async function startConversationAction(input: {
         broker_id: deal.brokerId,
         deal_id: deal.id,
         deal_label: dealTitle(deal).slice(0, 200),
+        source: source?.source ?? null,
+        campaign: source?.campaign ?? null,
       })
       .select("id")
       .single<{ id: string }>();
@@ -152,5 +166,40 @@ export async function setMessageEmailsAction(enabled: boolean): Promise<{ error:
     return { error: "Couldn't save that — please try again." };
   }
   revalidatePath(role === "customer" ? "/customer/dashboard" : "/broker/dashboard");
+  return { error: null };
+}
+
+// "Did this one sell?" — the broker in the conversation (or an admin) marks
+// it sold, still working, or didn't buy, for the admin Leads page.
+export async function setConversationOutcomeAction(input: {
+  conversationId: string;
+  outcome: string;
+}): Promise<{ error: string | null }> {
+  if (!OUTCOMES_ENABLED) return { error: "This isn't available yet." };
+  if (!isLeadOutcome(input.outcome)) return { error: "Pick one of the options." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Your session ended — log in again." };
+
+  const role = await messagingRole(supabase, user);
+  if (role !== "broker" && role !== "admin") return { error: "Only the seller can mark this." };
+  if (role === "broker") {
+    // Row-level security only shows a broker their own conversations.
+    const { data: c } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("id", String(input.conversationId))
+      .eq("broker_id", user.id)
+      .maybeSingle();
+    if (!c) return { error: "That conversation wasn't found." };
+  }
+
+  if (!(await saveConversationOutcome(String(input.conversationId), input.outcome))) {
+    return { error: "Couldn't save that — please try again." };
+  }
+  revalidatePath("/broker/dashboard/messages");
+  revalidatePath("/admin/leads");
   return { error: null };
 }

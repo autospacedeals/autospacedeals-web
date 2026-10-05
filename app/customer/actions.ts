@@ -7,6 +7,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { suggestEmailFix } from "@/lib/email-typos";
+import { currentVisitSource } from "@/lib/leads";
 
 export type AuthState = {
   error: string | null;
@@ -133,8 +134,11 @@ export async function signUpAction(
   // signup flow: if the Supabase project requires email confirmation, there's
   // no active session yet to satisfy the customers RLS policy.
   const admin = createAdminClient();
+  const source = await currentVisitSource();
   const { error: profileError } = await admin.from("customers").insert({
     id: data.user.id,
+    signup_source: source?.source ?? null,
+    signup_campaign: source?.campaign ?? null,
     first_name: firstName,
     middle_name: middleName,
     last_name: lastName,
@@ -240,8 +244,11 @@ export async function completeProfileAction(
 
   const { data: existing } = await supabase.from("customers").select("id").eq("id", user.id).maybeSingle();
   if (!existing) {
+    const source = await currentVisitSource();
     const { error } = await supabase.from("customers").insert({
       id: user.id,
+      signup_source: source?.source ?? null,
+      signup_campaign: source?.campaign ?? null,
       first_name: firstName,
       middle_name: middleName,
       last_name: lastName,

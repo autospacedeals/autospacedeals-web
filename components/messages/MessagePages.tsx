@@ -6,9 +6,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/server";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import ConversationList, { type ConversationListItem } from "@/components/messages/ConversationList";
 import MessageThread from "@/components/messages/MessageThread";
+import ConversationOutcome from "@/components/messages/ConversationOutcome";
+import { OUTCOMES_ENABLED } from "@/lib/leads";
 import {
   CONVERSATION_COLUMNS,
   MESSAGE_COLUMNS,
@@ -113,7 +116,7 @@ export async function ConversationPage({
   if (viewer === "customer" && c.customer_id !== userId) notFound();
   if (viewer === "broker" && c.broker_id !== userId) notFound();
 
-  const [{ data: messages }, names, { data: deal }] = await Promise.all([
+  const [{ data: messages }, names, { data: deal }, { data: lead }] = await Promise.all([
     supabase
       .from("messages")
       .select(MESSAGE_COLUMNS)
@@ -125,6 +128,11 @@ export async function ConversationPage({
     c.deal_id
       ? supabase.from("deals").select("slug, status").eq("id", c.deal_id).maybeSingle<{ slug: string; status: string }>()
       : Promise.resolve({ data: null }),
+    // The "did this one sell?" answer — the seller's and admins' business
+    // only, so not selectable through the user's own session.
+    viewer === "customer" || !OUTCOMES_ENABLED
+      ? Promise.resolve({ data: null })
+      : createAdminClient().from("conversations").select("outcome").eq("id", c.id).maybeSingle<{ outcome: string | null }>(),
   ]);
   const customer = names.customers.get(c.customer_id) ?? "Shopper";
   const broker = names.brokers.get(c.broker_id) ?? "Seller";
@@ -151,6 +159,7 @@ export async function ConversationPage({
               )}
             </p>
           )}
+          {viewer !== "customer" && OUTCOMES_ENABLED && <ConversationOutcome conversationId={c.id} initialOutcome={lead?.outcome ?? null} />}
         </div>
         <div className="pt-5">
           <MessageThread
