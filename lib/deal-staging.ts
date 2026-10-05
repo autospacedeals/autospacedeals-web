@@ -8,6 +8,7 @@ import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
 import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
 import { mapLimit } from "@/lib/concurrency";
+import { getDealDisclaimers, withDisclaimer } from "@/lib/deal-disclaimers";
 
 export interface BrokerProfile {
   business_name: string;
@@ -50,7 +51,7 @@ export async function stageParsedDeals(
 
   // Uploads only carry year/make/model/trim — look up fuel type and body
   // style for the whole batch in one go so they're searchable/filterable.
-  const classes = await classifyVehicles(deals);
+  const [classes, disclaimers] = await Promise.all([classifyVehicles(deals), getDealDisclaimers(userId)]);
 
   // Several at a time — a 200-car sheet would take minutes one by one (each
   // car looks up a photo).
@@ -106,7 +107,7 @@ export async function stageParsedDeals(
       photo_auto_sourced: true,
       in_stock: true,
       popularity: 50,
-      notes: d.notes,
+      notes: withDisclaimer(d.notes, d.make, disclaimers),
       images,
       one_pay: d.onePay,
       status,

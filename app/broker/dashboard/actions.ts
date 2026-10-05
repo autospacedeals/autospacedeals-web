@@ -16,6 +16,7 @@ import {
 } from "@/lib/ai-parse-inventory";
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
+import { getDealDisclaimers, withDisclaimer } from "@/lib/deal-disclaimers";
 import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
 
 // A skipped row's reason, naming its tab when the sheet has more than one.
@@ -714,7 +715,7 @@ export async function createManualDealAction(
     photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,
-    notes,
+    notes: withDisclaimer(notes, make, await getDealDisclaimers(user.id)),
     images,
     one_pay: onePay,
     status: "published",
