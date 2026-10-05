@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogOut, MessageSquare } from "lucide-react";
+import { LogOut, MessageSquare, UserCog } from "lucide-react";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
 import SmsSettings from "@/components/messages/SmsSettings";
+import AccountSettings from "@/components/account/AccountSettings";
+import { hasPasswordLogin } from "@/lib/account";
 import { formatE164, isSmsConfigured } from "@/lib/twilio";
 import { shareEmail } from "@/lib/google-reader";
 import { serviceAccountEmail } from "@/lib/google-service-account";
@@ -260,6 +262,21 @@ export default async function BrokerDashboardPage() {
           />
         </div>
       </div>
+
+      <section id="account" aria-labelledby="account-heading" className="panel mt-8 max-w-3xl sm:p-8">
+        <h2 id="account-heading" className="panel-title">
+          <UserCog /> Account
+        </h2>
+        <div className="mt-5">
+          <AccountSettings
+            email={user.email ?? ""}
+            pendingEmail={user.new_email ?? null}
+            hasPassword={hasPasswordLogin(user)}
+            role="broker"
+            liveListings={publishedListings.length}
+          />
+        </div>
+      </section>
     </main>
   );
 }

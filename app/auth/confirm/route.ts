@@ -1,6 +1,8 @@
 // Where the links in Drive's auth emails land (see supabase/email-templates):
 //   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email     (confirm signup)
 //   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery  (reset password)
+//   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change (change email —
+//     sent to both the old and new address, and each has to be opened)
 // Verifying the token here — instead of linking to Supabase's own
 // /auth/v1/verify URL — keeps every link in the email on idriveus.com (a
 // link to a different domain than the sender is a spam signal), and works
@@ -25,6 +27,11 @@ export async function GET(request: Request) {
   if (tokenHash && type) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    // The first of the two email-change links succeeds without changing the
+    // email yet, so it can come back without a user; the page explains.
+    if (!error && type === "email_change") {
+      return NextResponse.redirect(`${origin}/account/email-confirmed`);
+    }
     if (!error && data.user) {
       if (type === "recovery") {
         return NextResponse.redirect(`${origin}/customer/reset-password`);
@@ -37,6 +44,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${broker ? "/broker/dashboard" : "/customer/dashboard"}`);
     }
     console.error("auth confirm: verifyOtp failed:", error?.message ?? "no user");
+    if (type === "email_change") return NextResponse.redirect(`${origin}/account/email-confirmed?expired=1`);
 
     // Each link works once — opening it again (or an email app having
     // already opened it) looks like an expired token. Someone who's already

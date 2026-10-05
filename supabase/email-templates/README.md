@@ -15,6 +15,7 @@ Authentication → URL Configuration set to `https://www.idriveus.com`.
 |---|---|---|
 | Confirm signup | `confirm-signup.html` | Confirm your email for Drive |
 | Reset password | `reset-password.html` | Reset your Drive password |
+| Change email address | `change-email.html` | Confirm your new Drive email |
 
 The logo is served from `public/brand/drive-wordmark-email.png` (a PNG, since
 Gmail and Outlook don't show SVG). Sent from `noreply@idriveus.com` once

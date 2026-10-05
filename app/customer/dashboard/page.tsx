@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, MapPin, Heart, Bell, ArrowRight, MessageSquare } from "lucide-react";
+import { LogOut, MapPin, Heart, Bell, ArrowRight, MessageSquare, UserCog } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSavedDeals, SAVED_DEALS_LIST_LIMIT, type SavedDeals } from "@/lib/supabase/saved-deals";
 import { getSavedSearches, type SavedSearches } from "@/lib/supabase/saved-searches";
@@ -12,6 +12,8 @@ import SavedDealsList from "./SavedDealsList";
 import SavedSearchesList from "./SavedSearchesList";
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
 import SmsSettings from "@/components/messages/SmsSettings";
+import AccountSettings from "@/components/account/AccountSettings";
+import { hasPasswordLogin } from "@/lib/account";
 import { formatE164, isSmsConfigured } from "@/lib/twilio";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 
@@ -189,6 +191,20 @@ export default async function CustomerDashboardPage() {
           <SavedDealsSection savedDeals={savedDeals} />
 
           <SavedSearchesSection savedSearches={savedSearches} />
+
+          <section id="account" aria-labelledby="account-heading" className="panel sm:p-8">
+            <h2 id="account-heading" className="panel-title">
+              <UserCog /> Account
+            </h2>
+            <div className="mt-5">
+              <AccountSettings
+                email={user.email ?? ""}
+                pendingEmail={user.new_email ?? null}
+                hasPassword={hasPasswordLogin(user)}
+                role="customer"
+              />
+            </div>
+          </section>
         </div>
       </div>
     </main>
