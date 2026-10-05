@@ -16,7 +16,7 @@ import {
 } from "@/lib/ai-parse-inventory";
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
-import { getDealDisclaimers, withDisclaimer } from "@/lib/deal-disclaimers";
+import { applyDealExtras, getDealExtras } from "@/lib/deal-disclaimers";
 import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
 
 // A skipped row's reason, naming its tab when the sheet has more than one.
@@ -673,6 +673,9 @@ export async function createManualDealAction(
     if (photo) images = [photo];
   }
 
+  // The broker's standing extras (incentive rules, disclosures) by make.
+  const extras = applyDealExtras({ make, model, trim, notes, incentives }, await getDealExtras(user.id));
+
   const slug = slugify([year, make, model, trim ?? "", location.state]);
 
   const { error } = await supabase.from("deals").insert({
@@ -707,7 +710,7 @@ export async function createManualDealAction(
     seller_dealership: broker.dealership_name,
     verified: true,
     condition,
-    incentives,
+    incentives: extras.incentives,
     mileage_options: mileageOptions,
     city: location.city,
     state: location.state,
@@ -715,7 +718,7 @@ export async function createManualDealAction(
     photo_auto_sourced: photoAutoSourced,
     in_stock: true,
     popularity: 50,
-    notes: withDisclaimer(notes, make, await getDealDisclaimers(user.id)),
+    notes: extras.notes,
     images,
     one_pay: onePay,
     status: "published",

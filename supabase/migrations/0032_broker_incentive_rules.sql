@@ -1,0 +1,11 @@
+-- A broker's standing incentive rules, applied to each new car they post
+-- (sheet syncs, uploads, manual adds) — e.g. "every BMW except M3/M4/X5M
+-- gets BMW Loyalty, $1,000, $30/mo, included". A JSON list of
+--   { make, match?, exclude?, incentives: [...], note? }
+-- where match/exclude are case-insensitive patterns on "model trim". See
+-- lib/deal-disclaimers.ts.
+--
+-- Server-only (not in the public column grant).
+--
+-- Safe to re-run.
+alter table public.brokers add column if not exists deal_incentive_rules jsonb not null default '[]'::jsonb;
