@@ -23,13 +23,15 @@ interface PhotoQuery {
   color?: string | null;
 }
 
-// Chrome Data stock renders: served from their own CDN, or the copies on
-// cars.com's image host. Dealer uploads on that same host have a VIN-style
-// path instead of /stock-images/chrome/.
+// Chrome Data stock renders: served from their own CDN, J.D. Power's copy of
+// their gallery, or the copies on cars.com's image hosts. Dealer uploads on
+// those same hosts have a VIN-style path instead of a stock-photo one.
 export function isStudioPhoto(url: string): boolean {
   try {
     const u = new URL(url);
     if (u.hostname === "media.chromedata.com") return true;
+    if (u.hostname === "cdn.jdpower.com") return u.pathname.startsWith("/ChromeImageGallery/");
+    if (u.hostname === "platform.cstatic-images.com") return u.pathname.includes("/stock_photos/");
     return u.hostname === "vehicle-images.carscommerce.inc" && u.pathname.startsWith("/stock-images/chrome/");
   } catch {
     return false;

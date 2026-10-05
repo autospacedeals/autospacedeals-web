@@ -26,9 +26,11 @@ export async function classifyCarView(image: Buffer): Promise<CarView> {
             {
               type: "text",
               text:
-                "Which view of the car is this? Answer with exactly one word: front-left (front three-quarter, " +
-                "nose toward the left of the image), front-right (front three-quarter, nose toward the right), " +
-                "rear (any rear or rear three-quarter view), side, front, or other.",
+                "Which view of the car is this? Answer with exactly one word: front-left (front three-quarter: " +
+                "the grille and both headlights are clearly visible along with the side, nose toward the left " +
+                "of the image), front-right (the same but nose toward the right), rear (any rear or rear " +
+                "three-quarter view), side (a profile or near-profile where the grille is barely visible or " +
+                "not at all), front (straight-on), or other.",
             },
           ],
         },
