@@ -96,9 +96,10 @@ export default function ShareSheetBox({
           <a href={sheetUrl} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1">
             Open your sheet <ExternalLink size={13} />
           </a>
-          , click <span className="font-medium text-fg">Share</span>, paste the address, switch{" "}
-          <span className="font-medium text-fg">Editor</span> to <span className="font-medium text-fg">Viewer</span>, and
-          click <span className="font-medium text-fg">Send</span>.
+          , click <span className="font-medium text-fg">Share</span> (top right), paste the address into
+          the <span className="font-medium text-fg">Add people</span> box, then change the{" "}
+          <span className="font-medium text-fg">Editor</span> dropdown next to it to{" "}
+          <span className="font-medium text-fg">Viewer</span> and click <span className="font-medium text-fg">Send</span>.
         </li>
       </ol>
       <p className="mt-3 text-xs text-fg-muted">
