@@ -21,13 +21,9 @@ import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
 import { submitKeepingValues } from "@/lib/keep-form-values";
-import ConnectSheetButton from "./ConnectSheetButton";
+import ShareSheetBox from "./ShareSheetBox";
 
 const initialState: SubmissionState = { error: null };
-
-function sheetIdFromUrl(url: string): string | null {
-  return url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1] ?? null;
-}
 
 const inputClass = "input";
 const labelClass = "field-label";
@@ -135,8 +131,8 @@ function LinkForm({
   const [pickedTabs, setPickedTabs] = useState<string[]>([]);
   const [findingTabs, setFindingTabs] = useState(false);
   const [tabsError, setTabsError] = useState<string | null>(null);
-  // Private sheet not shared with us yet: offer "Connect with Google".
-  const [needsConnect, setNeedsConnect] = useState(false);
+  // Private sheet not shared with us yet: show how to share it.
+  const [needsShare, setNeedsShare] = useState(false);
   const uid = useId();
 
   async function findTabs() {
@@ -144,15 +140,20 @@ function LinkForm({
     setTabsError(null);
     const result = await listSheetTabsAction(sheetUrl);
     setFindingTabs(false);
-    setNeedsConnect(Boolean(result.notShared && sheetShareEmail));
+    setNeedsShare(Boolean(result.notShared && sheetShareEmail));
     if (result.error || !result.tabs) {
-      // A private sheet gets the connect button instead of sharing steps.
+      // A private sheet gets the share box instead of an error.
       setTabsError(result.notShared && sheetShareEmail ? null : (result.error ?? "Couldn't read that sheet."));
       setSheetTabs(null);
       return;
     }
-    setSheetTabs(result.tabs);
-    setPickedTabs(result.tabs.filter((t) => t.rows > 0).map((t) => t.name));
+    showTabs(result.tabs);
+  }
+
+  function showTabs(tabs: { name: string; rows: number }[]) {
+    setNeedsShare(false);
+    setSheetTabs(tabs);
+    setPickedTabs(tabs.filter((t) => t.rows > 0).map((t) => t.name));
   }
 
   const isSheet = sourceType === "google_sheet";
@@ -315,7 +316,7 @@ function LinkForm({
                 setSheetUrl(e.target.value);
                 setSheetTabs(null);
                 setTabsError(null);
-                setNeedsConnect(false);
+                setNeedsShare(false);
               }}
               placeholder="https://docs.google.com/spreadsheets/..."
               className={`${inputClass} min-w-0 flex-1`}
@@ -334,24 +335,8 @@ function LinkForm({
               {tabsError}
             </p>
           )}
-          {needsConnect && sheetShareEmail && sheetIdFromUrl(sheetUrl) && (
-            <div className="mt-3 rounded-xl border border-line bg-hover p-3.5">
-              <p className="text-sm font-medium text-fg">This sheet is private — connect it in one step</p>
-              <p className="mt-0.5 mb-3 text-xs leading-5 text-fg-muted">
-                Sign in with the Google account that owns the sheet, then select it. Google&apos;s
-                standard message says we could &quot;see, edit, create, and delete&quot; the files you
-                pick — we only use it once, to add view-only access to this one sheet, and then give
-                the access back. Nothing else in your Google account is touched.
-              </p>
-              <ConnectSheetButton
-                sheetId={sheetIdFromUrl(sheetUrl)!}
-                readerEmail={sheetShareEmail}
-                onConnected={() => {
-                  setNeedsConnect(false);
-                  void findTabs();
-                }}
-              />
-            </div>
+          {needsShare && sheetShareEmail && (
+            <ShareSheetBox sheetUrl={sheetUrl} email={sheetShareEmail} onShared={showTabs} />
           )}
           {sheetTabs && (
             <fieldset className="mt-3 rounded-xl border border-line bg-hover p-3.5">
@@ -390,8 +375,8 @@ function LinkForm({
             <>
               {sheetShareEmail ? (
                 <p className="field-hint">
-                  Private sheets work too — if it&apos;s private, you&apos;ll get a one-click
-                  &quot;Connect with Google&quot; button after Find tabs.
+                  Private sheets work too — if it&apos;s private, we&apos;ll show you how to share it
+                  with us (view-only) after Find tabs.
                 </p>
               ) : (
                 <p className="field-hint">
