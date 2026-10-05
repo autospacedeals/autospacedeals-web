@@ -241,7 +241,7 @@ export default function DealDetailView({
 
           <section className="panel mt-6">
             <h2 className="type-title">Description</h2>
-            <p className="mt-3 text-[15px] leading-7 break-words text-fg-secondary">{deal.notes}</p>
+            <p className="mt-3 text-[15px] leading-7 break-words whitespace-pre-line text-fg-secondary">{deal.notes}</p>
           </section>
 
           <div className="alert alert-warning mt-6">
