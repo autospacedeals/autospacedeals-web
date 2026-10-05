@@ -74,14 +74,16 @@ export function serviceAccountEmail(): string | null {
   return readKey()?.client_email ?? null;
 }
 
-const SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+// Drive for exports, Sheets for reading a sheet's cells (which works even
+// when the owner turned off downloads for viewers).
+const SCOPE = "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 function base64url(input: string | Buffer): string {
   return Buffer.from(input).toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-// A read-only Drive access token, reused until shortly before it expires.
+// A read-only Drive/Sheets access token, reused until shortly before it expires.
 // Null when not configured or Google refuses (logged).
 export async function serviceAccountToken(): Promise<string | null> {
   const key = readKey();

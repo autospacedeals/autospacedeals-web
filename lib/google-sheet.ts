@@ -5,9 +5,17 @@
 // the broker has shared with Drive's service account (see
 // lib/google-service-account.ts) is read through the Drive API instead.
 //
-// The sheet is downloaded once as .xlsx, which carries every tab (the CSV
-// export only has the first) plus the formatting needed to spot crossed-out
-// rows. Hidden tabs are skipped — brokers hide tabs they're not using.
+// With the service account configured, a sheet is read through the Google
+// Sheets API: every tab's cells as displayed, plus strikethrough to spot
+// crossed-out rows. That works for any sheet shared with the service
+// account (or "anyone with the link") — even when the owner turned off
+// downloads for viewers, which blocks the export. Without it (local dev), a
+// public sheet is downloaded once as .xlsx instead. Hidden tabs are skipped
+// either way — brokers hide tabs they're not using.
+//
+// Rows are keyed by the tab's header row, which isn't always row 1: a logo
+// or banner often sits above it, so the first row that reads like column
+// headings (Model, Payment, Term, …) is used.
 
 import * as XLSX from "xlsx";
 import { serviceAccountEmail, serviceAccountToken } from "@/lib/google-service-account";
@@ -56,6 +64,15 @@ export async function fetchGoogleSheetTabs(sheetUrl: string): Promise<FetchSheet
   }
 
   try {
+    const token = await serviceAccountToken();
+    if (token) {
+      const viaApi = await fetchViaSheetsApi(sheetId, token);
+      if (viaApi.ok) return viaApi;
+      // Not shared with the service account: fall back to the public export
+      // (a link-shared sheet), and report sharing help if that fails too.
+      if (viaApi.status !== 403 && viaApi.status !== 404) return { ok: false, error: viaApi.error };
+    }
+
     const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`, {
       // Google's export endpoint sometimes behaves differently (or blocks)
       // requests without a browser-like User-Agent.
@@ -74,6 +91,120 @@ export async function fetchGoogleSheetTabs(sheetUrl: string): Promise<FetchSheet
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Google Sheets API
+// ---------------------------------------------------------------------------
+
+interface ApiCell {
+  formattedValue?: string;
+  effectiveFormat?: { textFormat?: { strikethrough?: boolean } };
+  textFormatRuns?: { startIndex?: number; format?: { strikethrough?: boolean } }[];
+}
+interface ApiSheet {
+  properties?: { title?: string; hidden?: boolean; sheetType?: string };
+  data?: { startRow?: number; rowData?: { values?: ApiCell[] }[] }[];
+}
+
+const SHEETS_FIELDS =
+  "sheets(properties(title,hidden,sheetType)," +
+  "data(startRow,rowData(values(formattedValue,effectiveFormat(textFormat(strikethrough)),textFormatRuns(startIndex,format(strikethrough))))))";
+
+async function fetchViaSheetsApi(
+  sheetId: string,
+  token: string
+): Promise<{ ok: true; tabs: SheetTab[] } | { ok: false; status: number; error: string }> {
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}?includeGridData=true&fields=${encodeURIComponent(SHEETS_FIELDS)}`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(60_000) }
+  );
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 300);
+    if (res.status !== 403 && res.status !== 404) console.error("Sheets API read failed:", res.status, detail);
+    return {
+      ok: false,
+      status: res.status,
+      error: `Couldn't open that Google Sheet (error ${res.status}). Try again in a minute, or add cars manually below.`,
+    };
+  }
+  const body = (await res.json()) as { sheets?: ApiSheet[] };
+  const tabs: SheetTab[] = [];
+  for (const sheet of body.sheets ?? []) {
+    const name = sheet.properties?.title;
+    if (!name || sheet.properties?.hidden) continue;
+    if (sheet.properties?.sheetType && sheet.properties.sheetType !== "GRID") continue;
+    const grid: GridRow[] = [];
+    for (const block of sheet.data ?? []) {
+      (block.rowData ?? []).forEach((row, i) => {
+        const values = row.values ?? [];
+        const cells = values.map((c) => (c.formattedValue ?? "").trim());
+        if (!cells.some(Boolean)) return;
+        // Crossed out: most of the filled cells are struck through (a single
+        // crossed-out old price next to a new one doesn't count).
+        let filled = 0;
+        let struck = 0;
+        values.forEach((c, j) => {
+          if (!cells[j]) return;
+          filled++;
+          const runs = c.textFormatRuns;
+          const cellStruck = c.effectiveFormat?.textFormat?.strikethrough === true;
+          const allRunsStruck =
+            runs && runs.length > 0 ? runs.every((r) => r.format?.strikethrough ?? cellStruck) : cellStruck;
+          if (allRunsStruck) struck++;
+        });
+        if (struck * 2 > filled) return;
+        grid.push({ rowNum: (block.startRow ?? 0) + i + 1, cells });
+      });
+    }
+    tabs.push({ name, rows: rowsFromGrid(grid) });
+  }
+  return { ok: true, tabs };
+}
+
+// ---------------------------------------------------------------------------
+// Header row
+// ---------------------------------------------------------------------------
+
+interface GridRow {
+  rowNum: number; // 1-based sheet row
+  cells: string[];
+}
+
+const HEADER_WORD =
+  /^(model|vehicle|car|year|make|trim|payment|monthly|price|term|lease|msrp|due|das|drive.?off|miles?|mileage|spec|color|exterior|interior|location|fees?|broker fee|notes?|incentives?)\b/i;
+
+// Turns a tab's non-empty rows into objects keyed by its header row: the
+// first row (within the top 40) with at least two cells that read like
+// column headings, else the first row. Rows above the header (titles,
+// banners) are kept — they can carry notes that apply to the cars. Each row
+// keeps its sheet row as SheetJS's non-enumerable __rowNum__ (0-based).
+export function rowsFromGrid(grid: GridRow[]): Record<string, unknown>[] {
+  if (grid.length === 0) return [];
+  const headerIdx = Math.max(
+    0,
+    grid.slice(0, 40).findIndex((r) => r.cells.filter((c) => c.length < 40 && HEADER_WORD.test(c)).length >= 2)
+  );
+  const width = Math.max(...grid.map((r) => r.cells.length));
+  const seen = new Map<string, number>();
+  const headers = Array.from({ length: width }, (_, j) => {
+    const base = grid[headerIdx].cells[j]?.trim() || `Column ${j + 1}`;
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    return n > 1 ? `${base} ${n}` : base;
+  });
+  return grid
+    .filter((_, i) => i !== headerIdx)
+    .map((r) => {
+      const obj: Record<string, unknown> = {};
+      headers.forEach((h, j) => (obj[h] = r.cells[j] ?? ""));
+      Object.defineProperty(obj, "__rowNum__", { value: r.rowNum - 1, enumerable: false });
+      return obj;
+    });
+}
+
+// ---------------------------------------------------------------------------
+// .xlsx download (public sheets without the service account, and uploads)
+// ---------------------------------------------------------------------------
 
 // A sheet that isn't public: download it as Drive's service account, which
 // only sees files that were shared with it. `publicStatus` is the public
@@ -132,12 +263,14 @@ export function readWorkbookTabs(file: Buffer | ArrayBuffer): SheetTab[] {
     const sheet = workbook.Sheets[name];
     if (!sheet) return;
     const skip = struck.get(name);
-    // raw: false gives each cell as displayed ("$599", "36/10k"), like the
-    // CSV export did.
-    const rows = XLSX.utils
-      .sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false })
-      .filter((row) => !skip?.has(rowNumber(row)));
-    tabs.push({ name, rows });
+    // raw: false gives each cell as displayed ("$599", "36/10k").
+    // Blank rows kept so each array's index maps back to its sheet row.
+    const firstRow = sheet["!ref"] ? XLSX.utils.decode_range(sheet["!ref"]).s.r : 0;
+    const grid: GridRow[] = XLSX.utils
+      .sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: false, blankrows: true })
+      .map((row, i) => ({ rowNum: firstRow + i + 1, cells: row.map((c) => String(c ?? "").trim()) }))
+      .filter((r) => r.cells.some(Boolean) && !skip?.has(r.rowNum));
+    tabs.push({ name, rows: rowsFromGrid(grid) });
   });
   return tabs;
 }
