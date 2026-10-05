@@ -4,8 +4,14 @@
 // shape) just returns null and the listing falls back to the generic
 // placeholder image instead of blocking the publish.
 //
-// When the listing has an exterior color, photos of the car in that color
-// come first, falling back to any color when CarsXE has none.
+// Only studio stock photos are used — Chrome Data's (white background, the
+// same front three-quarter angle facing left on every car) — never a
+// dealer's lot or showroom shot, so listings look uniform. The car's color
+// is searched first, then any color. The first studio photo for a
+// year/make/model/color is saved to Drive's photo library
+// (lib/photo-library.ts) and reused from then on.
+import { getLibraryPhoto, saveToLibrary } from "@/lib/photo-library";
+
 interface PhotoQuery {
   year: number;
   make: string;
@@ -16,16 +22,54 @@ interface PhotoQuery {
   color?: string | null;
 }
 
-export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | null> {
-  const color = searchColor(params.color);
-  if (color) {
-    const inColor = await queryCarsxe(params, color);
-    if (inColor[0]) return inColor[0];
+// Chrome Data stock renders: served from their own CDN, or the copies on
+// cars.com's image host. Dealer uploads on that same host have a VIN-style
+// path instead of /stock-images/chrome/.
+export function isStudioPhoto(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "media.chromedata.com") return true;
+    return u.hostname === "vehicle-images.carscommerce.inc" && u.pathname.startsWith("/stock-images/chrome/");
+  } catch {
+    return false;
   }
-  return (await queryCarsxe(params, null))[0] ?? null;
 }
 
-// Every exterior photo CarsXE has for the vehicle, best match first (the
+// The lookups to try, most specific first: the car's color (with trim,
+// then without), then any color (same).
+function attempts(params: PhotoQuery, color: string | null): { trim?: string; color: string | null }[] {
+  const list: { trim?: string; color: string | null }[] = [];
+  for (const c of color ? [color, null] : [null]) {
+    if (params.trim) list.push({ trim: params.trim, color: c });
+    list.push({ color: c });
+  }
+  return list;
+}
+
+export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | null> {
+  const color = searchColor(params.color);
+  const saved = await getLibraryPhoto({ ...params, color });
+  if (saved) return saved;
+
+  let fallback: string | null = null;
+  for (const a of attempts(params, color)) {
+    const urls = await queryCarsxe({ ...params, trim: a.trim }, a.color);
+    const studio = urls.find(isStudioPhoto);
+    if (studio) {
+      const url = (await saveToLibrary({ ...params, color: a.color }, studio)) ?? studio;
+      // No studio shot in the car's color: remember the any-color one for
+      // that color too, so it isn't searched for (and paid for) again.
+      if (color && a.color === null) await saveToLibrary({ ...params, color }, studio);
+      return url;
+    }
+    fallback ??= urls[0] ?? null;
+  }
+  // No studio photo anywhere: better a real photo than none (not saved, so
+  // a later lookup can still find a studio one).
+  return fallback;
+}
+
+// Every exterior photo CarsXE has for the vehicle, studio photos first (the
 // listing's color, then any color) — the "Re-pull photo" button steps
 // through these instead of always getting back the first one (which the
 // listing usually already has).
@@ -35,12 +79,13 @@ export async function fetchCarsxePhotos(params: PhotoQuery): Promise<string[]> {
     color ? queryCarsxe(params, color) : Promise.resolve([]),
     queryCarsxe(params, null),
   ]);
-  return [...new Set([...inColor, ...any])];
+  const all = [...new Set([...inColor, ...any])];
+  return [...all.filter(isStudioPhoto), ...all.filter((u) => !isStudioPhoto(u))];
 }
 
 // "Black x Black" style values sometimes land in the exterior field; only
 // the exterior half is the car's paint. Junk like "TBD" / "N/A" means no color.
-function searchColor(raw: string | null | undefined): string | null {
+export function searchColor(raw: string | null | undefined): string | null {
   const value = (raw ?? "").trim();
   if (/^(tbd|n\/?a|any|various|multiple|assorted|-+)$/i.test(value)) return null;
   return value.split(/\s+x\s+|\/|,/i)[0].trim().slice(0, 40) || null;
