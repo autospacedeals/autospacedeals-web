@@ -23,7 +23,7 @@ const MIN_LISTINGS_FOR_FILTERS = 4;
 
 const PAYMENT_CAPS = [500, 750, 1000, 1500];
 
-const SORT_OPTIONS: SortOption[] = ["featured", "paymentLow", "dueLow", "newest"];
+const SORT_OPTIONS: SortOption[] = ["featured", "paymentLow", "paymentHigh", "msrpHigh", "dueLow", "newest"];
 
 export default function BrokerListings({ deals }: { deals: Deal[] }) {
   const [make, setMake] = useState("All");

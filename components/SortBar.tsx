@@ -5,6 +5,8 @@ import { SORT_LABELS, type SortOption } from "@/lib/deal-utils";
 const SORT_OPTIONS: SortOption[] = [
   "featured",
   "paymentLow",
+  "paymentHigh",
+  "msrpHigh",
   "dueLow",
   "effectiveLow",
   "newest",

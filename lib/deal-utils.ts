@@ -269,6 +269,8 @@ export const DEFAULT_FILTERS: DealFilters = {
 export type SortOption =
   | "featured"
   | "paymentLow"
+  | "paymentHigh"
+  | "msrpHigh"
   | "dueLow"
   | "effectiveLow"
   | "newest"
@@ -278,6 +280,8 @@ export type SortOption =
 export const SORT_LABELS: Record<SortOption, string> = {
   featured: "Featured",
   paymentLow: "Lowest monthly payment",
+  paymentHigh: "Highest monthly payment",
+  msrpHigh: "Highest MSRP",
   dueLow: "Lowest due at signing",
   effectiveLow: "Best Effective Payment",
   newest: "Just listed",
@@ -362,6 +366,12 @@ export function sortDeals(deals: Deal[], sortBy: SortOption, referenceState: str
       return list.sort(
         (a, b) => (a.onePay ? effectiveMonthly(a) : a.payment) - (b.onePay ? effectiveMonthly(b) : b.payment)
       );
+    case "paymentHigh":
+      return list.sort(
+        (a, b) => (b.onePay ? effectiveMonthly(b) : b.payment) - (a.onePay ? effectiveMonthly(a) : a.payment)
+      );
+    case "msrpHigh":
+      return list.sort((a, b) => b.msrp - a.msrp);
     case "dueLow":
       return list.sort((a, b) => a.dueAtSigning - b.dueAtSigning);
     case "effectiveLow":
