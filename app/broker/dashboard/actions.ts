@@ -433,7 +433,7 @@ export async function createSubmissionAction(
 // import before any cars are read.
 export async function listSheetTabsAction(
   sheetUrl: string
-): Promise<{ error: string | null; tabs?: { name: string; rows: number }[] }> {
+): Promise<{ error: string | null; notShared?: boolean; tabs?: { name: string; rows: number }[] }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -442,7 +442,7 @@ export async function listSheetTabsAction(
   const url = sheetUrl.trim();
   if (!url) return { error: "Paste your Google Sheet link first." };
   const fetched = await fetchGoogleSheetTabs(url);
-  if (!fetched.ok) return { error: fetched.error };
+  if (!fetched.ok) return { error: fetched.error, notShared: fetched.notShared };
   if (fetched.tabs.length === 0) return { error: "We opened the sheet but every tab is hidden or empty." };
   return { error: null, tabs: fetched.tabs.map((t) => ({ name: t.name, rows: t.rows.length })) };
 }

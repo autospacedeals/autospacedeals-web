@@ -33,7 +33,9 @@ export interface SheetTab {
   rows: Record<string, unknown>[];
 }
 
-export type FetchSheetResult = { ok: true; tabs: SheetTab[] } | { ok: false; error: string };
+// notShared: the sheet is private and hasn't been shared with Drive's
+// reader yet — the dashboard then offers "Connect with Google".
+export type FetchSheetResult = { ok: true; tabs: SheetTab[] } | { ok: false; error: string; notShared?: boolean };
 
 // How to share a sheet so we can read it, for the error messages.
 function sharingHelp(): string {
@@ -212,11 +214,12 @@ export function rowsFromGrid(grid: GridRow[]): Record<string, unknown>[] {
 async function fetchPrivateSheet(
   sheetId: string,
   publicStatus: number | null
-): Promise<Buffer | { ok: false; error: string }> {
+): Promise<Buffer | { ok: false; error: string; notShared?: boolean }> {
   const token = await serviceAccountToken();
   if (!token) {
     return {
       ok: false,
+      notShared: true,
       error: publicStatus
         ? `Couldn't open that Google Sheet (error ${publicStatus}). ${sharingHelp()}`
         : `That Google Sheet isn't shared with us yet. ${sharingHelp()}`,
@@ -232,6 +235,7 @@ async function fetchPrivateSheet(
     }
     return {
       ok: false,
+      notShared: res.status === 403 || res.status === 404,
       error:
         res.status === 403 || res.status === 404
           ? `That Google Sheet isn't shared with us yet. ${sharingHelp()}`
