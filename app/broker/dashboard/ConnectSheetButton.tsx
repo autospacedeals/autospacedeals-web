@@ -7,8 +7,10 @@
 // and syncs like any shared one.
 //
 // Runs entirely in the browser with Google's own scripts: the access token
-// covers only the file the broker picks (the drive.file scope), is used for
-// that one share, and is never sent to our server or stored.
+// covers only the file the broker picks (the drive.file scope — Google's
+// narrowest Drive permission, though its consent text reads "see, edit,
+// create, and delete"), is used for that one share and then revoked, and is
+// never sent to our server or stored.
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -38,6 +40,7 @@ interface PickerResult {
 interface GoogleGlobal {
   accounts: {
     oauth2: {
+      revoke: (token: string, done?: () => void) => void;
       initTokenClient: (cfg: {
         client_id: string;
         scope: string;
@@ -127,6 +130,9 @@ export default function ConnectSheetButton({
         body: JSON.stringify({ role: "reader", type: "user", emailAddress: readerEmail }),
       }
     );
+    // Done with Google: give the access back right away. The view-only share
+    // stays; nothing remains connected to the broker's Google account.
+    window.google?.accounts.oauth2.revoke(token);
     if (res.ok) {
       onConnected();
       return;

@@ -337,9 +337,11 @@ function LinkForm({
           {needsConnect && sheetShareEmail && sheetIdFromUrl(sheetUrl) && (
             <div className="mt-3 rounded-xl border border-line bg-hover p-3.5">
               <p className="text-sm font-medium text-fg">This sheet is private — connect it in one step</p>
-              <p className="mt-0.5 mb-3 text-xs text-fg-muted">
-                Sign in with the Google account that owns the sheet and confirm it. We get view-only
-                access to just this sheet — nothing else in your Google account.
+              <p className="mt-0.5 mb-3 text-xs leading-5 text-fg-muted">
+                Sign in with the Google account that owns the sheet, then select it. Google&apos;s
+                standard message says we could &quot;see, edit, create, and delete&quot; the files you
+                pick — we only use it once, to add view-only access to this one sheet, and then give
+                the access back. Nothing else in your Google account is touched.
               </p>
               <ConnectSheetButton
                 sheetId={sheetIdFromUrl(sheetUrl)!}
