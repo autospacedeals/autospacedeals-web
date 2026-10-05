@@ -7,6 +7,7 @@ import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/m
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
 import SmsSettings from "@/components/messages/SmsSettings";
 import { formatE164, isSmsConfigured } from "@/lib/twilio";
+import { shareEmail } from "@/lib/google-reader";
 import { serviceAccountEmail } from "@/lib/google-service-account";
 import { accountHome } from "@/lib/account-home";
 import { mapRowToDeal, type DealRow } from "@/lib/supabase/deals";
@@ -254,7 +255,7 @@ export default async function BrokerDashboardPage() {
         </p>
         <div className="mt-6">
           <NewSubmissionForm
-            sheetShareEmail={serviceAccountEmail()}
+            sheetShareEmail={await shareEmail(serviceAccountEmail())}
             brokerLocation={{ city: broker?.city ?? "", state: broker?.state ?? "" }}
           />
         </div>

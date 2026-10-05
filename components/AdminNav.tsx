@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/admin/messages", label: "Messages" },
   { href: "/admin/contact", label: "Contact" },
   { href: "/admin/submissions", label: "Submissions" },
+  { href: "/admin/google-reader", label: "Sheets reader" },
   { href: "/admin/admins", label: "Admins" },
 ];
 

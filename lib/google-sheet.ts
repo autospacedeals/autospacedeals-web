@@ -19,6 +19,7 @@
 
 import * as XLSX from "xlsx";
 import { serviceAccountEmail, serviceAccountToken } from "@/lib/google-service-account";
+import { readerAccessToken, shareEmail } from "@/lib/google-reader";
 
 export function extractGoogleSheetId(url: string): string | null {
   const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
@@ -38,8 +39,8 @@ export interface SheetTab {
 export type FetchSheetResult = { ok: true; tabs: SheetTab[] } | { ok: false; error: string; notShared?: boolean };
 
 // How to share a sheet so we can read it, for the error messages.
-function sharingHelp(): string {
-  const email = serviceAccountEmail();
+async function sharingHelp(): Promise<string> {
+  const email = await shareEmail(serviceAccountEmail());
   return email
     ? `In Google Sheets, click "Share" and either add ${email} as a Viewer or set it to "Anyone with the link" → Viewer, then try again.`
     : 'In Google Sheets, click "Share" → set to "Anyone with the link" → Viewer, then try again.';
@@ -66,14 +67,17 @@ export async function fetchGoogleSheetTabs(sheetUrl: string): Promise<FetchSheet
   }
 
   try {
-    const token = await serviceAccountToken();
-    if (token) {
+    // Shared with sheets@idriveus.com (the friendly address brokers are
+    // shown) or with the service account — try each reader.
+    for (const getToken of [readerAccessToken, serviceAccountToken]) {
+      const token = await getToken();
+      if (!token) continue;
       const viaApi = await fetchViaSheetsApi(sheetId, token);
       if (viaApi.ok) return viaApi;
-      // Not shared with the service account: fall back to the public export
-      // (a link-shared sheet), and report sharing help if that fails too.
       if (viaApi.status !== 403 && viaApi.status !== 404) return { ok: false, error: viaApi.error };
     }
+    // Not shared with either: fall back to the public export (a link-shared
+    // sheet), and report sharing help if that fails too.
 
     const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`, {
       // Google's export endpoint sometimes behaves differently (or blocks)
@@ -221,8 +225,8 @@ async function fetchPrivateSheet(
       ok: false,
       notShared: true,
       error: publicStatus
-        ? `Couldn't open that Google Sheet (error ${publicStatus}). ${sharingHelp()}`
-        : `That Google Sheet isn't shared with us yet. ${sharingHelp()}`,
+        ? `Couldn't open that Google Sheet (error ${publicStatus}). ${await sharingHelp()}`
+        : `That Google Sheet isn't shared with us yet. ${await sharingHelp()}`,
     };
   }
   const res = await fetch(
@@ -238,7 +242,7 @@ async function fetchPrivateSheet(
       notShared: res.status === 403 || res.status === 404,
       error:
         res.status === 403 || res.status === 404
-          ? `That Google Sheet isn't shared with us yet. ${sharingHelp()}`
+          ? `That Google Sheet isn't shared with us yet. ${await sharingHelp()}`
           : `Couldn't open that Google Sheet (error ${res.status}). Try again in a minute, or add cars manually below.`,
     };
   }
