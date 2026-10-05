@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
-import { getLeadStats } from "@/lib/lead-stats";
+import { getLeadStats, type LocationStats } from "@/lib/lead-stats";
 import { OUTCOMES_ENABLED, OUTCOME_LABELS, isLeadOutcome } from "@/lib/leads";
 
 export const metadata: Metadata = { title: "Leads", robots: { index: false } };
@@ -39,6 +39,47 @@ function OutcomePill({ outcome }: { outcome: string | null }) {
 
 const TH = "px-4 py-2.5 font-medium";
 const TD = "px-4 py-3 whitespace-nowrap";
+const LOCATION_ROWS = 15;
+
+function LocationTable({ title, rows }: { title: string; rows: LocationStats[] }) {
+  const shown = rows.slice(0, LOCATION_ROWS);
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-line">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-surface text-xs text-fg-muted">
+          <tr>
+            <th className={TH}>{title}</th>
+            <th className={TH}>Visitors</th>
+            <th className={TH}>Listing views</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {shown.length === 0 && (
+            <tr>
+              <td colSpan={3} className="px-4 py-3 text-fg-muted">
+                Nothing yet.
+              </td>
+            </tr>
+          )}
+          {shown.map((r) => (
+            <tr key={r.key}>
+              <td className={`${TD} font-medium text-fg`}>{r.key}</td>
+              <td className={TD}>{r.visitors}</td>
+              <td className={TD}>{r.listingViews}</td>
+            </tr>
+          ))}
+          {rows.length > LOCATION_ROWS && (
+            <tr>
+              <td colSpan={3} className="px-4 py-2.5 text-xs text-fg-muted">
+                + {rows.length - LOCATION_ROWS} more
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 // Where shoppers come from, how fast brokers answer them, and what sold —
 // for judging ads and brokers (lib/lead-stats.ts).
@@ -145,6 +186,18 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="type-title mb-1">By location</h2>
+        <p className="mb-3 text-sm text-fg-muted">
+          Approximate, from each visitor&apos;s internet connection — phones on cell data and people on VPNs can show
+          up as a nearby or different city.
+        </p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <LocationTable title="State / country" rows={stats.states} />
+          <LocationTable title="City" rows={stats.cities} />
         </div>
       </section>
 

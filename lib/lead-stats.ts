@@ -14,6 +14,9 @@ interface VisitRow {
   broker_id: string | null;
   source: string | null;
   campaign: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
 }
 
 interface LeadRow {
@@ -38,6 +41,12 @@ export interface SourceStats {
   signups: number;
   conversations: number;
   sold: number;
+}
+
+export interface LocationStats {
+  key: string;
+  visitors: number;
+  listingViews: number;
 }
 
 export interface BrokerStats {
@@ -77,6 +86,8 @@ export interface LeadStats {
     sold: number;
   };
   sources: SourceStats[];
+  states: LocationStats[];
+  cities: LocationStats[];
   brokers: BrokerStats[];
   topListings: { dealId: string; title: string; views: number; conversations: number }[];
   recent: LeadItem[];
@@ -95,6 +106,21 @@ function median(values: number[]): number | null {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+// Visitors (distinct, from their landings) and listing views per place.
+function byLocation(visits: VisitRow[], keyOf: (v: VisitRow) => string | null): LocationStats[] {
+  const map = new Map<string, { visitors: Set<string>; listingViews: number }>();
+  for (const v of visits) {
+    const key = keyOf(v) ?? "Unknown";
+    const row = map.get(key) ?? { visitors: new Set<string>(), listingViews: 0 };
+    if (v.kind === "landing") row.visitors.add(v.visitor);
+    else row.listingViews++;
+    map.set(key, row);
+  }
+  return [...map.entries()]
+    .map(([key, r]) => ({ key, visitors: r.visitors.size, listingViews: r.listingViews }))
+    .sort((a, b) => b.visitors - a.visitors || b.listingViews - a.listingViews);
+}
+
 // Still waiting on the broker: the shopper spoke last over an hour ago.
 function isWaiting(l: LeadRow, now: number): boolean {
   return l.last_sender_role === "customer" && now - new Date(l.last_message_at).getTime() > HOUR;
@@ -107,7 +133,7 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
   const since = <T extends { gte: (col: string, v: string) => T }>(q: T) => (sinceIso ? q.gte("created_at", sinceIso) : q);
 
   const [visits, signups, convs, brokersRes] = await Promise.all([
-    since(admin.from("site_visits").select("visitor, kind, deal_id, broker_id, source, campaign"))
+    since(admin.from("site_visits").select("visitor, kind, deal_id, broker_id, source, campaign, country, region, city"))
       .limit(ROW_LIMIT)
       .returns<VisitRow[]>(),
     since(admin.from("customers").select("id, signup_source, signup_campaign"))
@@ -160,6 +186,15 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
   const sources = [...bySource.values()]
     .map(({ visitorSet, ...s }) => ({ ...s, visitors: visitorSet.size }))
     .sort((a, b) => b.visitors - a.visitors || b.conversations - a.conversations);
+
+  // By location (Vercel's IP lookup: approximate, and missing for some visits)
+  const states = byLocation(visitRows, (v) =>
+    !v.country ? null : v.country === "US" ? (v.region ? `${v.region}` : "US (state unknown)") : v.country
+  );
+  const cities = byLocation(visitRows, (v) => {
+    if (!v.city) return null;
+    return v.country === "US" ? `${v.city}, ${v.region ?? "US"}` : `${v.city}, ${v.country ?? ""}`.replace(/, $/, "");
+  });
 
   // By broker
   const brokerNames = new Map((brokersRes.data ?? []).map((b) => [b.id, b.business_name || "Unnamed broker"]));
@@ -263,6 +298,8 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
       sold: leadRows.filter((l) => l.outcome === "sold").length,
     },
     sources,
+    states,
+    cities,
     brokers,
     topListings,
     recent,

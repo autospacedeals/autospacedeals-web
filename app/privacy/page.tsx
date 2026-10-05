@@ -100,8 +100,10 @@ export default function PrivacyPolicyPage() {
               address, browser type, pages visited) for security and reliability. We use a small
               number of essential cookies to keep you signed in, plus two first-party cookies of our
               own: a random visitor ID and a note of how you found us (for example, which ad or
-              website sent you). We use them to count visits and listing views, and which ads lead
-              to conversations with sellers. That information stays with {SITE_NAME}; it isn&apos;t
+              website sent you). We use them, along with your approximate city and state (looked up
+              from your IP address by our hosting provider; we don&apos;t store the address
+              itself), to count visits and listing views, see which areas they come from, and
+              learn which ads lead to conversations with sellers. That information stays with {SITE_NAME}; it isn&apos;t
               shared with ad platforms. We don&apos;t use advertising or cross-site tracking cookies,
               and we don&apos;t run third-party analytics on the site today. If we ever add advertising or measurement tools (for example, an ad
               platform&apos;s tracking pixel), we&apos;ll update this policy first and give you a

@@ -2,7 +2,8 @@
 // VisitTracker.tsx sends these; supabase/migrations/0033_lead_tracking.sql).
 // Best-effort and always answers 204 — a counting problem must never show
 // up for the visitor. Bots, and signed-in brokers and admins browsing their
-// own site, aren't counted.
+// own site, aren't counted. The visitor's approximate city comes from
+// Vercel's IP lookup; the IP address itself isn't stored.
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
@@ -16,6 +17,19 @@ const BOT_UA = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|ligh
 const DEDUPE_MS = 30 * 60 * 1000;
 
 const done = () => new NextResponse(null, { status: 204 });
+
+// Approximate location from Vercel's IP lookup (not set when running locally).
+function header(request: NextRequest, name: string, max: number): string | null {
+  const raw = request.headers.get(name);
+  if (!raw) return null;
+  let value = raw;
+  try {
+    value = decodeURIComponent(raw);
+  } catch {
+    // keep as sent
+  }
+  return value.trim().slice(0, max) || null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,6 +93,9 @@ export async function POST(request: NextRequest) {
       broker_id: brokerId,
       source: src?.source ?? null,
       campaign: src?.campaign ?? null,
+      country: header(request, "x-vercel-ip-country", 8),
+      region: header(request, "x-vercel-ip-country-region", 16),
+      city: header(request, "x-vercel-ip-city", 80),
     });
     if (error) console.error("track: insert failed:", error.message);
   } catch (err) {
