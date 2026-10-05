@@ -10,7 +10,8 @@
 // is searched first, then any color. The first studio photo for a
 // year/make/model/color is saved to Drive's photo library
 // (lib/photo-library.ts) and reused from then on.
-import { getLibraryPhoto, saveToLibrary } from "@/lib/photo-library";
+import { downloadImage, getLibraryPhoto, saveImageToLibrary } from "@/lib/photo-library";
+import { classifyCarView } from "@/lib/photo-view";
 
 interface PhotoQuery {
   year: number;
@@ -51,19 +52,44 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
   const saved = await getLibraryPhoto({ ...params, color });
   if (saved) return saved;
 
+  // Every studio candidate is checked for its angle; the first front
+  // three-quarter with the nose to the left wins. Otherwise a right-facing
+  // one (mirrored), then any studio shot, then any photo at all.
+  type Pick = { image: Buffer; flop: boolean; color: string | null };
+  let mirrored: Pick | null = null;
+  let anyStudio: Pick | null = null;
   let fallback: string | null = null;
-  for (const a of attempts(params, color)) {
-    const urls = await queryCarsxe({ ...params, trim: a.trim }, a.color);
-    const studio = urls.find(isStudioPhoto);
-    if (studio) {
-      const url = (await saveToLibrary({ ...params, color: a.color }, studio)) ?? studio;
-      // No studio shot in the car's color: remember the any-color one for
-      // that color too, so it isn't searched for (and paid for) again.
-      if (color && a.color === null) await saveToLibrary({ ...params, color }, studio);
-      return url;
-    }
+  const seen = new Set<string>();
+  const keep = async (p: Pick): Promise<string | null> => {
+    const url = await saveImageToLibrary({ ...params, color: p.color }, p.image, { flop: p.flop });
+    // No studio shot in the car's color: remember the any-color one for
+    // that color too, so it isn't searched for (and paid for) again.
+    if (color && p.color === null) await saveImageToLibrary({ ...params, color }, p.image, { flop: p.flop });
+    return url;
+  };
+
+  // This model year first; the year before (usually the same body) only if
+  // this one has no front-left studio shot.
+  const tries = [
+    ...attempts(params, color).map((a) => ({ ...a, year: params.year })),
+    ...(color ? [color, null] : [null]).map((c) => ({ color: c, trim: undefined, year: params.year - 1 })),
+  ];
+  for (const a of tries) {
+    const urls = await queryCarsxe({ ...params, year: a.year, trim: a.trim }, a.color);
     fallback ??= urls[0] ?? null;
+    for (const url of urls.filter((u) => isStudioPhoto(u) && !seen.has(u))) {
+      seen.add(url);
+      const image = await downloadImage(url);
+      if (!image) continue;
+      const view = await classifyCarView(image);
+      const pick = { image, flop: false, color: a.color };
+      if (view === "front-left" || view === "unknown") return (await keep(pick)) ?? url;
+      if (view === "front-right") mirrored ??= { ...pick, flop: true };
+      else anyStudio ??= pick;
+    }
   }
+  const best = mirrored ?? anyStudio;
+  if (best) return keep(best);
   // No studio photo anywhere: better a real photo than none (not saved, so
   // a later lookup can still find a studio one).
   return fallback;

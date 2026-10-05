@@ -37,39 +37,56 @@ export async function getLibraryPhoto(k: LibraryKey): Promise<string | null> {
   const url = publicUrl(libraryPath(k));
   try {
     const res = await fetch(url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(5000) });
-    return res.ok ? url : null;
+    if (!res.ok) return null;
+    // Versioned by the file's ETag, so a photo replaced in place isn't served
+    // stale from a cache.
+    const tag = (res.headers.get("etag") ?? "").replace(/\W/g, "").slice(0, 12);
+    return tag ? `${url}?v=${tag}` : url;
   } catch {
     return null;
   }
 }
 
-// Copies a photo into the library and returns its URL there, or null if it
-// couldn't be fetched/saved (the caller can still use the original).
-export async function saveToLibrary(k: LibraryKey, sourceUrl: string): Promise<string | null> {
+// Downloads a photo, or null if it can't be fetched or isn't an image.
+export async function downloadImage(url: string): Promise<Buffer | null> {
   try {
-    const res = await fetch(sourceUrl, {
+    const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; DriveBot/1.0)" },
       cache: "no-store",
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok || !(res.headers.get("content-type") ?? "").startsWith("image/")) return null;
-    const input = Buffer.from(await res.arrayBuffer());
-    const webp = await sharp(input)
-      .resize({ width: 960, withoutEnlargement: true })
-      .flatten({ background: "#ffffff" })
-      .webp({ quality: 82 })
-      .toBuffer();
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+// Saves a photo into the library (mirrored first when `flop`, to turn a
+// right-facing shot left) and returns its URL there, or null on failure.
+export async function saveImageToLibrary(k: LibraryKey, image: Buffer, opts: { flop?: boolean } = {}): Promise<string | null> {
+  try {
+    let pipeline = sharp(image).resize({ width: 960, withoutEnlargement: true });
+    if (opts.flop) pipeline = pipeline.flop();
+    const webp = await pipeline.flatten({ background: "#ffffff" }).webp({ quality: 82 }).toBuffer();
     const path = libraryPath(k);
     const { error } = await createAdminClient()
       .storage.from(PHOTO_BUCKET)
-      .upload(path, webp, { contentType: "image/webp", upsert: true, cacheControl: "31536000" });
+      .upload(path, webp, { contentType: "image/webp", upsert: true, cacheControl: "3600" });
     if (error) {
-      console.error("saveToLibrary upload failed:", error.message);
+      console.error("saveImageToLibrary upload failed:", error.message);
       return null;
     }
-    return publicUrl(path);
+    // Cache-busting version, since a library photo can be replaced in place.
+    return `${publicUrl(path)}?v=${Date.now().toString(36)}`;
   } catch (err) {
-    console.error("saveToLibrary failed:", err instanceof Error ? err.message : err);
+    console.error("saveImageToLibrary failed:", err instanceof Error ? err.message : err);
     return null;
   }
+}
+
+// Copies a photo from a URL into the library.
+export async function saveToLibrary(k: LibraryKey, sourceUrl: string): Promise<string | null> {
+  const image = await downloadImage(sourceUrl);
+  return image ? saveImageToLibrary(k, image) : null;
 }
