@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin";
 import { READER_EMAIL, isReaderConfigured, readerStatus } from "@/lib/google-reader";
+import CheckSheet from "./CheckSheet";
 
 export const metadata: Metadata = { title: "Sheets reader", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -50,6 +51,8 @@ export default async function GoogleReaderPage({
           expected for this internal account: choose Advanced → Continue.
         </p>
       </div>
+
+      <CheckSheet />
     </main>
   );
 }
