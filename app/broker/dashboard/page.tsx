@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogOut, MessageSquare, UserCog } from "lucide-react";
+import { ArrowRight, LogOut, MessageSquare, UserCog } from "lucide-react";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
@@ -261,6 +261,16 @@ export default async function BrokerDashboardPage() {
             brokerLocation={{ city: broker?.city ?? "", state: broker?.state ?? "" }}
           />
         </div>
+      </div>
+
+      <div className="mt-8 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-line px-5 py-4 text-sm">
+        <p className="text-fg-secondary">
+          <span className="font-medium text-fg">Ad archive</span> · every version of your listings, kept 2+ years
+          for California&apos;s CARS Act.
+        </p>
+        <Link href="/broker/dashboard/archive" className="link-arrow">
+          View archive <ArrowRight />
+        </Link>
       </div>
 
       <section id="account" aria-labelledby="account-heading" className="panel mt-8 max-w-3xl sm:p-8">

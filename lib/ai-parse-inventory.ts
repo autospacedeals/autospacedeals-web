@@ -45,6 +45,14 @@ const EXTRACT_TOOL = {
             model: { type: "string", description: "Model name, e.g. Taycan" },
             trim: { type: ["string", "null"], description: "Trim/spec if mentioned, else null" },
             msrp: { type: ["number", "null"], description: "MSRP in dollars, e.g. 217000 for \"217k\"" },
+            sellingPrice: {
+              type: ["number", "null"],
+              description:
+                "The vehicle's total / selling / sale price in dollars when the ad states one (\"selling " +
+                "price $48,250\", \"sale price\", \"total price\", \"cap cost\", \"net price\") — the " +
+                "price of the car before taxes and government fees. NOT the MSRP, NOT the monthly " +
+                "payment, NOT due at signing. null if not stated; never estimate it.",
+            },
             onePay: {
               type: "boolean",
               description:
@@ -272,6 +280,9 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const make = typeof c.make === "string" && c.make.trim() ? c.make.trim() : null;
     const model = typeof c.model === "string" && c.model.trim() ? c.model.trim() : null;
     const msrp = typeof c.msrp === "number" ? c.msrp : null;
+    // The vehicle's total price (California's CARS Act wants it on dealer ads).
+    const sellingPrice =
+      typeof c.sellingPrice === "number" && c.sellingPrice > 1000 && c.sellingPrice < 2000000 ? c.sellingPrice : null;
     // Some rows also mention "onepay"/"one-pay" in notes even when the
     // model didn't set the boolean flag on the field itself — catch that
     // too rather than depending entirely on the model populating onePay.
@@ -326,6 +337,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (model) partial.model = model;
       if (trim) partial.trim = trim;
       if (msrp) partial.msrp = msrp;
+      if (sellingPrice) partial.sellingPrice = sellingPrice;
       if (!onePay && payment) partial.payment = payment;
       if (term) partial.term = term;
       if (milesPerYear) partial.milesPerYear = milesPerYear;
@@ -352,6 +364,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       model: model!,
       trim,
       msrp: msrp!,
+      sellingPrice,
       payment: onePay ? 0 : payment!,
       term: term!,
       milesPerYear,

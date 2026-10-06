@@ -26,6 +26,7 @@ import {
   otherTermsNote,
 } from "@/lib/deal-utils";
 import { isRequiredProgram } from "@/lib/deal-options";
+import { TOTAL_PRICE_LABEL, TOTAL_PRICE_NOTE } from "@/lib/cars-act";
 import { ContactActionsFull } from "@/components/ContactActions";
 import { ContactSellerButton } from "@/components/ContactSellerDialog";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
@@ -198,8 +199,10 @@ export default function DealDetailView({
                     .join(" & ")}
                 />
               )}
+              {deal.sellingPrice != null && (
+                <Row label={TOTAL_PRICE_LABEL} note={TOTAL_PRICE_NOTE} value={formatCurrency(deal.sellingPrice)} />
+              )}
               <Row label="MSRP" value={displayMsrp(deal)} />
-              {deal.sellingPrice != null && <Row label="Selling price" value={formatCurrency(deal.sellingPrice)} />}
               {discount > 0 && <Row label="Discount off MSRP" value={`${discount.toFixed(1)}%`} positive />}
               {deal.milesPerYear ? (
                 <Row
@@ -322,6 +325,12 @@ export default function DealDetailView({
                 {formatTerm(deal.term)}
                 {deal.milesPerYear ? ` · ${formatMileage(deal.milesPerYear)}` : ""}
               </p>
+              {deal.sellingPrice != null && (
+                <p className="mt-1.5 text-sm text-fg-secondary">
+                  {TOTAL_PRICE_LABEL} <strong className="font-semibold text-fg">{formatCurrency(deal.sellingPrice)}</strong>
+                  <span className="text-fg-muted"> + tax &amp; gov&apos;t fees</span>
+                </p>
+              )}
             </div>
 
             <div className="border-t border-line p-6">

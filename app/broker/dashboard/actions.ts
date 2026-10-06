@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { Incentive } from "@/lib/deals-data";
 import { parseJsonField, sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from "@/lib/deal-options";
+import { TOTAL_PRICE_REQUIRED_ERROR, carsActError, needsTotalPrice } from "@/lib/cars-act";
 import { parseLocationFields } from "@/lib/deal-location";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -657,6 +658,9 @@ export async function createManualDealAction(
   const { msrp, maskMsrp, msrpMaskedLabel } = parseMsrpInput(String(formData.get("msrp") || ""));
   const sellingPriceRaw = formData.get("sellingPrice");
   const sellingPrice = sellingPriceRaw ? Number(sellingPriceRaw) : null;
+  if (needsTotalPrice(broker.seller_type) && !(sellingPrice && sellingPrice > 0)) {
+    return { error: TOTAL_PRICE_REQUIRED_ERROR };
+  }
   const notes = String(formData.get("notes") || "").trim();
   const condition = String(formData.get("condition") || "").trim() || null;
   const incentives = parseIncentivesField(formData);
@@ -753,7 +757,7 @@ export async function createManualDealAction(
     one_pay: onePay,
     status: "published",
   });
-  if (error) return { error: error.message };
+  if (error) return { error: carsActError(error.message) };
 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
@@ -888,7 +892,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   if (brokerId) query = query.eq("broker_id", brokerId);
   const { error } = await query;
 
-  if (error) return { error: error.message };
+  if (error) return { error: carsActError(error.message) };
   revalidateListings();
   return { error: null };
 }
@@ -1005,7 +1009,7 @@ export async function restoreDealAction(id: string, asAdmin = false): Promise<{ 
     .eq("status", "removed");
   if (brokerId) query = query.eq("broker_id", brokerId);
   const { error } = await query;
-  if (error) return { error: error.message };
+  if (error) return { error: carsActError(error.message) };
 
   revalidateListings();
   return { error: null };
@@ -1190,13 +1194,26 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
   const keepIds = formData.getAll("keep").map(String);
   const discardIds = allDraftIds.filter((id) => !keepIds.includes(id));
 
+  // Dealership drafts without a total price can't go live yet (California's
+  // CARS Act) — they stay in the queue and the broker is told why.
+  let blocked = 0;
   if (keepIds.length > 0) {
-    const { error } = await supabase
+    const { data: kept } = await supabase
       .from("deals")
-      .update({ status: "published" })
+      .select("id, seller_type, selling_price")
       .in("id", keepIds)
-      .eq("broker_id", user.id);
-    if (error) return { error: error.message };
+      .eq("broker_id", user.id)
+      .returns<{ id: string; seller_type: string; selling_price: number | null }[]>();
+    const ready = (kept ?? []).filter((d) => !needsTotalPrice(d.seller_type) || d.selling_price != null).map((d) => d.id);
+    blocked = (kept ?? []).length - ready.length;
+    if (ready.length > 0) {
+      const { error } = await supabase
+        .from("deals")
+        .update({ status: "published" })
+        .in("id", ready)
+        .eq("broker_id", user.id);
+      if (error) return { error: carsActError(error.message) };
+    }
   }
 
   if (discardIds.length > 0) {
@@ -1210,6 +1227,11 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
+  if (blocked > 0) {
+    return {
+      error: `${blocked} car${blocked === 1 ? " needs" : "s need"} a total price before going live — California's CARS Act requires it on dealership listings. Use Edit to add it, then confirm again.`,
+    };
+  }
   return { error: null };
 }
 

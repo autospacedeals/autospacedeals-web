@@ -7,6 +7,7 @@ import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency, msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { confirmDraftsAction, updateDraftDealAction, deleteDraftAction } from "./actions";
+import { needsTotalPrice } from "@/lib/cars-act";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
@@ -28,8 +29,10 @@ export default function DraftConfirmList({
 }) {
   const [checked, setChecked] = useState<Set<string>>(new Set(drafts.map((d) => d.id)));
   const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   if (drafts.length === 0) return null;
+  const selectedCount = drafts.filter((d) => checked.has(d.id)).length;
 
   function toggle(id: string) {
     setChecked((prev) => {
@@ -42,10 +45,12 @@ export default function DraftConfirmList({
 
   async function handleConfirm() {
     setConfirming(true);
+    setConfirmError(null);
     const fd = new FormData();
     drafts.forEach((d) => fd.append("draftId", d.id));
-    checked.forEach((id) => fd.append("keep", id));
-    await confirmDraftsAction(fd);
+    drafts.filter((d) => checked.has(d.id)).forEach((d) => fd.append("keep", d.id));
+    const result = await confirmDraftsAction(fd);
+    if (result?.error) setConfirmError(result.error);
     setConfirming(false);
   }
 
@@ -75,8 +80,13 @@ export default function DraftConfirmList({
         disabled={confirming}
         className="btn btn-primary mt-4"
       >
-        {confirming ? "Publishing..." : `Confirm & publish selected (${checked.size})`}
+        {confirming ? "Publishing..." : `Confirm & publish selected (${selectedCount})`}
       </button>
+      {confirmError && (
+        <p role="alert" className="alert alert-danger mt-3">
+          {confirmError}
+        </p>
+      )}
     </div>
   );
 }
@@ -139,6 +149,9 @@ function DraftRow({
             {" · "}
             {formatCurrency(deal.dueAtSigning)} due at signing · {deal.term}mo
           </p>
+          {needsTotalPrice(deal.sellerType) && deal.sellingPrice == null && (
+            <p className="mt-1 text-xs text-warning">Needs a total price before it can go live (CARS Act) — use Edit.</p>
+          )}
           {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -276,8 +289,9 @@ function DraftRow({
             </p>
           </div>
           <div>
-            <label htmlFor={`${uid}-sellingPrice`} className={labelClass}>Selling price (optional)</label>
+            <label htmlFor={`${uid}-sellingPrice`} className={labelClass}>Total price</label>
             <input type="number" id={`${uid}-sellingPrice`} name="sellingPrice" defaultValue={deal.sellingPrice ?? ""} className={inputClass} />
+            <p className="field-hint">Before taxes and government fees. Required for dealership listings (California CARS Act); recommended for brokers.</p>
           </div>
         </div>
 

@@ -11,6 +11,8 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import ConversationList, { type ConversationListItem } from "@/components/messages/ConversationList";
 import MessageThread from "@/components/messages/MessageThread";
 import ConversationOutcome from "@/components/messages/ConversationOutcome";
+import { firstReplyDraft } from "@/lib/cars-act";
+import { formatCurrency } from "@/lib/deal-utils";
 import { OUTCOMES_ENABLED } from "@/lib/leads";
 import {
   CONVERSATION_COLUMNS,
@@ -126,7 +128,11 @@ export async function ConversationPage({
       .returns<MessageRow[]>(),
     participantNames([c]),
     c.deal_id
-      ? supabase.from("deals").select("slug, status").eq("id", c.deal_id).maybeSingle<{ slug: string; status: string }>()
+      ? supabase
+          .from("deals")
+          .select("slug, status, selling_price")
+          .eq("id", c.deal_id)
+          .maybeSingle<{ slug: string; status: string; selling_price: number | null }>()
       : Promise.resolve({ data: null }),
     // The "did this one sell?" answer — the seller's and admins' business
     // only, so not selectable through the user's own session.
@@ -159,6 +165,12 @@ export async function ConversationPage({
               )}
             </p>
           )}
+          {deal?.selling_price != null && (
+            <p className="mt-1 text-sm text-fg-muted">
+              Total price <strong className="font-semibold text-fg">{formatCurrency(deal.selling_price)}</strong>
+              {" + tax & gov't fees"}
+            </p>
+          )}
           {viewer !== "customer" && OUTCOMES_ENABLED && <ConversationOutcome conversationId={c.id} initialOutcome={lead?.outcome ?? null} />}
         </div>
         <div className="pt-5">
@@ -167,6 +179,13 @@ export async function ConversationPage({
             viewerRole={viewer}
             names={{ customer, broker }}
             initialMessages={messages ?? []}
+            initialDraft={
+              // California's CARS Act wants the total price in the seller's
+              // first written reply about a car — start that reply with it.
+              viewer === "broker" && deal?.selling_price != null && !(messages ?? []).some((m) => m.sender_role === "broker")
+                ? firstReplyDraft(deal.selling_price)
+                : ""
+            }
           />
         </div>
       </div>

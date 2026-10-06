@@ -25,15 +25,19 @@ export default function MessageThread({
   viewerRole,
   names,
   initialMessages,
+  initialDraft = "",
 }: {
   conversationId: string;
   viewerRole: ViewerRole;
   // Display names per side, e.g. { customer: "Jordan S.", broker: "Pyramid Auto" }.
   names: { customer: string; broker: string };
   initialMessages: MessageRow[];
+  // Starting text for the reply box (e.g. the total price in a seller's
+  // first reply, see lib/cars-act.ts).
+  initialDraft?: string;
 }) {
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);

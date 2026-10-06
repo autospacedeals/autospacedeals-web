@@ -831,7 +831,7 @@ function ListingRow({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label htmlFor={`listing-${deal.id}-selling-price`} className={labelClass}>
-                    Selling price (optional)
+                    Total price
                   </label>
                   <input
                     id={`listing-${deal.id}-selling-price`}
@@ -840,6 +840,7 @@ function ListingRow({
                     onChange={(e) => set("sellingPrice", e.target.value)}
                     className={inputClass}
                   />
+                  <p className="field-hint">Before taxes and government fees. Required for dealership listings (California CARS Act); recommended for brokers.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

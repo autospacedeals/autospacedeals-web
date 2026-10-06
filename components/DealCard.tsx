@@ -158,6 +158,14 @@ export default function DealCard({
                 </span>
               )}
             </p>
+            {/* The vehicle's total price, when the seller gives it (required on
+                dealership listings by California's CARS Act). */}
+            {deal.sellingPrice != null && (
+              <p className="mt-1 text-[13px] text-fg-secondary">
+                Total price <strong className="font-semibold text-fg">{formatCurrency(deal.sellingPrice)}</strong>
+                <span className="text-fg-muted"> + tax &amp; gov&apos;t fees</span>
+              </p>
+            )}
           </div>
           {discount > 0 && (
             <p className="shrink-0 pb-0.5 text-[13px] font-medium text-success">

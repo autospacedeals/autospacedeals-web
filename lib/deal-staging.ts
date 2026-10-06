@@ -2,6 +2,7 @@
 // dashboard's upload flow (app/broker/dashboard/actions.ts) and the
 // recurring Google Sheet sync job (lib/sheet-sync.ts), so both insert deals
 // the exact same way.
+import { needsTotalPrice } from "@/lib/cars-act";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyVehicles } from "@/lib/vehicle-classify";
 import { slugify } from "@/lib/deal-utils";
@@ -85,7 +86,7 @@ export async function stageParsedDeals(
       interior: d.interior,
       deal_type: "Lease",
       msrp: d.msrp,
-      selling_price: null,
+      selling_price: d.sellingPrice ?? null,
       payment: d.payment,
       due_at_signing: d.dueAtSigning,
       broker_fee: d.brokerFee,
@@ -111,7 +112,9 @@ export async function stageParsedDeals(
       ...applyDealExtras(d, extras),
       images,
       one_pay: d.onePay,
-      status,
+      // A dealership listing can't go live without its total price
+      // (California's CARS Act) — it waits as a draft for the price instead.
+      status: status === "published" && needsTotalPrice(broker.seller_type) && !d.sellingPrice ? "draft" : status,
     });
 
     if (error) {
