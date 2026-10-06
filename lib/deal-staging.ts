@@ -103,6 +103,7 @@ export async function stageParsedDeals(
       verified: true,
       condition: null,
       mileage_options: d.mileageOptions ?? [],
+      lease_options: d.leaseOptions ?? [],
       photo_auto_sourced: true,
       in_stock: true,
       popularity: 50,

@@ -26,7 +26,20 @@ export interface Incentive {
   // when the source states it that way (e.g. "no Loyalty +$15" -> 15). When
   // set, the payment estimator uses it directly instead of spreading
   // `amount` over the term. `amount` may be 0 when only this is known.
+  //
+  // A program the price assumes but whose value isn't stated ("with
+  // MyFirstEV") is kept with amount 0, no monthly, includedInPrice true — a
+  // required program the shopper has to qualify for (isRequiredProgram).
   monthly?: number;
+}
+
+// Another lease term priced for the same car, as an exact payment — e.g.
+// "36/10k $356" next to a headline "24/7.5k $330" -> { 36, 10000, 356 }.
+// The headline term/mileage and its mileageOptions aren't repeated here.
+export interface LeaseOption {
+  term: number;
+  milesPerYear: number | null;
+  payment: number;
 }
 
 // Another annual mileage allowance offered on a lease, and how much it
@@ -152,6 +165,9 @@ export interface Deal {
   // Other mileage allowances a shopper can pick in the payment estimator.
   // Empty/undefined when the listing only offers its advertised mileage.
   mileageOptions?: MileageOption[];
+  // Other lease terms for the same car (see LeaseOption). Empty/undefined
+  // when only the headline term is offered.
+  leaseOptions?: LeaseOption[];
   // Whether the car can get to a shopper outside its area (see
   // lib/deal-location.ts). Null/undefined = not stated.
   delivery?: "pickup" | "in_state" | "nationwide" | null;

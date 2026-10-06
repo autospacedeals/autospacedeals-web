@@ -22,7 +22,10 @@ import {
   formatMileage,
   formatTerm,
   formatMsds,
+  hasOtherMileages,
+  otherTermsNote,
 } from "@/lib/deal-utils";
+import { isRequiredProgram } from "@/lib/deal-options";
 import { ContactActionsFull } from "@/components/ContactActions";
 import { ContactSellerButton } from "@/components/ContactSellerDialog";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
@@ -166,7 +169,11 @@ export default function DealDetailView({
                 value={formatCurrency(deal.dueAtSigning)}
                 note={deal.dueAtSigningTaxRate ? `Assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
               />
-              <KeyFigure label="Term" value={formatTerm(deal.term)} />
+              <KeyFigure
+                label="Term"
+                value={formatTerm(deal.term)}
+                note={otherTermsNote(deal) ? `${otherTermsNote(deal)} — see below` : undefined}
+              />
             </dl>
 
             {/* Everything else as statement rows */}
@@ -181,6 +188,16 @@ export default function DealDetailView({
                   value={formatMsds(deal.msdCount, deal.msdTotal)}
                 />
               ) : null}
+              {(deal.incentives ?? []).some(isRequiredProgram) && (
+                <Row
+                  label="Price requires"
+                  note="You need to qualify for this"
+                  value={(deal.incentives ?? [])
+                    .filter(isRequiredProgram)
+                    .map((i) => i.name)
+                    .join(" & ")}
+                />
+              )}
               <Row label="MSRP" value={displayMsrp(deal)} />
               {deal.sellingPrice != null && <Row label="Selling price" value={formatCurrency(deal.sellingPrice)} />}
               {discount > 0 && <Row label="Discount off MSRP" value={`${discount.toFixed(1)}%`} positive />}
@@ -188,7 +205,11 @@ export default function DealDetailView({
                 <Row
                   label="Mileage allowance"
                   value={formatMileage(deal.milesPerYear)}
-                  note={`Contact ${deal.sellerName} for more/less mileage`}
+                  note={
+                    hasOtherMileages(deal)
+                      ? "Other mileages priced below"
+                      : `Contact ${deal.sellerName} for more/less mileage`
+                  }
                 />
               ) : (
                 <Row label="Mileage allowance" value="Not specified" />

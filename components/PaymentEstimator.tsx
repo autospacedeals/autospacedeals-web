@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { Calculator, RotateCcw, CircleAlert } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { estimatePayment, formatCurrency } from "@/lib/deal-utils";
+import { estimatePayment, formatCurrency, formatTerm, leaseCombos } from "@/lib/deal-utils";
+import { isRequiredProgram } from "@/lib/deal-options";
 
-// Lets a shopper play with the drive-off amount and any listed incentives to
-// see roughly how the payment would move — pure client-side math, nothing is
+// Lets a shopper pick a term and mileage the seller priced, and play with
+// the drive-off amount and any listed incentives to see roughly how the
+// payment would move — pure client-side math, nothing is
 // sent anywhere. Intentionally simplified (linear proration, see
 // estimatePayment) since the point is a ballpark "what if," not a finance
 // quote, and that's disclosed clearly below the numbers.
@@ -14,7 +16,10 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   // Tracked as a raw string so the field can be freely cleared/retyped
   // without snapping to $0 mid-edit; the parsed, clamped number below is
   // what actually drives the live calculation on every keystroke.
-  const incentives = deal.incentives ?? [];
+  // Programs the price requires with no stated value ("with MyFirstEV")
+  // aren't toggles — they're listed as requirements below.
+  const required = (deal.incentives ?? []).filter(isRequiredProgram);
+  const incentives = (deal.incentives ?? []).filter((inc) => !isRequiredProgram(inc));
   // Incentives already baked into the advertised numbers start checked
   // (unchecking removes that built-in discount and raises the estimate);
   // ones not yet reflected start unchecked (checking adds the discount and
@@ -46,20 +51,32 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
     0
   );
 
-  // Other mileage tiers ("12k +$45/mo"); "" is the advertised mileage.
-  const mileageOptions = deal.onePay ? [] : (deal.mileageOptions ?? []);
-  const [mileage, setMileage] = useState("");
-  const mileageDelta = mileageOptions.find((o) => String(o.milesPerYear) === mileage)?.monthlyDelta ?? 0;
+  // Every term + mileage the seller priced (the advertised one first); the
+  // shopper picks a term, then a mileage offered at that term.
+  const combos = leaseCombos(deal);
+  const terms = [...new Set(combos.map((c) => c.term))].sort((a, b) => a - b);
+  const [term, setTerm] = useState(deal.term);
+  const [miles, setMiles] = useState<number | null>(deal.milesPerYear);
+  const atTerm = combos.filter((c) => c.term === term).sort((a, b) => (a.milesPerYear ?? 0) - (b.milesPerYear ?? 0));
+  const chosen = atTerm.find((c) => c.milesPerYear === miles) ?? atTerm[0] ?? combos[0];
+
+  function pickTerm(next: number) {
+    setTerm(next);
+    const options = combos.filter((c) => c.term === next);
+    // Keep the mileage if it's offered at the new term, else its cheapest.
+    if (!options.some((c) => c.milesPerYear === miles)) {
+      setMiles([...options].sort((a, b) => a.payment - b.payment)[0]?.milesPerYear ?? null);
+    }
+  }
 
   const dueAtSigning = Math.max(0, Number(dueAtSigningInput) || 0);
-  const estimate = estimatePayment(deal, {
-    dueAtSigning,
-    incentivesTotal,
-    monthlyAdjustment: incentivesMonthly + mileageDelta,
-  });
+  const estimate = estimatePayment(
+    { ...deal, term: chosen.term, payment: chosen.payment },
+    { dueAtSigning, incentivesTotal, monthlyAdjustment: incentivesMonthly }
+  );
   const isDefault =
     dueAtSigning === deal.dueAtSigning &&
-    mileage === "" &&
+    chosen.headline &&
     selected.size === defaultSelected.size &&
     [...selected].every((idx) => defaultSelected.has(idx));
 
@@ -80,7 +97,8 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   function reset() {
     setDueAtSigningInput(String(deal.dueAtSigning));
     setSelected(defaultSelected);
-    setMileage("");
+    setTerm(deal.term);
+    setMiles(deal.milesPerYear);
   }
 
   return (
@@ -98,7 +116,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
         )}
       </div>
       <p className="mt-1.5 text-sm text-fg-muted">
-        Put more or less down{mileageOptions.length > 0 ? ", pick a mileage," : ""} or apply an incentive below,
+        {combos.length > 1 ? "Pick a term and mileage, put" : "Put"} more or less down, or apply an incentive below,
         to see how it changes your{" "}
         {deal.onePay ? "one-pay total" : "monthly payment"}.
       </p>
@@ -131,28 +149,61 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
         </p>
       </div>
 
-      {mileageOptions.length > 0 && (
-        <div className="mt-6">
-          <label htmlFor="estimator-mileage" className="field-label">
-            Miles per year
-          </label>
-          <select
-            id="estimator-mileage"
-            value={mileage}
-            onChange={(e) => setMileage(e.target.value)}
-            className="select"
-          >
-            <option value="">
-              {deal.milesPerYear ? `${deal.milesPerYear.toLocaleString("en-US")} mi/yr` : "Advertised mileage"} (as
-              advertised)
-            </option>
-            {mileageOptions.map((o) => (
-              <option key={o.milesPerYear} value={String(o.milesPerYear)}>
-                {o.milesPerYear.toLocaleString("en-US")} mi/yr · {o.monthlyDelta >= 0 ? "+" : "-"}
-                {formatCurrency(Math.abs(o.monthlyDelta))}/mo
-              </option>
-            ))}
-          </select>
+      {combos.length > 1 && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {terms.length > 1 && (
+            <div>
+              <label htmlFor="estimator-term" className="field-label">
+                Lease term
+              </label>
+              <select
+                id="estimator-term"
+                value={String(term)}
+                onChange={(e) => pickTerm(Number(e.target.value))}
+                className="select"
+              >
+                {terms.map((t) => {
+                  const from = Math.min(...combos.filter((c) => c.term === t).map((c) => c.payment));
+                  return (
+                    <option key={t} value={String(t)}>
+                      {formatTerm(t)} · from {formatCurrency(from)}/mo
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+          {atTerm.length > 1 && (
+            <div>
+              <label htmlFor="estimator-mileage" className="field-label">
+                Miles per year
+              </label>
+              <select
+                id="estimator-mileage"
+                value={String(chosen.milesPerYear ?? "")}
+                onChange={(e) => setMiles(e.target.value ? Number(e.target.value) : null)}
+                className="select"
+              >
+                {atTerm.map((c) => (
+                  <option key={c.milesPerYear ?? "none"} value={String(c.milesPerYear ?? "")}>
+                    {c.milesPerYear ? `${c.milesPerYear.toLocaleString("en-US")} mi/yr` : "Mileage not stated"} ·{" "}
+                    {formatCurrency(c.payment)}/mo
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {required.length > 0 && (
+        <div className="callout mt-6 text-sm">
+          <p className="font-medium text-fg">
+            This price requires {required.map((r) => r.name).join(" and ")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-fg-muted">
+            {`You need to qualify for ${required.length === 1 ? "this program" : "these programs"} to get this price. Ask ${deal.sellerName} if you're not sure.`}
+          </p>
         </div>
       )}
 

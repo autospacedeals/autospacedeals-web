@@ -21,7 +21,10 @@ import {
   formatMileage,
   formatTerm,
   formatMsds,
+  hasOtherMileages,
+  otherTermsNote,
 } from "@/lib/deal-utils";
+import { isRequiredProgram } from "@/lib/deal-options";
 import { ContactActionsCompact } from "./ContactActions";
 import SaveDealButton, { useShowSaveDealButton } from "./SaveDealButton";
 
@@ -171,10 +174,11 @@ export default function DealCard({
             value={formatCurrency(deal.dueAtSigning)}
             note={deal.dueAtSigningTaxRate ? `assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
           />
-          <Spec label="Term" value={formatTerm(deal.term)} />
+          <Spec label="Term" value={formatTerm(deal.term)} note={otherTermsNote(deal) ?? undefined} />
           <Spec
             label="Mileage"
             value={deal.milesPerYear ? formatMileage(deal.milesPerYear) : "N/A"}
+            note={hasOtherMileages(deal) ? "other mileages too" : undefined}
           />
           <Spec label="MSRP" value={displayMsrp(deal)} />
         </dl>
@@ -190,6 +194,18 @@ export default function DealCard({
             signing
           </p>
         ) : null}
+        {(deal.incentives ?? []).some(isRequiredProgram) && (
+          <p className="spec-footnote mt-2">
+            Price requires{" "}
+            <strong>
+              {(deal.incentives ?? [])
+                .filter(isRequiredProgram)
+                .map((i) => i.name)
+                .join(" & ")}
+            </strong>{" "}
+            · must qualify
+          </p>
+        )}
 
         {/* Seller + actions are one unit anchored to the card bottom, so
             action rows line up across a grid row. */}

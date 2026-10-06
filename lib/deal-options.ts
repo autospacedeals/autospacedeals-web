@@ -1,12 +1,14 @@
-// Client-safe checks for the two per-listing option lists a shopper can
-// play with in the payment estimator — incentives and mileage tiers. Used
+// Client-safe checks for the per-listing option lists a shopper can play
+// with in the payment estimator — incentives, mileage tiers and other lease
+// terms. Used
 // when reading the hidden JSON fields the broker forms submit, when reading
 // rows back from the database, and on AI-parsed deals, so a bad value is
 // dropped the same way everywhere.
-import type { Incentive, MileageOption } from "./deals-data";
+import type { Incentive, LeaseOption, MileageOption } from "./deals-data";
 
 const MAX_INCENTIVES = 20;
 const MAX_MILEAGE_OPTIONS = 10;
+const MAX_LEASE_OPTIONS = 24;
 
 function money(value: unknown, max: number): number | null {
   const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
@@ -14,7 +16,15 @@ function money(value: unknown, max: number): number | null {
   return Math.round(n * 100) / 100;
 }
 
-// Keeps rows with a name and a positive amount and/or monthly value.
+// A program the advertised price assumes, with no stated value ("with
+// MyFirstEV") — the shopper has to qualify for it. Shown as a requirement,
+// not as a toggle in the payment estimator.
+export function isRequiredProgram(inc: Incentive): boolean {
+  return inc.includedInPrice === true && !(inc.amount > 0) && !(inc.monthly && inc.monthly > 0);
+}
+
+// Keeps rows with a name and a positive amount and/or monthly value, plus
+// required programs (included in the price, value not stated).
 export function sanitizeIncentives(raw: unknown): Incentive[] {
   if (!Array.isArray(raw)) return [];
   const out: Incentive[] = [];
@@ -24,7 +34,7 @@ export function sanitizeIncentives(raw: unknown): Incentive[] {
     const name = typeof r.name === "string" ? r.name.trim().slice(0, 80) : "";
     const amount = money(r.amount, 100000) ?? 0;
     const monthly = money(r.monthly, 5000) ?? 0;
-    if (!name || (amount <= 0 && monthly <= 0)) continue;
+    if (!name || (amount <= 0 && monthly <= 0 && r.includedInPrice !== true)) continue;
     out.push({
       name,
       amount: Math.max(0, amount),
@@ -55,6 +65,33 @@ export function sanitizeMileageOptions(raw: unknown, advertisedMiles?: number | 
     .sort((a, b) => a[0] - b[0])
     .slice(0, MAX_MILEAGE_OPTIONS)
     .map(([milesPerYear, monthlyDelta]) => ({ milesPerYear, monthlyDelta }));
+}
+
+// Other lease terms: whole-month terms 6–84, miles 1,000–50,000 (or none),
+// a positive payment; one row per term + mileage, without the headline
+// term/mileage itself, sorted by term then mileage.
+export function sanitizeLeaseOptions(
+  raw: unknown,
+  headline?: { term?: number | null; milesPerYear?: number | null }
+): LeaseOption[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Map<string, LeaseOption>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const r = item as Record<string, unknown>;
+    const term = Math.round(Number(r.term));
+    const milesRaw = r.milesPerYear == null || r.milesPerYear === "" ? null : Math.round(Number(r.milesPerYear));
+    const payment = money(r.payment, 50000);
+    if (!Number.isFinite(term) || term < 6 || term > 84) continue;
+    if (milesRaw != null && (!Number.isFinite(milesRaw) || milesRaw < 1000 || milesRaw > 50000)) continue;
+    if (payment == null || payment <= 0) continue;
+    if (headline?.term === term && (headline.milesPerYear ?? null) === milesRaw) continue;
+    const key = `${term}|${milesRaw ?? ""}`;
+    if (!seen.has(key)) seen.set(key, { term, milesPerYear: milesRaw, payment });
+  }
+  return [...seen.values()]
+    .sort((a, b) => a.term - b.term || (a.milesPerYear ?? 0) - (b.milesPerYear ?? 0))
+    .slice(0, MAX_LEASE_OPTIONS);
 }
 
 // The hidden-field JSON the broker forms submit, tolerating junk.

@@ -46,7 +46,9 @@ export default function IncentivesEditor({
       <p className="mb-3 text-xs leading-5 text-fg-muted">
         Things like loyalty, fleet, or military discounts a shopper might qualify for. Give a dollar
         amount, what it&apos;s worth per month (e.g. &quot;no Loyalty +$15&quot; is $15/mo), or both —
-        shoppers can toggle each one on the deal page.
+        shoppers can toggle each one on the deal page. If your price requires a program but you
+        don&apos;t know its value (e.g. MyFirstEV), check Incl. and leave the amounts blank — shoppers
+        will see that the price requires it.
       </p>
 
       {value.length > 0 && (
@@ -126,7 +128,7 @@ export default function IncentivesEditor({
         name="incentives"
         value={JSON.stringify(
           value
-            .filter((r) => r.name.trim() && (r.amount > 0 || (r.monthly ?? 0) > 0))
+            .filter((r) => r.name.trim() && (r.amount > 0 || (r.monthly ?? 0) > 0 || r.includedInPrice))
             .map(({ name, amount, includedInPrice, monthly }) => ({ name, amount, includedInPrice, monthly }))
         )}
       />

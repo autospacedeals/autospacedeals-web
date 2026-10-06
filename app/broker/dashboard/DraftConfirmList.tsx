@@ -10,6 +10,7 @@ import { confirmDraftsAction, updateDraftDealAction, deleteDraftAction } from ".
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
+import LeaseOptionsEditor, { toLeaseOptionRows, type LeaseOptionRow } from "./LeaseOptionsEditor";
 
 const inputClass = "input input-sm";
 const labelClass = "field-label";
@@ -97,6 +98,7 @@ function DraftRow({
     (deal.incentives ?? []).map((inc) => ({ ...inc, includedInPrice: inc.includedInPrice === true }))
   );
   const [mileageRows, setMileageRows] = useState<MileageRow[]>(() => toMileageRows(deal.mileageOptions));
+  const [leaseRows, setLeaseRows] = useState<LeaseOptionRow[]>(() => toLeaseOptionRows(deal.leaseOptions));
   const uid = useId();
 
   async function handleDelete() {
@@ -396,6 +398,8 @@ function DraftRow({
         <IncentivesEditor value={incentives} onChange={setIncentives} />
 
         <MileageOptionsEditor value={mileageRows} onChange={setMileageRows} />
+
+        <LeaseOptionsEditor value={leaseRows} onChange={setLeaseRows} />
 
         <div>
           <label htmlFor={`${uid}-images`} className={labelClass}>Photo URLs (one per line, optional)</label>

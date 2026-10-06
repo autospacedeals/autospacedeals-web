@@ -48,10 +48,14 @@ export interface ParsedDeal {
   onePay: boolean;
   // Incentives the source gives a value for — a dollar amount and/or a
   // monthly difference like "no Loyalty +$15" — read by the AI parse
-  // exactly as stated (never looked up or estimated).
+  // exactly as stated (never looked up or estimated), plus programs the
+  // price requires with no stated value (amount 0, includedInPrice true).
   incentives?: { name: string; amount: number; includedInPrice: boolean; monthly?: number }[];
   // Other mileage tiers the source prices, e.g. "10k +$23 · 12k +$45".
   mileageOptions?: { milesPerYear: number; monthlyDelta: number }[];
+  // Other lease terms priced for the same car, e.g. "36/10k $356" next to
+  // a main "24/7500 $330".
+  leaseOptions?: { term: number; milesPerYear: number | null; payment: number }[];
   // Where a spreadsheet row came from: its sheet row number and tab name
   // (see parseTabs). Synced sheets store the tab on the deal so a broker
   // can switch a tab off.

@@ -239,6 +239,8 @@ export async function runSheetSync(
         msrp: d.msrp,
         term: d.term,
         miles_per_year: d.milesPerYear,
+        mileage_options: d.mileageOptions ?? [],
+        lease_options: d.leaseOptions ?? [],
         broker_fee: d.brokerFee,
         one_pay: d.onePay,
         match_signature: computeMatchSignature(d),

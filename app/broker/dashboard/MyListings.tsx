@@ -19,6 +19,7 @@ import { updateDealAction, deleteDealAction, deleteDealsAction, repullPhotoActio
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 import LocationFields, { type LocationValue } from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
+import LeaseOptionsEditor, { toLeaseOptionRows, type LeaseOptionRow } from "./LeaseOptionsEditor";
 
 // Borderless-until-touched inputs — the point is to read like an editable
 // list, not a literal spreadsheet grid of boxes. A cell only "lights up"
@@ -133,6 +134,7 @@ interface RowDraft {
   images: string;
   incentives: IncentiveRow[];
   mileageOptions: MileageRow[];
+  leaseOptions: LeaseOptionRow[];
 }
 
 function deriveDraft(deal: Deal): RowDraft {
@@ -169,6 +171,7 @@ function deriveDraft(deal: Deal): RowDraft {
       includedInPrice: inc.includedInPrice === true,
     })),
     mileageOptions: toMileageRows(deal.mileageOptions),
+    leaseOptions: toLeaseOptionRows(deal.leaseOptions),
   };
 }
 
@@ -455,7 +458,9 @@ function ListingRow({
       fd.set("delivery", draft.location.delivery);
       fd.set(
         "incentives",
-        JSON.stringify(draft.incentives.filter((r) => r.name.trim() && (r.amount > 0 || (r.monthly ?? 0) > 0)))
+        JSON.stringify(
+          draft.incentives.filter((r) => r.name.trim() && (r.amount > 0 || (r.monthly ?? 0) > 0 || r.includedInPrice))
+        )
       );
       fd.set(
         "mileageOptions",
@@ -463,6 +468,18 @@ function ListingRow({
           draft.mileageOptions
             .filter((r) => r.milesPerYear.trim() && r.monthlyDelta.trim())
             .map((r) => ({ milesPerYear: Number(r.milesPerYear), monthlyDelta: Number(r.monthlyDelta) }))
+        )
+      );
+      fd.set(
+        "leaseOptions",
+        JSON.stringify(
+          draft.leaseOptions
+            .filter((r) => r.term.trim() && r.payment.trim())
+            .map((r) => ({
+              term: Number(r.term),
+              milesPerYear: r.milesPerYear.trim() ? Number(r.milesPerYear) : null,
+              payment: Number(r.payment),
+            }))
         )
       );
       fd.set("images", draft.images);
@@ -871,6 +888,8 @@ function ListingRow({
                 value={draft.mileageOptions}
                 onChange={(rows) => set("mileageOptions", rows)}
               />
+
+              <LeaseOptionsEditor value={draft.leaseOptions} onChange={(rows) => set("leaseOptions", rows)} />
 
               <div>
                 <div className="flex items-center justify-between gap-2">

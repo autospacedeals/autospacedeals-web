@@ -20,6 +20,7 @@ import type { ParsedDeal } from "@/lib/parse-inventory";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
+import LeaseOptionsEditor, { toLeaseOptionRows, type LeaseOptionRow } from "./LeaseOptionsEditor";
 import { submitKeepingValues } from "@/lib/keep-form-values";
 import ShareSheetBox from "./ShareSheetBox";
 
@@ -474,6 +475,7 @@ function ManualForm({
   const [onePay, setOnePay] = useState(initialValues?.onePay ?? false);
   const [incentives, setIncentives] = useState<IncentiveRow[]>(initialValues?.incentives ?? []);
   const [mileageRows, setMileageRows] = useState<MileageRow[]>(toMileageRows(initialValues?.mileageOptions));
+  const [leaseRows, setLeaseRows] = useState<LeaseOptionRow[]>(toLeaseOptionRows(initialValues?.leaseOptions));
   const uid = useId();
   // Bump the form's key on every successful publish so the fields clear —
   // needed here (unlike a one-shot form) because a broker submitting a
@@ -493,6 +495,7 @@ function ManualForm({
       setResetCount((n) => n + 1);
       setIncentives([]);
       setMileageRows([]);
+      setLeaseRows([]);
     }
   }
   const publishedAndLocked = Boolean(initialValues) && state.success;
@@ -787,6 +790,8 @@ function ManualForm({
         </div>
 
         <MileageOptionsEditor value={mileageRows} onChange={setMileageRows} />
+
+        <LeaseOptionsEditor value={leaseRows} onChange={setLeaseRows} />
 
         <div>
           <p className={sectionHeadingClass}>Photos (optional)</p>

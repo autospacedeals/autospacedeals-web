@@ -14,7 +14,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
 import { parseMsdText, type ParsedDeal, type ParseResult, type SkippedRow } from "./parse-inventory";
-import { sanitizeIncentives, sanitizeMileageOptions } from "./deal-options";
+import { sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from "./deal-options";
 import { cleanCity, parseDelivery, parseStateCode } from "./deal-location";
 import type { Incentive } from "./deals-data";
 
@@ -134,8 +134,11 @@ const EXTRACT_TOOL = {
                 "Incentive/rebate programs the ad gives a value for — a dollar amount, a monthly " +
                 "difference, or both. Read the values exactly as the ad states them; never estimate " +
                 "one. Programs written together as alternatives (\"A-Plan / Affinity\") are ONE " +
-                "program. Empty array if none. A program named with no value at all just goes " +
-                "in notes — don't list it here or guess a value.",
+                "program. A program the advertised price depends on but with no value stated " +
+                "(\"$330 plus tax (with MyFirstEV)\", \"loyalty required\") is listed too, with " +
+                "amount null, monthly null and includedInPrice true — never guess its value. A " +
+                "program merely mentioned, that the price doesn't depend on, just goes in notes. " +
+                "Empty array if none.",
             },
             mileageOptions: {
               type: "array" as const,
@@ -155,6 +158,26 @@ const EXTRACT_TOOL = {
                 "e.g. \"10k $23 · 12k $45 · 15k $90\" (the add-on per month for each) -> " +
                 "[{10000,23},{12000,45},{15000,90}]. Don't include the advertised milesPerYear " +
                 "itself. Empty array if none are listed.",
+            },
+            otherTerms: {
+              type: "array" as const,
+              items: {
+                type: "object" as const,
+                properties: {
+                  term: { type: "number", description: "Lease length in months, e.g. 36" },
+                  milesPerYear: { type: ["number", "null"], description: "Annual miles for this price, e.g. 10000" },
+                  payment: { type: "number", description: "Monthly payment for this term and mileage" },
+                },
+                required: ["term", "milesPerYear", "payment"],
+              },
+              description:
+                "Every OTHER lease term the ad prices for this same car, each with its own mileage " +
+                "and monthly payment — e.g. under one car: \"24/7500 - $330 · 36/7500 - $345 · " +
+                "36/10k - $356\" with term 24 / 7500 / $330 as the main price -> " +
+                "[{36,7500,345},{36,10000,356}] (and 24/10k goes in mileageOptions as a +/- " +
+                "against the main payment). Use the first price listed for the car as the main " +
+                "term/mileage/payment. Never list the main term/mileage itself, and never make " +
+                "these into separate cars. Empty array if only one term is priced.",
             },
             notes: {
               type: "string",
@@ -195,7 +218,11 @@ const COMBINED_CELL_GUIDANCE =
   `incentives with exactly those numbers. Price modifiers like "10k $23 · 12k $45 · 15k $90" next to ` +
   `a 7,500-mile deal are mileage tiers (mileageOptions), not incentives. Banner text such as "rebates ` +
   `already included in these prices: Loyalty & A-Plan" applies to every vehicle under it. When the ` +
-  `ad names a program with no value at all, leave it in notes and never guess a number. Terms stated ` +
+  `price depends on a program the ad gives no value for ("$330 plus tax (with MyFirstEV)"), list it ` +
+  `in incentives with amount and monthly null and includedInPrice true; never guess a number. A ` +
+  `car priced at several terms ("24/7500 $330 · 36/7500 $345 · 36/10k $356") is ONE car: the first ` +
+  `price is its main term/mileage/payment, other mileages at that term are mileageOptions, and ` +
+  `other terms are otherTerms. Terms stated ` +
   `ONCE for the whole image, sheet or message — e.g. a shared banner, header or footer strip like ` +
   `"$3,000 TOTAL DRIVE-OFF · 7,500 MILES PER YEAR · 24 MONTH LEASE" under several cars, or a line ` +
   `like "all deals 36/10k, $3k das" — apply to EVERY vehicle listed, not just the one printed ` +
@@ -279,6 +306,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     // Incentives with a stated value, kept as read — never looked up.
     const statedIncentives = sanitizeIncentives(c.incentives);
     const mileageOptions = sanitizeMileageOptions(c.mileageOptions, milesPerYear);
+    const leaseOptions = onePay ? [] : sanitizeLeaseOptions(c.otherTerms, { term, milesPerYear });
 
     const missing: string[] = [];
     if (!year) missing.push("year");
@@ -313,6 +341,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (notes) partial.notes = notes;
       if (statedIncentives.length > 0) partial.incentives = toParsedIncentives(statedIncentives);
       if (mileageOptions.length > 0) partial.mileageOptions = mileageOptions;
+      if (leaseOptions.length > 0) partial.leaseOptions = leaseOptions;
       skipped.push({ row: sourceRow ?? idx + 1, reason: `Couldn't determine: ${missing.join(", ")}`, partial });
       return;
     }
@@ -339,6 +368,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       onePay,
       incentives: toParsedIncentives(statedIncentives),
       mileageOptions,
+      leaseOptions,
       sourceRow,
     });
   });

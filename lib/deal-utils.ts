@@ -1,4 +1,4 @@
-import type { Deal } from "./deals-data";
+import type { Deal, LeaseOption } from "./deals-data";
 
 // Remembers which deal a shopper last clicked into, so navigating back to
 // the homepage (a full remount, not client-side routing) can return them to
@@ -289,10 +289,87 @@ export const SORT_LABELS: Record<SortOption, string> = {
   closest: "Closest to my location",
 };
 
+// One price a lease listing offers: a term + mileage + monthly payment.
+export interface LeaseCombo {
+  term: number;
+  milesPerYear: number | null;
+  payment: number;
+  headline: boolean;
+}
+
+// Every term/mileage/payment a listing offers — the headline price, the
+// other mileages at the headline term (mileageOptions, stated as +/- per
+// month) and the other terms (leaseOptions, exact). Just the headline for a
+// one-pay or finance deal.
+export function leaseCombos(deal: Deal): LeaseCombo[] {
+  const headline: LeaseCombo = { term: deal.term, milesPerYear: deal.milesPerYear, payment: deal.payment, headline: true };
+  if (deal.onePay || deal.dealType !== "Lease") return [headline];
+  const combos = [headline];
+  const seen = new Set([`${deal.term}|${deal.milesPerYear ?? ""}`]);
+  const add = (c: Omit<LeaseCombo, "headline">) => {
+    const key = `${c.term}|${c.milesPerYear ?? ""}`;
+    if (seen.has(key) || !(c.payment > 0)) return;
+    seen.add(key);
+    combos.push({ ...c, headline: false });
+  };
+  for (const o of deal.mileageOptions ?? []) {
+    add({ term: deal.term, milesPerYear: o.milesPerYear, payment: Math.round((deal.payment + o.monthlyDelta) * 100) / 100 });
+  }
+  for (const o of deal.leaseOptions ?? []) add(o);
+  return combos;
+}
+
+// "also 36 months" / "also 36 & 39 months" when the listing is priced at
+// other terms too, else null.
+export function otherTermsNote(deal: Deal): string | null {
+  const others = [...new Set(leaseCombos(deal).map((c) => c.term))].filter((t) => t !== deal.term).sort((a, b) => a - b);
+  if (others.length === 0) return null;
+  return `also ${others.length === 1 ? others[0] : `${others.slice(0, -1).join(", ")} & ${others.at(-1)}`} months`;
+}
+
+// Whether the listing is priced at other mileages (at any term).
+export function hasOtherMileages(deal: Deal): boolean {
+  return new Set(leaseCombos(deal).map((c) => c.milesPerYear ?? 0)).size > 1;
+}
+
+// The listing as it should show for a chosen price: that combo as the
+// headline (term / mileage / payment) and every other combo as an exact
+// leaseOption, so leaseCombos() of the result is still complete.
+export function withHeadline(deal: Deal, combo: LeaseCombo): Deal {
+  if (combo.headline) return deal;
+  const rest: LeaseOption[] = leaseCombos(deal)
+    .filter((c) => c.term !== combo.term || c.milesPerYear !== combo.milesPerYear)
+    .map(({ term, milesPerYear, payment }) => ({ term, milesPerYear, payment }));
+  return {
+    ...deal,
+    term: combo.term,
+    milesPerYear: combo.milesPerYear,
+    payment: combo.payment,
+    mileageOptions: [],
+    leaseOptions: rest,
+  };
+}
+
+// Listings matching the filters. A listing offered at several terms or
+// mileages matches when any of its prices fits the term / mileage filters,
+// and comes back showing the cheapest price that fits.
 export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
   const search = filters.query.trim().toLowerCase();
 
-  return deals.filter((deal) => {
+  return deals.flatMap((original) => {
+    let deal = original;
+    if (filters.term !== "All" || filters.mileage !== "All") {
+      const fits = leaseCombos(original)
+        .filter(
+          (c) =>
+            (filters.term === "All" || String(c.term) === filters.term) &&
+            (filters.mileage === "All" || String(c.milesPerYear ?? "") === filters.mileage)
+        )
+        .sort((a, b) => a.payment - b.payment);
+      if (fits.length === 0) return [];
+      deal = withHeadline(original, fits[0]);
+    }
+
     const matchesMake = filters.make === "All" || deal.make === filters.make;
     const matchesModel = filters.model === "All" || deal.model === filters.model;
     const matchesBodyStyle = filters.bodyStyle === "All" || deal.bodyStyle === filters.bodyStyle;
@@ -338,8 +415,7 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
       .toLowerCase();
     const matchesQuery = search === "" || searchableText.includes(search);
 
-    return (
-      matchesMake &&
+    return matchesMake &&
       matchesModel &&
       matchesBodyStyle &&
       matchesFuel &&
@@ -351,7 +427,8 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
       matchesPayment &&
       matchesDueAtSigning &&
       matchesQuery
-    );
+      ? [deal]
+      : [];
   });
 }
 
