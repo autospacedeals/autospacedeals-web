@@ -7,7 +7,7 @@ import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency, msrpEditValue } from "@/lib/deal-utils";
 import { PLACEHOLDER_IMAGE } from "@/lib/supabase/deals";
 import { confirmDraftsAction, updateDraftDealAction, deleteDraftAction } from "./actions";
-import { needsTotalPrice } from "@/lib/cars-act";
+import { TOTAL_PRICE_HINT, needsTotalPrice } from "@/lib/cars-act";
 import IncentivesEditor, { type IncentiveRow } from "./IncentivesEditor";
 import LocationFields from "./LocationFields";
 import MileageOptionsEditor, { toMileageRows, type MileageRow } from "./MileageOptionsEditor";
@@ -291,7 +291,7 @@ function DraftRow({
           <div>
             <label htmlFor={`${uid}-sellingPrice`} className={labelClass}>Total price</label>
             <input type="number" id={`${uid}-sellingPrice`} name="sellingPrice" defaultValue={deal.sellingPrice ?? ""} className={inputClass} />
-            <p className="field-hint">Before taxes and government fees. Required for dealership listings (California CARS Act); recommended for brokers.</p>
+            <p className="field-hint">{TOTAL_PRICE_HINT}</p>
           </div>
         </div>
 

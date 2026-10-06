@@ -1,5 +1,6 @@
 "use client";
 
+import { TOTAL_PRICE_HINT } from "@/lib/cars-act";
 import { useActionState, useEffect, useId, useState } from "react";
 import {
   Sheet,
@@ -643,7 +644,7 @@ function ManualForm({
             <div>
               <label htmlFor={`${uid}-sellingPrice`} className={labelClass}>Total price</label>
               <input type="number" id={`${uid}-sellingPrice`} name="sellingPrice" defaultValue={initialValues?.sellingPrice ?? undefined} placeholder="61000" className={inputClass} />
-              <p className="field-hint">Before taxes and government fees. Required for dealership listings (California CARS Act); recommended for brokers.</p>
+              <p className="field-hint">{TOTAL_PRICE_HINT}</p>
             </div>
           </div>
 

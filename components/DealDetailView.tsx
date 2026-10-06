@@ -26,7 +26,7 @@ import {
   otherTermsNote,
 } from "@/lib/deal-utils";
 import { isRequiredProgram } from "@/lib/deal-options";
-import { TOTAL_PRICE_LABEL, TOTAL_PRICE_NOTE } from "@/lib/cars-act";
+import { TOTAL_PRICE_LABEL, TOTAL_PRICE_NOTE, TOTAL_PRICE_SUFFIX } from "@/lib/cars-act";
 import { ContactActionsFull } from "@/components/ContactActions";
 import { ContactSellerButton } from "@/components/ContactSellerDialog";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
@@ -328,7 +328,7 @@ export default function DealDetailView({
               {deal.sellingPrice != null && (
                 <p className="mt-1.5 text-sm text-fg-secondary">
                   {TOTAL_PRICE_LABEL} <strong className="font-semibold text-fg">{formatCurrency(deal.sellingPrice)}</strong>
-                  <span className="text-fg-muted"> + tax &amp; gov&apos;t fees</span>
+                  <span className="text-fg-muted">{TOTAL_PRICE_SUFFIX}</span>
                 </p>
               )}
             </div>

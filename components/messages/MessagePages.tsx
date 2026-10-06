@@ -11,7 +11,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import ConversationList, { type ConversationListItem } from "@/components/messages/ConversationList";
 import MessageThread from "@/components/messages/MessageThread";
 import ConversationOutcome from "@/components/messages/ConversationOutcome";
-import { firstReplyDraft } from "@/lib/cars-act";
+import { TOTAL_PRICE_SUFFIX, firstReplyDraft } from "@/lib/cars-act";
 import { formatCurrency } from "@/lib/deal-utils";
 import { OUTCOMES_ENABLED } from "@/lib/leads";
 import {
@@ -168,7 +168,7 @@ export async function ConversationPage({
           {deal?.selling_price != null && (
             <p className="mt-1 text-sm text-fg-muted">
               Total price <strong className="font-semibold text-fg">{formatCurrency(deal.selling_price)}</strong>
-              {" + tax & gov't fees"}
+              {TOTAL_PRICE_SUFFIX}
             </p>
           )}
           {viewer !== "customer" && OUTCOMES_ENABLED && <ConversationOutcome conversationId={c.id} initialOutcome={lead?.outcome ?? null} />}

@@ -24,7 +24,8 @@ export interface ParsedDeal {
   model: string;
   trim: string | null;
   msrp: number;
-  // The vehicle's total price before taxes and government fees, when the
+  // The vehicle's total price (all dealer fees and add-ons, before rebates;
+  // without taxes, government fees or the doc fee), when the
   // source states it (shown on the listing; required for dealership
   // listings under California's CARS Act).
   sellingPrice?: number | null;

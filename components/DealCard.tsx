@@ -25,6 +25,7 @@ import {
   otherTermsNote,
 } from "@/lib/deal-utils";
 import { isRequiredProgram } from "@/lib/deal-options";
+import { TOTAL_PRICE_SUFFIX } from "@/lib/cars-act";
 import { ContactActionsCompact } from "./ContactActions";
 import SaveDealButton, { useShowSaveDealButton } from "./SaveDealButton";
 
@@ -163,7 +164,7 @@ export default function DealCard({
             {deal.sellingPrice != null && (
               <p className="mt-1 text-[13px] text-fg-secondary">
                 Total price <strong className="font-semibold text-fg">{formatCurrency(deal.sellingPrice)}</strong>
-                <span className="text-fg-muted"> + tax &amp; gov&apos;t fees</span>
+                <span className="text-fg-muted">{TOTAL_PRICE_SUFFIX}</span>
               </p>
             )}
           </div>

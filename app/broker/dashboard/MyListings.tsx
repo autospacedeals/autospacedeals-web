@@ -1,5 +1,6 @@
 "use client";
 
+import { TOTAL_PRICE_HINT } from "@/lib/cars-act";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -840,7 +841,7 @@ function ListingRow({
                     onChange={(e) => set("sellingPrice", e.target.value)}
                     className={inputClass}
                   />
-                  <p className="field-hint">Before taxes and government fees. Required for dealership listings (California CARS Act); recommended for brokers.</p>
+                  <p className="field-hint">{TOTAL_PRICE_HINT}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

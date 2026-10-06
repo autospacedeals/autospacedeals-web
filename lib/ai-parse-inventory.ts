@@ -50,7 +50,9 @@ const EXTRACT_TOOL = {
               description:
                 "The vehicle's total / selling / sale price in dollars when the ad states one (\"selling " +
                 "price $48,250\", \"sale price\", \"total price\", \"cap cost\", \"net price\") — the " +
-                "price of the car before taxes and government fees. NOT the MSRP, NOT the monthly " +
+                "full price of the car including dealer fees and add-ons, before any rebates (if the ad " +
+                "only gives a price after rebates, still use it but never subtract rebates yourself). " +
+                "NOT the MSRP, NOT the monthly " +
                 "payment, NOT due at signing. null if not stated; never estimate it.",
             },
             onePay: {
