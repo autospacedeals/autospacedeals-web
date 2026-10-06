@@ -9,7 +9,7 @@
 import type { Deal } from "@/lib/deals-data";
 import { createClient } from "./server";
 import { withTimeout } from "./with-timeout";
-import { DEAL_COLUMNS, mapRowToDeal, type DealRow } from "./deals";
+import { DEAL_COLUMNS, mapPublicDeal, type DealRow } from "./deals";
 
 // How many of the most recently saved deals the dashboard shows.
 export const SAVED_DEALS_LIST_LIMIT = 60;
@@ -62,7 +62,7 @@ export async function getSavedDeals(customerId: string): Promise<SavedDeals> {
       const dealRow = Array.isArray(row?.deals) ? row.deals[0] : row?.deals;
       if (!dealRow || dealRow.status !== "published") continue;
       try {
-        deals.push(mapRowToDeal(dealRow));
+        deals.push(mapPublicDeal(dealRow));
       } catch (err) {
         console.error("mapRowToDeal failed for saved deal", dealRow.id, err);
       }

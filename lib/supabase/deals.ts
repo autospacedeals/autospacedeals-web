@@ -7,6 +7,7 @@ import { sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from
 import { parseDelivery } from "@/lib/deal-location";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { withTimeout } from "./with-timeout";
+import { lowestPriceFirst } from "@/lib/deal-utils";
 
 // Shown when a broker hasn't uploaded a photo and the CarsXE auto-lookup
 // (see lib/carsxe.ts) didn't find a match either.
@@ -139,6 +140,13 @@ export function mapRowToDeal(row: DealRow): Deal {
   };
 }
 
+// How shoppers see a listing: headlined by its lowest payment when it's
+// priced at several terms/mileages (lowestPriceFirst). The broker's own
+// dashboard and edit forms use mapRowToDeal, keeping their order.
+export function mapPublicDeal(row: DealRow): Deal {
+  return lowestPriceFirst(mapRowToDeal(row));
+}
+
 // Exported so the broker-only preview lookup (lib/supabase/broker-preview.ts,
 // kept in its own file since it needs the session-authenticated server
 // client — see that file's comment for why that can't live here) can select
@@ -160,7 +168,7 @@ function mapRowsSafely(rows: DealRow[]): Deal[] {
   const deals: Deal[] = [];
   for (const row of rows) {
     try {
-      deals.push(mapRowToDeal(row));
+      deals.push(mapPublicDeal(row));
     } catch (err) {
       console.error("mapRowToDeal failed for deal", row?.id, err);
     }
@@ -240,7 +248,7 @@ export async function getDealBySlugDb(slug: string): Promise<Deal | undefined> {
     if (!data) return undefined;
 
     try {
-      return mapRowToDeal(data);
+      return mapPublicDeal(data);
     } catch (err) {
       console.error("mapRowToDeal failed for deal", data.id, err);
       return undefined;

@@ -350,6 +350,15 @@ export function withHeadline(deal: Deal, combo: LeaseCombo): Deal {
   };
 }
 
+// The listing headlined by its lowest monthly payment (the broker's first
+// price stays the headline on a tie) — what shoppers see on cards and the
+// deal page, whichever order the broker listed the terms in.
+export function lowestPriceFirst(deal: Deal): Deal {
+  const combos = leaseCombos(deal);
+  const cheapest = combos.reduce((best, c) => (c.payment < best.payment ? c : best), combos[0]);
+  return withHeadline(deal, cheapest);
+}
+
 // Listings matching the filters. A listing offered at several terms or
 // mileages matches when any of its prices fits the term / mileage filters,
 // and comes back showing the cheapest price that fits.
@@ -357,18 +366,14 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
   const search = filters.query.trim().toLowerCase();
 
   return deals.flatMap((original) => {
-    let deal = original;
-    if (filters.term !== "All" || filters.mileage !== "All") {
-      const fits = leaseCombos(original)
-        .filter(
-          (c) =>
-            (filters.term === "All" || String(c.term) === filters.term) &&
-            (filters.mileage === "All" || String(c.milesPerYear ?? "") === filters.mileage)
-        )
-        .sort((a, b) => a.payment - b.payment);
-      if (fits.length === 0) return [];
-      deal = withHeadline(original, fits[0]);
-    }
+    const fits = leaseCombos(original).filter(
+      (c) =>
+        (filters.term === "All" || String(c.term) === filters.term) &&
+        (filters.mileage === "All" || String(c.milesPerYear ?? "") === filters.mileage)
+    );
+    if (fits.length === 0) return [];
+    const cheapest = fits.reduce((best, c) => (c.payment < best.payment ? c : best), fits[0]);
+    const deal = withHeadline(original, cheapest);
 
     const matchesMake = filters.make === "All" || deal.make === filters.make;
     const matchesModel = filters.model === "All" || deal.model === filters.model;
