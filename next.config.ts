@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       },
       // There's no deals index page; the list lives on the homepage.
       { source: "/deals", destination: "/#deals", permanent: false },
+      // Short link printed on business cards (QR code and typed). Tagged so
+      // card visits show up as "business-card" on /admin/leads.
+      { source: "/card", destination: "/?utm_source=business-card&utm_campaign=rob", permanent: false },
     ];
   },
 };
