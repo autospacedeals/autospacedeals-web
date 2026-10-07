@@ -9,6 +9,7 @@ import {
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
 import {
   DEFAULT_FILTERS,
+  effectiveMonthly,
   filterDeals,
   formatCurrency,
   LAST_VIEWED_DEAL_KEY,
@@ -173,7 +174,27 @@ export default function HomeClient({
     const payments = deals.filter((d) => !d.onePay && d.payment > 0).map((d) => d.payment);
     return payments.length ? Math.min(...payments) : null;
   }, [deals]);
-  const spotlight = useMemo(() => sortDeals(deals, "featured", "All").slice(0, HERO_DEALS), [deals]);
+  // Each featured car is shown at its cheapest listing: the same year, make,
+  // model and trim (any color, any seller) at the lowest payment.
+  const spotlight = useMemo(() => {
+    const carKey = (d: Deal) => [d.year, d.make, d.model, d.trim].join("|").toLowerCase();
+    const cost = (d: Deal) => (d.onePay ? effectiveMonthly(d) : d.payment);
+    const cheapest = new Map<string, Deal>();
+    for (const d of deals) {
+      const best = cheapest.get(carKey(d));
+      if (!best || cost(d) < cost(best)) cheapest.set(carKey(d), d);
+    }
+    const seen = new Set<string>();
+    const out: Deal[] = [];
+    for (const d of sortDeals(deals, "featured", "All")) {
+      const k = carKey(d);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(cheapest.get(k) ?? d);
+      if (out.length >= HERO_DEALS) break;
+    }
+    return out;
+  }, [deals]);
 
   const MAKES = useMemo(() => ["All", ...Array.from(new Set(deals.map((d) => d.make))).sort()], [deals]);
   const SELLERS = useMemo(
