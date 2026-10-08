@@ -17,6 +17,7 @@ import { parseTabs, computeMatchSignature, type ParsedDeal, type TabRowCache } f
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { normalizeModelTrim } from "@/lib/vehicle-names";
+import { alertAdminsFirstListing } from "@/lib/admin-alerts";
 
 export interface SheetSyncRow {
   id: string;
@@ -300,6 +301,7 @@ export async function runSheetSync(
       sheetSyncId: sync.id,
     });
     addedCount = staging.staged;
+    if (sync.auto_publish && addedCount > 0) await alertAdminsFirstListing(sync.broker_id);
   }
 
   const lastSyncError = removalsSkipped

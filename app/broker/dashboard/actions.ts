@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import type { Incentive } from "@/lib/deals-data";
 import { parseJsonField, sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from "@/lib/deal-options";
@@ -9,6 +10,7 @@ import { parseLocationFields } from "@/lib/deal-location";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
+import { alertAdminsFirstListing } from "@/lib/admin-alerts";
 import { slugify, parseMsrpInput } from "@/lib/deal-utils";
 import { fetchCarsxePhoto, fetchCarsxePhotos } from "@/lib/carsxe";
 import { parseInventoryBuffer, parseTabs, type ParsedDeal, type SkippedRow, type TabRowCache } from "@/lib/parse-inventory";
@@ -761,6 +763,7 @@ export async function createManualDealAction(
     status: "published",
   });
   if (error) return { error: carsActError(error.message) };
+  after(() => alertAdminsFirstListing(user.id));
 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
@@ -1220,6 +1223,7 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
         .in("id", ready)
         .eq("broker_id", user.id);
       if (error) return { error: carsActError(error.message) };
+      after(() => alertAdminsFirstListing(user.id));
     }
   }
 

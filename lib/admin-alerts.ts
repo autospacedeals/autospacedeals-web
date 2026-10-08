@@ -1,10 +1,13 @@
 // Emails to Drive's admins about things they shouldn't miss — right now,
-// a new broker or dealer signing up, or a broker deleting their account.
+// a new broker or dealer signing up, their first car going live, or a
+// broker deleting their account.
 // Goes to every admin (lib/admin.ts: owners + the admins table).
 // SERVER-ONLY. Never throws: a failed alert must not break what it's about.
 import { adminEmails } from "@/lib/admin";
 import { emailLayoutHtml, escapeHtml, isEmailConfigured, sendEmail } from "@/lib/email";
 import { SITE_URL } from "@/lib/site";
+import { createAdminClient } from "@/lib/supabase/server";
+import { formatCurrency } from "@/lib/deal-utils";
 
 export interface NewBrokerAlert {
   businessName: string;
@@ -97,5 +100,123 @@ export async function alertAdminsAccountDeleted(b: AccountDeletedAlert): Promise
     );
   } catch (err) {
     console.error("account-deleted alert threw:", err);
+  }
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  google_sheet: "Google Sheet",
+  excel_file: "File upload",
+  free_text: "Pasted text",
+  screenshot: "Screenshot",
+  link: "Link",
+  manual: "Typed in by hand",
+};
+
+// A broker's first car just went live. Call after anything that publishes
+// a broker's listings; only the first call for each broker sends
+// (brokers.first_listing_at, supabase/migrations/0037_first_listing_alert.sql).
+export async function alertAdminsFirstListing(brokerId: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: live } = await admin
+      .from("deals")
+      .select("year, make, model, trim, payment, one_pay, due_at_signing, sheet_sync_id, submission_id, slug")
+      .eq("broker_id", brokerId)
+      .eq("status", "published")
+      .order("created_at", { ascending: true })
+      .returns<
+        {
+          year: number;
+          make: string;
+          model: string;
+          trim: string | null;
+          payment: number;
+          one_pay: boolean;
+          due_at_signing: number;
+          sheet_sync_id: string | null;
+          submission_id: string | null;
+          slug: string;
+        }[]
+      >();
+    if (!live?.length) return;
+
+    // Claim it: only one caller ever gets the row back.
+    const { data: broker } = await admin
+      .from("brokers")
+      .update({ first_listing_at: new Date().toISOString() })
+      .eq("id", brokerId)
+      .is("first_listing_at", null)
+      .select("business_name, contact_name, contact_phone, seller_type, dealership_name, city, state")
+      .maybeSingle<{
+        business_name: string;
+        contact_name: string | null;
+        contact_phone: string | null;
+        seller_type: string;
+        dealership_name: string | null;
+        city: string;
+        state: string;
+      }>();
+    if (!broker || !isEmailConfigured()) return;
+    const email = (await admin.auth.admin.getUserById(brokerId)).data.user?.email ?? null;
+
+    // How the cars got on the site.
+    const submissionIds = [...new Set(live.map((d) => d.submission_id).filter((id): id is string => Boolean(id)))];
+    const { data: subs } = submissionIds.length
+      ? await admin.from("submissions").select("id, source_type").in("id", submissionIds).returns<{ id: string; source_type: string }[]>()
+      : { data: [] as { id: string; source_type: string }[] };
+    const sourceOf = (d: (typeof live)[number]) => {
+      if (d.sheet_sync_id) return "Connected Google Sheet";
+      const type = subs?.find((s) => s.id === d.submission_id)?.source_type;
+      return type ? (SOURCE_LABELS[type] ?? type) : "Typed in by hand";
+    };
+    const methods = [...new Set(live.map(sourceOf))].join(", ");
+
+    const name = broker.business_name;
+    const count = `${live.length} car${live.length === 1 ? "" : "s"}`;
+    const cars = live.slice(0, 8).map((d) => {
+      const car = [d.year, d.make, d.model, d.trim].filter(Boolean).join(" ");
+      const price = d.one_pay ? `${formatCurrency(d.due_at_signing)} one-pay` : `${formatCurrency(d.payment)}/mo`;
+      return { car, price, url: `${SITE_URL}/deals/${d.slug}` };
+    });
+    const more = live.length > cars.length ? `…and ${live.length - cars.length} more` : "";
+    const rows: [string, string][] = [
+      ["Seller", broker.dealership_name ? `${name} (${broker.seller_type} at ${broker.dealership_name})` : `${name} (${broker.seller_type})`],
+      ["Contact", [broker.contact_name, email, broker.contact_phone].filter(Boolean).join(" · ")],
+      ["Location", `${broker.city}, ${broker.state}`],
+      ["Posted with", methods],
+    ];
+    const pageUrl = `${SITE_URL}/brokers/${brokerId}`;
+    const html = emailLayoutHtml({
+      preheader: `${name} just put ${count} live on Drive.`,
+      heading: `${name} posted their first ${live.length === 1 ? "car" : "cars"}`,
+      bodyHtml:
+        rows.map(([k, v]) => `<p style="margin:0 0 8px 0;"><strong>${k}:</strong> ${escapeHtml(v)}</p>`).join("") +
+        `<p style="margin:16px 0 8px 0;"><strong>${escapeHtml(count)} live:</strong></p>` +
+        cars
+          .map((c) => `<p style="margin:0 0 6px 0;"><a href="${c.url}">${escapeHtml(c.car)}</a> — ${escapeHtml(c.price)}</p>`)
+          .join("") +
+        (more ? `<p style="margin:0 0 6px 0;">${escapeHtml(more)}</p>` : "") +
+        `<p style="margin:16px 0 0 0;"><a href="${pageUrl}">See their page</a></p>`,
+      footerHtml: "You're getting this because you're a Drive admin. Sent once per seller, on their first listing.",
+    });
+    const text =
+      `${name} posted their first ${count} on Drive.\n\n` +
+      rows.map(([k, v]) => `${k}: ${v}`).join("\n") +
+      `\n\n${cars.map((c) => `${c.car} — ${c.price}\n${c.url}`).join("\n")}${more ? `\n${more}` : ""}\n\nTheir page: ${pageUrl}`;
+    const recipients = [...(await adminEmails())];
+    await Promise.all(
+      recipients.map(async (to) => {
+        const sent = await sendEmail({
+          to,
+          replyTo: email || undefined,
+          subject: `First listing: ${name} posted ${count}`,
+          html,
+          text,
+        });
+        if (!sent.ok) console.error(`first-listing alert to ${to} failed:`, sent.error);
+      })
+    );
+  } catch (err) {
+    console.error("first-listing alert threw:", err);
   }
 }
