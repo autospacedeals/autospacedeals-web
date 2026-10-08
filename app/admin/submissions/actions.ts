@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
+import { normalizeModelTrim } from "@/lib/vehicle-names";
 
 async function assertAdmin() {
   await requireAdmin("/admin/submissions");
@@ -122,9 +123,11 @@ export async function stageDealDraftAction(
   if (!broker) return { error: "Couldn't find that broker's profile." };
 
   const year = Number(formData.get("year"));
-  const make = String(formData.get("make") || "").trim();
-  const model = String(formData.get("model") || "").trim();
-  const trim = String(formData.get("trim") || "").trim() || null;
+  const { make, model, trim } = normalizeModelTrim({
+    make: String(formData.get("make") || "").trim(),
+    model: String(formData.get("model") || "").trim(),
+    trim: String(formData.get("trim") || "").trim() || null,
+  });
   const bodyStyle = String(formData.get("bodyStyle") || "").trim() || null;
   const fuel = String(formData.get("fuel") || "").trim() || null;
   const exterior = String(formData.get("exterior") || "").trim() || null;

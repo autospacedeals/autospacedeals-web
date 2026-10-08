@@ -17,6 +17,7 @@ import { parseMsdText, type ParsedDeal, type ParseResult, type SkippedRow } from
 import { sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from "./deal-options";
 import { cleanCity, parseDelivery, parseStateCode } from "./deal-location";
 import type { Incentive } from "./deals-data";
+import { normalizeModelTrim } from "@/lib/vehicle-names";
 
 function toParsedIncentives(list: Incentive[]): NonNullable<ParsedDeal["incentives"]> {
   return list.map((i) => ({ ...i, includedInPrice: i.includedInPrice === true }));
@@ -42,7 +43,13 @@ const EXTRACT_TOOL = {
             },
             year: { type: "number", description: "4-digit model year" },
             make: { type: "string", description: "Manufacturer, e.g. Porsche" },
-            model: { type: "string", description: "Model name, e.g. Taycan" },
+            model: {
+              type: "string",
+              description:
+                "Model name, e.g. Taycan. Some models share a family name but are separate models, not trims: " +
+                "Range Rover Sport, Range Rover Velar and Range Rover Evoque are each a model (model \"Range Rover Sport\", " +
+                "trim \"P360 SE\"), distinct from the full-size Range Rover.",
+            },
             trim: { type: ["string", "null"], description: "Trim/spec if mentioned, else null" },
             msrp: { type: ["number", "null"], description: "MSRP in dollars, e.g. 217000 for \"217k\"" },
             sellingPrice: {
@@ -388,7 +395,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     });
   });
 
-  return { parsed, skipped };
+  return { parsed: parsed.map(normalizeModelTrim), skipped };
 }
 
 export async function parseRowsWithAI(

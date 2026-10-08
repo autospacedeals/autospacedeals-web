@@ -16,6 +16,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseTabs, computeMatchSignature, type ParsedDeal, type TabRowCache } from "@/lib/parse-inventory";
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
+import { normalizeModelTrim } from "@/lib/vehicle-names";
 
 export interface SheetSyncRow {
   id: string;
@@ -53,7 +54,8 @@ export interface ActiveDealRow {
 // twice when the large-drop guard below skipped the removal).
 function vehicleKey(d: { year: number; make: string; model: string; trim: string | null }): string {
   const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-  return [d.year, norm(d.make), norm(d.model), norm(d.trim)].join("|");
+  const car = normalizeModelTrim({ make: d.make, model: d.model, trim: d.trim });
+  return [d.year, norm(car.make), norm(car.model), norm(car.trim)].join("|");
 }
 
 // If a single sync cycle would remove more than this many listings — and

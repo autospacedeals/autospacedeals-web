@@ -17,6 +17,7 @@
 import { createHash } from "node:crypto";
 import { readWorkbookTabs, rowNumber, type SheetTab } from "./google-sheet";
 import { mapLimit } from "./concurrency";
+import { normalizeModelTrim } from "@/lib/vehicle-names";
 
 export interface ParsedDeal {
   year: number;
@@ -100,7 +101,8 @@ export function computeMatchSignature(d: {
   dueAtSigning: number;
 }): string {
   const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-  return [d.year, norm(d.make), norm(d.model), norm(d.trim), Math.round(d.payment), Math.round(d.dueAtSigning)].join(
+  const car = normalizeModelTrim({ make: d.make, model: d.model, trim: d.trim });
+  return [d.year, norm(car.make), norm(car.model), norm(car.trim), Math.round(d.payment), Math.round(d.dueAtSigning)].join(
     "|"
   );
 }
@@ -428,7 +430,7 @@ async function parseBatch(
 // An uploaded Excel/CSV file: every visible tab.
 export async function parseInventoryBuffer(buffer: ArrayBuffer, brokerState: string): Promise<ParseResult> {
   const { parsed, skipped } = await parseTabs(readWorkbookTabs(buffer), brokerState);
-  return { parsed, skipped };
+  return { parsed: parsed.map(normalizeModelTrim), skipped };
 }
 
 // Multiple security deposits written into a listing's text: "w/ 7 MSDs",
@@ -535,5 +537,5 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
     });
   });
 
-  return { parsed, skipped };
+  return { parsed: parsed.map(normalizeModelTrim), skipped };
 }

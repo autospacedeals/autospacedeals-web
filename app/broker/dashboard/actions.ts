@@ -21,6 +21,7 @@ import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { applyDealExtras, getDealExtras } from "@/lib/deal-disclaimers";
 import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
+import { normalizeModelTrim } from "@/lib/vehicle-names";
 
 // A skipped row's reason, naming its tab when the sheet has more than one.
 function skipReason(s: SkippedRow, multiTab: boolean): string {
@@ -631,9 +632,11 @@ export async function createManualDealAction(
   if (!broker) return { error: "Couldn't find your broker profile — try signing in again." };
 
   const year = Number(formData.get("year"));
-  const make = String(formData.get("make") || "").trim();
-  const model = String(formData.get("model") || "").trim();
-  const trim = String(formData.get("trim") || "").trim() || null;
+  const { make, model, trim } = normalizeModelTrim({
+    make: String(formData.get("make") || "").trim(),
+    model: String(formData.get("model") || "").trim(),
+    trim: String(formData.get("trim") || "").trim() || null,
+  });
   const bodyStyle = String(formData.get("bodyStyle") || "").trim() || null;
   const fuel = String(formData.get("fuel") || "").trim() || null;
   const exterior = String(formData.get("exterior") || "").trim() || null;
@@ -775,9 +778,11 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   if (!id) return { error: "Missing deal id." };
 
   const year = Number(formData.get("year"));
-  const make = String(formData.get("make") || "").trim();
-  const model = String(formData.get("model") || "").trim();
-  const trim = String(formData.get("trim") || "").trim() || null;
+  const { make, model, trim } = normalizeModelTrim({
+    make: String(formData.get("make") || "").trim(),
+    model: String(formData.get("model") || "").trim(),
+    trim: String(formData.get("trim") || "").trim() || null,
+  });
   const bodyStyle = String(formData.get("bodyStyle") || "").trim() || null;
   const fuel = String(formData.get("fuel") || "").trim() || null;
   const exterior = String(formData.get("exterior") || "").trim() || null;
@@ -1031,9 +1036,11 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   if (!id) return { error: "Missing deal id." };
 
   const year = Number(formData.get("year"));
-  const make = String(formData.get("make") || "").trim();
-  const model = String(formData.get("model") || "").trim();
-  const trim = String(formData.get("trim") || "").trim() || null;
+  const { make, model, trim } = normalizeModelTrim({
+    make: String(formData.get("make") || "").trim(),
+    model: String(formData.get("model") || "").trim(),
+    trim: String(formData.get("trim") || "").trim() || null,
+  });
   const bodyStyle = String(formData.get("bodyStyle") || "").trim() || null;
   const fuel = String(formData.get("fuel") || "").trim() || null;
   const exterior = String(formData.get("exterior") || "").trim() || null;
