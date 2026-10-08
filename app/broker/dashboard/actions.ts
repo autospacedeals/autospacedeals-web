@@ -1219,7 +1219,9 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
     if (ready.length > 0) {
       const { error } = await supabase
         .from("deals")
-        .update({ status: "published" })
+        // The "Just listed" badge and Newest sort count from when the car
+        // goes live, not from when the draft was pulled in.
+        .update({ status: "published", date_posted: new Date().toISOString().slice(0, 10) })
         .in("id", ready)
         .eq("broker_id", user.id);
       if (error) return { error: carsActError(error.message) };
