@@ -473,8 +473,103 @@ export function sortDeals(deals: Deal[], sortBy: SortOption, referenceState: str
       });
     case "featured":
     default:
-      return list.sort((a, b) => b.popularity - a.popularity);
+      return featuredOrder(list);
   }
+}
+
+const sellerKey = (d: Deal) => d.brokerId ?? d.sellerName;
+const carKey = (d: Deal) => [d.year, d.make, d.model, d.trim].join("|").toLowerCase();
+const monthlyCost = (d: Deal) => (d.onePay ? effectiveMonthly(d) : d.payment);
+
+// The "Featured" order: every seller gets a turn near the top, so a broker
+// with five listings isn't buried under one with a hundred. Each seller's
+// cars (newest first, different models before repeats of one) are dealt out
+// round-robin, starting with the seller who posted most recently.
+export function featuredOrder(deals: Deal[]): Deal[] {
+  const bySeller = new Map<string, Deal[]>();
+  for (const d of deals) {
+    const list = bySeller.get(sellerKey(d)) ?? [];
+    list.push(d);
+    bySeller.set(sellerKey(d), list);
+  }
+  const queues = [...bySeller.values()].map((list) => {
+    const sorted = [...list].sort((a, b) => (a.datePosted < b.datePosted ? 1 : a.datePosted > b.datePosted ? -1 : 0));
+    const seen = new Set<string>();
+    const firsts: Deal[] = [];
+    const repeats: Deal[] = [];
+    for (const d of sorted) {
+      const model = [d.year, d.make, d.model].join("|").toLowerCase();
+      (seen.has(model) ? repeats : firsts).push(d);
+      seen.add(model);
+    }
+    return [...firsts, ...repeats];
+  });
+  queues.sort((a, b) => (a[0].datePosted < b[0].datePosted ? 1 : a[0].datePosted > b[0].datePosted ? -1 : 0));
+
+  const out: Deal[] = [];
+  for (let round = 0; out.length < deals.length; round++) {
+    for (const q of queues) if (round < q.length) out.push(q[round]);
+  }
+  return out;
+}
+
+// The homepage's featured cars: recent listings, spread across sellers,
+// alternating pricier and more affordable cars, no car twice. Each car is
+// shown at its cheapest listing (same year, make, model and trim, from any
+// seller).
+export function pickFeatured(deals: Deal[], count: number): Deal[] {
+  const cheapest = new Map<string, Deal>();
+  for (const d of deals) {
+    const best = cheapest.get(carKey(d));
+    if (!best || monthlyCost(d) < monthlyCost(best)) cheapest.set(carKey(d), d);
+  }
+  const seen = new Set<string>();
+  const candidates: Deal[] = [];
+  for (const d of featuredOrder(deals)) {
+    if (seen.has(carKey(d))) continue;
+    seen.add(carKey(d));
+    candidates.push(cheapest.get(carKey(d)) ?? d);
+  }
+  if (candidates.length <= count) return candidates;
+
+  const costs = candidates.map(monthlyCost).sort((a, b) => a - b);
+  const median = costs[Math.floor(costs.length / 2)];
+  // Listings from the last two weeks (relative to the newest) go first.
+  const newest = candidates.reduce((m, d) => (d.datePosted > m ? d.datePosted : m), "");
+  const recent = (d: Deal) => daysAgo(d.datePosted, new Date(`${newest}T00:00:00`)) <= 14;
+
+  const picks: Deal[] = [];
+  const perSeller = new Map<string, number>();
+  const makes = new Set<string>();
+  while (picks.length < count) {
+    const wantHigh = picks.length % 2 === 0;
+    let best: Deal | null = null;
+    let bestScore: number[] = [];
+    candidates.forEach((d, idx) => {
+      if (picks.includes(d)) return;
+      // Lower is better, compared in order: fewest picks from this seller,
+      // recent, the price tier this slot wants, a make not shown yet, then
+      // the featured order.
+      const score = [
+        perSeller.get(sellerKey(d)) ?? 0,
+        recent(d) ? 0 : 1,
+        monthlyCost(d) >= median === wantHigh ? 0 : 1,
+        makes.has(d.make) ? 1 : 0,
+        idx,
+      ];
+      const first = score.findIndex((v, i) => v !== bestScore[i]);
+      if (!best || (first >= 0 && score[first] < bestScore[first])) {
+        best = d;
+        bestScore = score;
+      }
+    });
+    if (!best) break;
+    const pick: Deal = best;
+    picks.push(pick);
+    perSeller.set(sellerKey(pick), (perSeller.get(sellerKey(pick)) ?? 0) + 1);
+    makes.add(pick.make);
+  }
+  return picks;
 }
 
 // Customer-facing term and mileage wording — spelled out ("24 months",
