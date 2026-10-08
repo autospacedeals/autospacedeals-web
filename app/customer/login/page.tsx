@@ -10,6 +10,8 @@ import GoogleSignInButton from "@/components/GoogleSignInButton";
 export const metadata: Metadata = {
   title: "Sign In",
   description: "Sign in to your Drive account.",
+  // Crawlable (so Google sees this) but kept out of search results.
+  robots: { index: false, follow: true },
 };
 
 export default async function CustomerLoginPage({

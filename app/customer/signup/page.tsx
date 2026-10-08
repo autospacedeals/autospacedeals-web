@@ -9,6 +9,8 @@ import GoogleSignInButton from "@/components/GoogleSignInButton";
 export const metadata: Metadata = {
   title: "Create Your Account",
   description: "Sign up to save deals, get matched with brokers, and track your search on Drive.",
+  // Crawlable (so Google sees this) but kept out of search results.
+  robots: { index: false, follow: true },
 };
 
 export default async function CustomerSignupPage() {

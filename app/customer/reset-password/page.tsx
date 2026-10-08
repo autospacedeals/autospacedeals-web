@@ -6,6 +6,8 @@ import { LogoMark } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Set a New Password",
+  // Crawlable (so Google sees this) but kept out of search results.
+  robots: { index: false, follow: true },
 };
 
 export default async function ResetPasswordPage() {

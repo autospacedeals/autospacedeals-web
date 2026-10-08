@@ -5,6 +5,8 @@ import { LogoMark } from "@/components/Logo";
 export const metadata: Metadata = {
   title: "Reset Your Password",
   description: "Get a link to reset your Drive account password.",
+  // Crawlable (so Google sees this) but kept out of search results.
+  robots: { index: false, follow: true },
 };
 
 export default function ForgotPasswordPage() {
