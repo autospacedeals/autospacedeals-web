@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight, CircleAlert } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
-import { dealTitle, formatCurrency, formatTerm, markDealViewed } from "@/lib/deal-utils";
+import { dealTitle, formatCurrency, formatTerm, isNewlyPosted, markDealViewed } from "@/lib/deal-utils";
+import { BADGE_STYLES } from "@/components/DealCard";
 
 // The homepage hero's "Deals" spotlight: a few top deals, one card at a
 // time, swiped/scrolled sideways (scroll-snap) or stepped with the arrows
@@ -115,11 +116,24 @@ function DealSlide({ deal }: { deal: Deal }) {
     >
       <div className="media-stage aspect-[4/3]">
         <img src={deal.images[0]} alt={dealTitle(deal)} className="media-img" />
-        {!deal.inStock && (
-          <span className="tag absolute top-3 left-3">
-            <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
-          </span>
-        )}
+        {/* Same tags as the deal cards: freshness and badges on the left,
+            condition (New, Loaner…) on the right. */}
+        <div className="absolute top-3 right-3 left-3 flex items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {isNewlyPosted(deal) && (
+              <span className="tag">
+                <span className="tag-dot" /> Just listed
+              </span>
+            )}
+            {deal.badge && BADGE_STYLES[deal.badge] && <span className={BADGE_STYLES[deal.badge]}>{deal.badge}</span>}
+            {!deal.inStock && (
+              <span className="tag">
+                <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
+              </span>
+            )}
+          </div>
+          {deal.condition && <span className="tag shrink-0">{deal.condition}</span>}
+        </div>
         {deal.sample ? (
           <p className="media-note media-note-warning">
             <CircleAlert /> Sample listing — photo not exact vehicle
