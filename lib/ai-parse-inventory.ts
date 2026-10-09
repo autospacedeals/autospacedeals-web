@@ -17,7 +17,7 @@ import { parseMsdText, type ParsedDeal, type ParseResult, type SkippedRow } from
 import { sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from "./deal-options";
 import { cleanCity, parseDelivery, parseStateCode } from "./deal-location";
 import type { Incentive } from "./deals-data";
-import { normalizeModelTrim } from "@/lib/vehicle-names";
+import { moveProgramsToIncentives, normalizeModelTrim } from "@/lib/vehicle-names";
 
 function toParsedIncentives(list: Incentive[]): NonNullable<ParsedDeal["incentives"]> {
   return list.map((i) => ({ ...i, includedInPrice: i.includedInPrice === true }));
@@ -50,7 +50,12 @@ const EXTRACT_TOOL = {
                 "Range Rover Sport, Range Rover Velar and Range Rover Evoque are each a model (model \"Range Rover Sport\", " +
                 "trim \"P360 SE\"), distinct from the full-size Range Rover.",
             },
-            trim: { type: ["string", "null"], description: "Trim/spec if mentioned, else null" },
+            trim: {
+              type: ["string", "null"],
+              description:
+                "Trim/spec if mentioned, else null. Program names next to the car (\"740i LOYALTY PLUS\", " +
+                "\"X5 Conquest\") are not trims: they're programs the price requires, so list them in incentives.",
+            },
             msrp: { type: ["number", "null"], description: "MSRP in dollars, e.g. 217000 for \"217k\"" },
             sellingPrice: {
               type: ["number", "null"],
@@ -395,7 +400,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     });
   });
 
-  return { parsed: parsed.map(normalizeModelTrim), skipped };
+  return { parsed: parsed.map((d) => moveProgramsToIncentives(normalizeModelTrim(d))), skipped };
 }
 
 export async function parseRowsWithAI(

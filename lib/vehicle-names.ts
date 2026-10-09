@@ -44,3 +44,39 @@ export function normalizeModelTrim<T extends { make: string; model: string; trim
   }
   return car;
 }
+
+// Program names written next to the car ("740i LOYALTY PLUS", "X5 w/
+// Conquest") are what the advertised price requires, not part of the trim.
+const PROGRAM_IN_TRIM =
+  /\b(loyalty\s*plus|loyalty|conquest|military|college\s*grad(?:uate)?|first\s*responder|[axz][-\s]?plan|myfirstev)\b/gi;
+
+export function splitProgramsFromTrim(trim: string | null): { trim: string | null; programs: string[] } {
+  if (!trim) return { trim, programs: [] };
+  const programs = [...trim.matchAll(PROGRAM_IN_TRIM)].map((m) =>
+    m[1].replace(/\s+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\B\w/g, (c) => c.toLowerCase())
+  );
+  if (programs.length === 0) return { trim, programs };
+  const rest = trim
+    .replace(PROGRAM_IN_TRIM, " ")
+    .replace(/\b(w\/|with|and|req(?:uired)?)(?=\s|$)/gi, " ")
+    .replace(/[&+,]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s\-/]+|[\s\-/]+$/g, "")
+    .trim();
+  return { trim: rest || null, programs };
+}
+
+// For parsed listings: the programs come out of the trim and are listed as
+// required (price-included, value unstated) unless already listed.
+export function moveProgramsToIncentives<
+  T extends { trim: string | null; incentives?: { name: string; amount: number; includedInPrice: boolean; monthly?: number }[] },
+>(car: T): T {
+  const { trim, programs } = splitProgramsFromTrim(car.trim);
+  if (programs.length === 0) return car;
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+  const incentives = [...(car.incentives ?? [])];
+  for (const p of programs) {
+    if (!incentives.some((i) => key(i.name).endsWith(key(p)))) incentives.push({ name: p, amount: 0, includedInPrice: true });
+  }
+  return { ...car, trim, incentives };
+}
