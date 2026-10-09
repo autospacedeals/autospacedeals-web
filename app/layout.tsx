@@ -46,6 +46,9 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  // Google Search Console ownership (https://www.idriveus.com/ property).
+  // Keep it: removing it un-verifies the site.
+  verification: { google: "fG-ytbKFzicfWYizBzrr1OnqRrAOv6yKuKQ4bu_hkbw" },
 };
 
 // Runs on every page load (root layout), so a hang here would freeze the
