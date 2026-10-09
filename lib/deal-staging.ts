@@ -102,7 +102,8 @@ export async function stageParsedDeals(
       state: d.state ?? broker.state,
       delivery: d.delivery ?? null,
       verified: true,
-      condition: d.condition ?? null,
+      // Unmarked cars are new, same as the add-a-car form's default.
+      condition: d.condition ?? "New",
       mileage_options: d.mileageOptions ?? [],
       lease_options: d.leaseOptions ?? [],
       photo_auto_sourced: true,
