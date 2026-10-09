@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { listAccounts, type AdminAccount } from "@/lib/admin-data";
+import { DMV_LICENSE_LOOKUP_URL, verificationSteps } from "@/lib/seller-verification";
+import { approveSellerAction } from "./actions";
 
 export const metadata: Metadata = { title: "Users", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -64,6 +66,7 @@ function AccountTable({ accounts, kind }: { accounts: AdminAccount[]; kind: Admi
                   )}
                 </span>
                 {a.contactName && <span className="block text-xs text-fg-muted">{a.contactName}</span>}
+                {kind === "broker" && !a.approvedAt && <span className="block text-xs text-warning">not verified yet</span>}
                 <span className="block text-xs text-fg-faint">via {a.via}</span>
               </td>
               <td className="px-4 py-3 break-all">
@@ -95,12 +98,55 @@ function AccountTable({ accounts, kind }: { accounts: AdminAccount[]; kind: Admi
   );
 }
 
+// New brokers and salespeople whose listings stay hidden until their DMV
+// license is checked and they're approved.
+function PendingSellers({ sellers }: { sellers: AdminAccount[] }) {
+  return (
+    <div className="space-y-3">
+      {sellers.map((a) => (
+        <div key={a.id} className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 text-sm">
+            <p className="font-medium text-fg">
+              {a.name}
+              <span className="ml-2 text-xs font-normal text-fg-muted">
+                {a.sellerType === "Salesperson" ? `Salesperson at ${a.dealershipName ?? "?"}` : "Broker"}
+              </span>
+            </p>
+            <p className="mt-1 text-fg-secondary">
+              DMV license: <span className="font-mono text-fg">{a.licenseNumber || "not given"}</span>
+            </p>
+            <p className="mt-1 text-fg-muted">
+              {[a.contactName, a.email, a.phone, a.location].filter(Boolean).join(" · ")}
+            </p>
+            <p className="mt-1 text-fg-muted">
+              {`Signed up ${day(a.signedUpAt)} · ${a.liveListings} listing${a.liveListings === 1 ? "" : "s"} waiting`}
+            </p>
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-fg-muted">{verificationSteps(a.sellerType ?? "Broker")}</p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <a href={DMV_LICENSE_LOOKUP_URL} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+              DMV lookup
+            </a>
+            <form action={approveSellerAction}>
+              <input type="hidden" name="brokerId" value={a.id} />
+              <button type="submit" className="btn btn-primary btn-sm">
+                Approve
+              </button>
+            </form>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Every account on the site — brokers, shoppers, and sign-ups that never
 // finished a profile — with contact details and what they've done.
 export default async function AdminUsersPage() {
   await requireAdmin("/admin/users");
   const accounts = await listAccounts();
   const brokers = accounts.filter((a) => a.kind === "broker");
+  const pending = brokers.filter((a) => !a.approvedAt);
   const shoppers = accounts.filter((a) => a.kind === "shopper");
   const incomplete = accounts.filter((a) => a.kind === "incomplete");
   const adminAccounts = accounts.filter((a) => a.kind === "admin");
@@ -111,6 +157,17 @@ export default async function AdminUsersPage() {
       <p className="mt-2 text-sm text-fg-muted">
         {`${accounts.length} accounts · newest first. Click a conversation count to read that account's messages.`}
       </p>
+
+      {pending.length > 0 && (
+        <section className="mt-8">
+          <h2 className="type-title mb-1">Waiting for verification ({pending.length})</h2>
+          <p className="mb-3 text-sm text-fg-muted">
+            Their listings are hidden from shoppers until you approve them. Approving emails them and makes their cars
+            public.
+          </p>
+          <PendingSellers sellers={pending} />
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="type-title mb-3">Brokers & dealers ({brokers.length})</h2>

@@ -125,6 +125,24 @@ export default function SignupForm() {
             className={inputClass}
           />
         </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="broker-signup-license" className={labelClass}>
+            {isSalesperson ? "Your DMV salesperson license number" : "DMV dealer license number"}
+          </label>
+          <input
+            id="broker-signup-license"
+            required
+            name="licenseNumber"
+            autoComplete="off"
+            maxLength={30}
+            className={inputClass}
+          />
+          <p className="field-hint">
+            {isSalesperson
+              ? "We confirm you're licensed and work at this dealership before your listings go live, usually within a day."
+              : "Your dealer license with the autobroker endorsement. We check it with the DMV before your listings go live, usually within a day."}
+          </p>
+        </div>
       </div>
 
       <div className="border-t border-line pt-5">

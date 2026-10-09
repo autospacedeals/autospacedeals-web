@@ -180,12 +180,16 @@ export default function MyListings({
   deals,
   emptyMessage = "You don't have any live listings yet — use the form below to add one.",
   asAdmin = false,
+  unverified = false,
 }: {
   deals: Deal[];
   emptyMessage?: string;
   // On /admin/listings: saves and removals go through the admin path (any
   // broker's listing) instead of the broker's own.
   asAdmin?: boolean;
+  // The seller's license isn't verified yet, so the public deal page
+  // doesn't exist; "See card" opens their private preview instead.
+  unverified?: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -375,6 +379,7 @@ export default function MyListings({
             {deals.map((deal) => (
               <ListingRow
                 asAdmin={asAdmin}
+                unverified={unverified}
                 key={deal.id}
                 deal={deal}
                 selected={selected.has(deal.id)}
@@ -390,11 +395,13 @@ export default function MyListings({
 
 function ListingRow({
   asAdmin,
+  unverified,
   deal,
   selected,
   onToggleSelect,
 }: {
   asAdmin: boolean;
+  unverified: boolean;
   deal: Deal;
   selected: boolean;
   onToggleSelect: () => void;
@@ -718,7 +725,7 @@ function ListingRow({
         </td>
         <td className={cell}>
           <Link
-            href={`/deals/${deal.slug}`}
+            href={unverified ? `/broker/preview/${deal.id}` : `/deals/${deal.slug}`}
             target="_blank"
             className="link-arrow min-h-9 whitespace-nowrap"
           >

@@ -151,15 +151,16 @@ export default async function BrokerDashboardPage() {
   const [{ data: privateProfile }, { data: conversations }, { data: sms }] = await Promise.all([
     createAdminClient()
       .from("brokers")
-      .select("contact_phone, message_emails")
+      .select("contact_phone, message_emails, approved_at")
       .eq("id", user.id)
-      .maybeSingle<{ contact_phone: string; message_emails: boolean }>(),
+      .maybeSingle<{ contact_phone: string; message_emails: boolean; approved_at: string | null }>(),
     supabase.from("conversations").select(CONVERSATION_COLUMNS).eq("broker_id", user.id).returns<ConversationRow[]>(),
     smsAvailable
       ? supabase.from("sms_settings").select("phone, enabled").eq("user_id", user.id).maybeSingle<{ phone: string | null; enabled: boolean }>()
       : Promise.resolve({ data: null }),
   ]);
   const unreadMessages = (conversations ?? []).filter((c) => isUnreadFor("broker", c)).length;
+  const unverifiedSeller = Boolean(privateProfile && !privateProfile.approved_at);
 
   return (
     <main className="container-page max-w-[1600px] py-10 sm:py-12">
@@ -188,6 +189,15 @@ export default async function BrokerDashboardPage() {
           </form>
         </div>
       </div>
+
+      {unverifiedSeller && (
+        <div role="status" className="alert alert-warning mt-6 max-w-3xl">
+          <p>
+            <strong>We&apos;re verifying your license.</strong> You can set up your account and add cars now; they go
+            live for shoppers as soon as you&apos;re approved, usually within a day. We&apos;ll email you.
+          </p>
+        </div>
+      )}
 
       <div id="messages" className="mt-4 max-w-xl space-y-4">
         <MessageEmailsToggle initialEnabled={privateProfile?.message_emails ?? true} />
@@ -228,6 +238,7 @@ export default async function BrokerDashboardPage() {
               Cars you added by hand, from photos or pasted text, or from a one-time upload.
             </p>
             <MyListings
+              unverified={unverifiedSeller}
               deals={manualListings}
               emptyMessage="No manually added cars — everything live is coming from your sheet."
             />
@@ -236,7 +247,7 @@ export default async function BrokerDashboardPage() {
       ) : (
         <div className="mt-8">
           <h2 className="type-title mb-4">Your live listings</h2>
-          <MyListings deals={publishedListings} />
+          <MyListings deals={publishedListings} unverified={unverifiedSeller} />
         </div>
       )}
 

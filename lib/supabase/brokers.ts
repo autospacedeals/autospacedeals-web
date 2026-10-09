@@ -39,6 +39,8 @@ export async function getBrokerProfile(id: string): Promise<BrokerProfile | null
         .from("brokers")
         .select("id, business_name, seller_type, dealership_name, city, state, about")
         .eq("id", id)
+        // No public page until their license is verified (0038_seller_verification.sql).
+        .not("approved_at", "is", null)
         .maybeSingle<BrokerRow>(),
       10000,
       "getBrokerProfile"

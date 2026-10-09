@@ -8,6 +8,7 @@ import { emailLayoutHtml, escapeHtml, isEmailConfigured, sendEmail } from "@/lib
 import { SITE_URL } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/deal-utils";
+import { DMV_LICENSE_LOOKUP_URL, verificationSteps } from "@/lib/seller-verification";
 
 export interface NewBrokerAlert {
   businessName: string;
@@ -18,6 +19,7 @@ export interface NewBrokerAlert {
   phone: string;
   city: string;
   state: string;
+  licenseNumber: string;
 }
 
 export async function alertAdminsNewBroker(b: NewBrokerAlert): Promise<void> {
@@ -31,24 +33,28 @@ export async function alertAdminsNewBroker(b: NewBrokerAlert): Promise<void> {
       ["Email", b.email],
       ["Phone", b.phone],
       ["Location", `${b.city}, ${b.state}`],
+      ["DMV license", b.licenseNumber],
     ];
     const usersUrl = `${SITE_URL}/admin/users`;
+    const steps = verificationSteps(b.sellerType);
     const html = emailLayoutHtml({
-      preheader: `${b.businessName} (${b.city}, ${b.state}) just created a broker account.`,
+      preheader: `${b.businessName} (${b.city}, ${b.state}) just created a broker account. Check their license to approve them.`,
       heading: "New broker sign-up",
       bodyHtml: `${rows
         .map(([k, v]) => `<p style="margin:0 0 8px 0;"><strong>${k}:</strong> ${escapeHtml(v)}</p>`)
         .join("")}
-<p style="margin:16px 0 0 0;"><a href="${usersUrl}">See all users</a></p>`,
+<p style="margin:16px 0 8px 0;"><strong>Their listings stay hidden until you approve them.</strong> ${escapeHtml(steps)}</p>
+<p style="margin:0 0 8px 0;"><a href="${DMV_LICENSE_LOOKUP_URL}">DMV license lookup</a></p>
+<p style="margin:0;"><a href="${usersUrl}">Approve on Admin → Users</a></p>`,
       footerHtml: "You're getting this because you're a Drive admin.",
     });
-    const text = `New broker sign-up\n\n${rows.map(([k, v]) => `${k}: ${v}`).join("\n")}\n\nSee all users: ${usersUrl}`;
+    const text = `New broker sign-up\n\n${rows.map(([k, v]) => `${k}: ${v}`).join("\n")}\n\nTheir listings stay hidden until you approve them. ${steps}\nDMV license lookup: ${DMV_LICENSE_LOOKUP_URL}\nApprove: ${usersUrl}`;
     await Promise.all(
       recipients.map(async (to) => {
         const sent = await sendEmail({
           to,
           replyTo: b.email,
-          subject: `New broker: ${b.businessName} (${b.city}, ${b.state})`,
+          subject: `New broker to verify: ${b.businessName} (${b.city}, ${b.state})`,
           html,
           text,
         });
@@ -146,8 +152,9 @@ export async function alertAdminsFirstListing(brokerId: string): Promise<void> {
       .update({ first_listing_at: new Date().toISOString() })
       .eq("id", brokerId)
       .is("first_listing_at", null)
-      .select("business_name, contact_name, contact_phone, seller_type, dealership_name, city, state")
+      .select("business_name, contact_name, contact_phone, seller_type, dealership_name, city, state, approved_at")
       .maybeSingle<{
+        approved_at: string | null;
         business_name: string;
         contact_name: string | null;
         contact_phone: string | null;
@@ -185,24 +192,28 @@ export async function alertAdminsFirstListing(brokerId: string): Promise<void> {
       ["Location", `${broker.city}, ${broker.state}`],
       ["Posted with", methods],
     ];
-    const pageUrl = `${SITE_URL}/brokers/${brokerId}`;
+    const pending = !broker.approved_at;
+    const pageUrl = pending ? `${SITE_URL}/admin/users` : `${SITE_URL}/brokers/${brokerId}`;
+    const pendingNote = "Not public yet: they're waiting for you to verify their license and approve them.";
     const html = emailLayoutHtml({
-      preheader: `${name} just put ${count} live on Drive.`,
+      preheader: pending ? `${name} posted ${count}, waiting for your approval.` : `${name} just put ${count} live on Drive.`,
       heading: `${name} posted their first ${live.length === 1 ? "car" : "cars"}`,
       bodyHtml:
         rows.map(([k, v]) => `<p style="margin:0 0 8px 0;"><strong>${k}:</strong> ${escapeHtml(v)}</p>`).join("") +
-        `<p style="margin:16px 0 8px 0;"><strong>${escapeHtml(count)} live:</strong></p>` +
+        (pending ? `<p style="margin:16px 0 0 0;"><strong>${escapeHtml(pendingNote)}</strong></p>` : "") +
+        `<p style="margin:16px 0 8px 0;"><strong>${escapeHtml(count)} ${pending ? "posted" : "live"}:</strong></p>` +
         cars
           .map((c) => `<p style="margin:0 0 6px 0;"><a href="${c.url}">${escapeHtml(c.car)}</a> — ${escapeHtml(c.price)}</p>`)
           .join("") +
         (more ? `<p style="margin:0 0 6px 0;">${escapeHtml(more)}</p>` : "") +
-        `<p style="margin:16px 0 0 0;"><a href="${pageUrl}">See their page</a></p>`,
+        `<p style="margin:16px 0 0 0;"><a href="${pageUrl}">${pending ? "Approve on Admin → Users" : "See their page"}</a></p>`,
       footerHtml: "You're getting this because you're a Drive admin. Sent once per seller, on their first listing.",
     });
     const text =
       `${name} posted their first ${count} on Drive.\n\n` +
+      (pending ? `${pendingNote}\n\n` : "") +
       rows.map(([k, v]) => `${k}: ${v}`).join("\n") +
-      `\n\n${cars.map((c) => `${c.car} — ${c.price}\n${c.url}`).join("\n")}${more ? `\n${more}` : ""}\n\nTheir page: ${pageUrl}`;
+      `\n\n${cars.map((c) => `${c.car} — ${c.price}\n${c.url}`).join("\n")}${more ? `\n${more}` : ""}\n\n${pending ? "Approve" : "Their page"}: ${pageUrl}`;
     const recipients = [...(await adminEmails())];
     await Promise.all(
       recipients.map(async (to) => {

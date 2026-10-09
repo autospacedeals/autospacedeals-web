@@ -54,9 +54,17 @@ export async function signUpAction(
   const contactPhone = String(formData.get("contactPhone") || "").trim();
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim().toUpperCase();
+  // Checked by an admin before anything goes public (supabase/migrations/
+  // 0038_seller_verification.sql).
+  const licenseNumber = String(formData.get("licenseNumber") || "")
+    .trim()
+    .toUpperCase();
 
-  if (!email || !password || !contactName || !businessName || !contactPhone || !city || !state) {
+  if (!email || !password || !contactName || !businessName || !contactPhone || !city || !state || !licenseNumber) {
     return { error: "Please fill in every field." };
+  }
+  if (!/^[A-Z0-9][A-Z0-9 -]{2,29}$/.test(licenseNumber)) {
+    return { error: "Enter your DMV license number (letters and numbers only)." };
   }
   if (sellerType === "Salesperson" && !dealershipName) {
     return { error: "Please enter the dealership you work at." };
@@ -106,6 +114,8 @@ export async function signUpAction(
     contact_phone: phone,
     city,
     state,
+    license_number: licenseNumber,
+    approved_at: null,
   });
 
   if (profileError) {
@@ -123,7 +133,7 @@ export async function signUpAction(
 
   // Let the admins know (after the response, so it never slows sign-up).
   after(() =>
-    alertAdminsNewBroker({ businessName, contactName, sellerType, dealershipName, email, phone, city, state })
+    alertAdminsNewBroker({ businessName, contactName, sellerType, dealershipName, email, phone, city, state, licenseNumber })
   );
 
   if (!data.session) {

@@ -123,6 +123,18 @@ async function loadRecentDeals(
   supabase: AdminClient,
   sinceIso: string
 ): Promise<{ deals: RecentDeal[]; error: { code?: string; message: string } | null }> {
+  // Sellers whose license isn't verified yet have hidden listings; a seller
+  // approved in this window counts their cars as new from that moment
+  // (0038_seller_verification.sql).
+  const { data: brokerRows, error: brokersError } = await supabase
+    .from("brokers")
+    .select("id, approved_at")
+    .returns<{ id: string; approved_at: string | null }[]>();
+  if (brokersError) return { deals: [], error: brokersError };
+  const approvedAt = new Map((brokerRows ?? []).map((b) => [b.id, b.approved_at]));
+  const visible = (row: RecentDealRow) => !row.broker_id || Boolean(approvedAt.get(row.broker_id));
+  const newlyApproved = (brokerRows ?? []).filter((b) => b.approved_at && b.approved_at >= sinceIso).map((b) => b.id);
+
   const { data, error } = await supabase
     .from("deals")
     .select(`${DEAL_COLUMNS}, published_at`)
@@ -133,10 +145,27 @@ async function loadRecentDeals(
     .returns<RecentDealRow[]>();
   if (error) return { deals: [], error };
 
+  let approvedNow: RecentDealRow[] = [];
+  if (newlyApproved.length > 0) {
+    const { data: rows, error: approvedError } = await supabase
+      .from("deals")
+      .select(`${DEAL_COLUMNS}, published_at`)
+      .eq("status", "published")
+      .in("broker_id", newlyApproved)
+      .lt("published_at", sinceIso)
+      .limit(1000)
+      .returns<RecentDealRow[]>();
+    if (approvedError) return { deals: [], error: approvedError };
+    approvedNow = rows ?? [];
+  }
+
   // Mapped one at a time so a single malformed row is skipped (and logged).
   const deals: RecentDeal[] = [];
-  for (const row of data ?? []) {
-    const publishedAt = row?.published_at ? Date.parse(row.published_at) : NaN;
+  for (const row of [...(data ?? []), ...approvedNow]) {
+    if (!row || !visible(row)) continue;
+    const approved = row.broker_id ? approvedAt.get(row.broker_id) : null;
+    const published = row?.published_at ? Date.parse(row.published_at) : NaN;
+    const publishedAt = approved ? Math.max(published, Date.parse(approved)) : published;
     if (!Number.isFinite(publishedAt)) continue;
     try {
       deals.push({ deal: mapRowToDeal(row), publishedAt });

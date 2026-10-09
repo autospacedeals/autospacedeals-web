@@ -23,6 +23,11 @@ export interface AdminAccount {
   conversations: number;
   savedDeals: number; // shoppers
   savedSearches: number; // shoppers
+  // Brokers (supabase/migrations/0038_seller_verification.sql).
+  sellerType?: string;
+  dealershipName?: string | null;
+  licenseNumber?: string | null;
+  approvedAt?: string | null;
 }
 
 interface AuthUserLite {
@@ -63,7 +68,9 @@ export async function listAccounts(): Promise<AdminAccount[]> {
   const [admins, users, brokers, customers, deals, conversations, saved, searches] = await Promise.all([
     adminEmails(),
     allAuthUsers(),
-    admin.from("brokers").select("id, business_name, contact_name, contact_phone, city, state"),
+    admin
+      .from("brokers")
+      .select("id, business_name, contact_name, contact_phone, city, state, seller_type, dealership_name, license_number, approved_at"),
     admin.from("customers").select("id, first_name, middle_name, last_name, zip_code, phone"),
     admin.from("deals").select("broker_id, status").neq("status", "removed"),
     admin.from("conversations").select("customer_id, broker_id"),
@@ -71,7 +78,18 @@ export async function listAccounts(): Promise<AdminAccount[]> {
     admin.from("saved_searches").select("customer_id"),
   ]);
 
-  type BrokerRow = { id: string; business_name: string; contact_name: string | null; contact_phone: string | null; city: string; state: string };
+  type BrokerRow = {
+    id: string;
+    business_name: string;
+    contact_name: string | null;
+    contact_phone: string | null;
+    city: string;
+    state: string;
+    seller_type: string;
+    dealership_name: string | null;
+    license_number: string | null;
+    approved_at: string | null;
+  };
   type CustomerRow = { id: string; first_name: string; middle_name: string | null; last_name: string; zip_code: string; phone: string | null };
   const brokerById = new Map(((brokers.data ?? []) as BrokerRow[]).map((b) => [b.id, b]));
   const customerById = new Map(((customers.data ?? []) as CustomerRow[]).map((c) => [c.id, c]));
@@ -109,6 +127,10 @@ export async function listAccounts(): Promise<AdminAccount[]> {
           phone: b.contact_phone ? (normalizeUsPhone(b.contact_phone) ?? b.contact_phone) : null,
           location: `${b.city}, ${b.state}`,
           conversations: convByBroker.get(u.id) ?? 0,
+          sellerType: b.seller_type,
+          dealershipName: b.dealership_name,
+          licenseNumber: b.license_number,
+          approvedAt: b.approved_at,
         };
       }
       if (c) {
