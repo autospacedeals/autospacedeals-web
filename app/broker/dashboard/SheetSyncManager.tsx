@@ -4,7 +4,6 @@ import { useState } from "react";
 import { RefreshCw, Pause, Play, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import {
   toggleSheetSyncActiveAction,
-  toggleSheetSyncAutoPublishAction,
   deleteSheetSyncAction,
   setSheetTabEnabledAction,
 } from "./actions";
@@ -14,7 +13,6 @@ import type { Deal } from "@/lib/deals-data";
 export interface SheetSync {
   id: string;
   sheetUrl: string;
-  autoPublish: boolean;
   active: boolean;
   lastSyncedAt: string | null;
   lastSyncAdded: number;
@@ -47,7 +45,7 @@ function shortUrl(url: string): string {
 }
 
 // Lets a broker see and control every Google Sheet they've set to
-// auto-sync — pause it, switch auto-publish on/off, or unlink it entirely —
+// auto-sync — pause it or unlink it —
 // with the live cars that sheet created listed right under it, kept apart
 // from cars added by hand. The actual recurring check runs server-side on a
 // schedule (see app/api/cron/sync-sheets); this is just the control panel.
@@ -160,19 +158,10 @@ export default function SheetSyncManager({
                   </div>
                 </div>
 
-                <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-xs text-fg-secondary has-[:disabled]:cursor-not-allowed">
-                  <input
-                    type="checkbox"
-                    checked={sync.autoPublish}
-                    disabled={busyId === sync.id}
-                    onChange={(e) =>
-                      run(sync.id, () => toggleSheetSyncAutoPublishAction(sync.id, e.target.checked))
-                    }
-                    className="checkbox"
-                  />
-                  Auto-publish new listings found on future checks (off = they land as drafts for you
-                  to confirm)
-                </label>
+                <p className="mt-3 text-xs text-fg-muted">
+                  Cars you add to the sheet go live automatically, price changes update, and cars you delete
+                  come down.
+                </p>
 
                 <div className="mt-4 border-t border-line pt-3">
                   <p className="text-xs font-medium text-fg-secondary">Tabs to pull cars from</p>
@@ -220,11 +209,7 @@ export default function SheetSyncManager({
               </p>
               <MyListings
                 deals={listings}
-                emptyMessage={
-                  sync.autoPublish
-                    ? "No live cars from this sheet yet — new rows show up here after the next check."
-                    : "No live cars from this sheet yet — new rows land in your drafts above after the next check."
-                }
+                emptyMessage="No live cars from this sheet yet — new rows show up here after the next check."
               />
             </div>
           );

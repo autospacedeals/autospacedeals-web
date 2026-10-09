@@ -4,9 +4,8 @@
 // active listings (draft or published) by best-effort signature — see
 // computeMatchSignature in lib/parse-inventory.ts. Leftover rows for the
 // same car (year/make/model/trim) are treated as a price/terms change and
-// updated in place. Anything else new gets inserted (as drafts, or
-// published directly if the broker opted into auto-publish for this sheet);
-// cars that disappear get soft-removed the same way a manual removal works,
+// updated in place. Anything else new goes live right away; cars that
+// disappear get soft-removed the same way a manual removal works,
 // so they're recoverable from "Removed" if they come back.
 //
 // Every visible tab is read. Tabs the broker switched off (disabled_tabs)
@@ -23,12 +22,11 @@ export interface SheetSyncRow {
   id: string;
   broker_id: string;
   sheet_url: string;
-  auto_publish: boolean;
   disabled_tabs: string[] | null;
   row_cache: TabRowCache | null;
 }
 
-export const SHEET_SYNC_COLUMNS = "id, broker_id, sheet_url, auto_publish, disabled_tabs, row_cache";
+export const SHEET_SYNC_COLUMNS = "id, broker_id, sheet_url, disabled_tabs, row_cache";
 
 export interface SheetSyncResult {
   syncId: string;
@@ -297,11 +295,11 @@ export async function runSheetSync(
   let addedCount = 0;
   if (toInsert.length > 0) {
     const staging = await stageParsedDeals(supabase, sync.broker_id, broker, null, toInsert, {
-      status: sync.auto_publish ? "published" : "draft",
+      status: "published",
       sheetSyncId: sync.id,
     });
     addedCount = staging.staged;
-    if (sync.auto_publish && addedCount > 0) await alertAdminsFirstListing(sync.broker_id);
+    if (addedCount > 0) await alertAdminsFirstListing(sync.broker_id);
   }
 
   const lastSyncError = removalsSkipped

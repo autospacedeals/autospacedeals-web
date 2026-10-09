@@ -396,18 +396,16 @@ export async function createSubmissionAction(
 
   // Google Sheet links can opt into a recurring check (every ~30 min) that
   // adds new rows and removes ones that disappear from the sheet — see
-  // app/api/cron/sync-sheets. This initial batch still lands as drafts for
-  // review either way; only rows the recurring job finds later honor the
-  // auto-publish choice.
+  // app/api/cron/sync-sheets. This initial batch lands as drafts for
+  // review; rows the recurring job finds later go live right away.
   let sheetSyncId: string | null = null;
   if (sourceType === "google_sheet" && formData.get("keepSynced") === "on") {
-    const autoPublish = formData.get("autoPublish") === "on";
     const { data: sync, error: syncError } = await supabase
       .from("sheet_syncs")
       .insert({
         broker_id: user.id,
         sheet_url: sourceUrl,
-        auto_publish: autoPublish,
+        auto_publish: true,
         tabs: sheetTabs,
         // Tabs left unchecked stay off until the broker switches them on.
         disabled_tabs: skippedTabs,
@@ -492,28 +490,6 @@ export async function toggleSheetSyncActiveAction(
   if (!id) return { error: "Missing sync id." };
 
   const { error } = await supabase.from("sheet_syncs").update({ active }).eq("id", id).eq("broker_id", user.id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/broker/dashboard");
-  return { error: null };
-}
-
-export async function toggleSheetSyncAutoPublishAction(
-  id: string,
-  autoPublish: boolean
-): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/broker/login");
-  if (!id) return { error: "Missing sync id." };
-
-  const { error } = await supabase
-    .from("sheet_syncs")
-    .update({ auto_publish: autoPublish })
-    .eq("id", id)
-    .eq("broker_id", user.id);
   if (error) return { error: error.message };
 
   revalidatePath("/broker/dashboard");

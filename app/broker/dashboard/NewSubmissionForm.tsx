@@ -397,24 +397,13 @@ function LinkForm({
                   <span>
                     Keep this sheet synced automatically
                     <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
-                      We&apos;ll check it every ~30 minutes, update changed prices, and remove cars
-                      you delete or cross out on the sheet (recoverable from your removed list).
-                      This first check still lands as drafts for you either way.
+                      We&apos;ll check it every ~30 minutes: cars you add go live automatically,
+                      changed prices update, and cars you delete or cross out come down
+                      (recoverable from your removed list). This first check lands as drafts for
+                      you to review.
                     </span>
                   </span>
                 </label>
-                {keepSynced && (
-                  <label className="flex cursor-pointer items-start gap-2.5 pl-7 text-sm text-fg-secondary">
-                    <input type="checkbox" name="autoPublish" className="checkbox mt-px" />
-                    <span>
-                      Auto-publish new listings found during future checks
-                      <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
-                        Off = new rows land as drafts for you to confirm. On = new
-                        rows go live immediately, no review.
-                      </span>
-                    </span>
-                  </label>
-                )}
               </div>
             </>
           )}
