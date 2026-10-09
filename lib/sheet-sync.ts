@@ -9,24 +9,29 @@
 // so they're recoverable from "Removed" if they come back.
 //
 // Every visible tab is read. Tabs the broker switched off (disabled_tabs)
-// are left out, and their cars come down. Each row's parse is cached on the
-// sync (row_cache), so a check only sends new or changed rows to the AI.
+// are left out, and their cars come down; a tab added to the sheet later
+// starts switched off until the broker turns it on. Admins are emailed
+// when a check needs a look (alertAdminsSheetIssues). Each row's parse is
+// cached on the sync (row_cache), so a check only sends new or changed rows
+// to the AI.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parseTabs, computeMatchSignature, type ParsedDeal, type TabRowCache } from "@/lib/parse-inventory";
+import { parseTabs, computeMatchSignature, type ParsedDeal, type SkippedRow, type TabRowCache } from "@/lib/parse-inventory";
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { normalizeModelTrim, splitProgramsFromTrim } from "@/lib/vehicle-names";
-import { alertAdminsFirstListing } from "@/lib/admin-alerts";
+import { alertAdminsFirstListing, alertAdminsSheetIssues } from "@/lib/admin-alerts";
 
 export interface SheetSyncRow {
   id: string;
   broker_id: string;
   sheet_url: string;
+  tabs: string[] | null;
   disabled_tabs: string[] | null;
   row_cache: TabRowCache | null;
+  last_alert_key: string | null;
 }
 
-export const SHEET_SYNC_COLUMNS = "id, broker_id, sheet_url, disabled_tabs, row_cache";
+export const SHEET_SYNC_COLUMNS = "id, broker_id, sheet_url, tabs, disabled_tabs, row_cache, last_alert_key";
 
 export interface SheetSyncResult {
   syncId: string;
@@ -160,17 +165,22 @@ export async function runSheetSync(
   const fetched = await fetchGoogleSheetTabs(sync.sheet_url);
   if (!fetched.ok) return fail(fetched.error);
 
-  const disabled = new Set(sync.disabled_tabs ?? []);
+  // Tabs added since the last check start switched off.
+  const known = new Set(sync.tabs ?? []);
+  const newTabs = known.size > 0 ? fetched.tabs.map((t) => t.name).filter((name) => !known.has(name)) : [];
+  const disabled = new Set([...(sync.disabled_tabs ?? []), ...newTabs]);
   const enabledTabs = fetched.tabs.filter((t) => !disabled.has(t.name));
 
   let parsedDeals: ParsedDeal[];
   let skippedCount: number;
+  let skippedRows: SkippedRow[];
   let rowCache: TabRowCache;
   let rowsRead: number;
   try {
     const result = await parseTabs(enabledTabs, broker.state, sync.row_cache ?? {});
     parsedDeals = result.parsed;
     skippedCount = result.skipped.length;
+    skippedRows = result.skipped;
     // Switched-off tabs that still exist keep their cache for later.
     const kept = Object.fromEntries(
       Object.entries(sync.row_cache ?? {}).filter(([tab]) => disabled.has(tab) && fetched.tabs.some((t) => t.name === tab))
@@ -185,7 +195,10 @@ export async function runSheetSync(
   // Remember the tab list either way, so the broker can switch tabs on/off.
   await supabase
     .from("sheet_syncs")
-    .update({ tabs: fetched.tabs.map((t) => t.name) })
+    .update({
+      tabs: fetched.tabs.map((t) => t.name),
+      ...(newTabs.length > 0 ? { disabled_tabs: [...disabled] } : {}),
+    })
     .eq("id", sync.id);
 
   const { data: existingRows, error: fetchExistingError } = await supabase
@@ -306,6 +319,26 @@ export async function runSheetSync(
     ? `Skipped removing ${toRemoveIds.length} listing(s) this check — that's an unusually large drop, so it was left alone for you to review instead of auto-removing.`
     : null;
 
+  // Tell the admins about anything needing a look: removals held back,
+  // rows that couldn't be read, new tabs. The same problems aren't
+  // re-sent every check (last_alert_key); new tabs only ever appear once.
+  const heldBack = removalsSkipped ? activeRows.filter((r) => toRemoveIds.includes(r.id)) : [];
+  const alertKey =
+    [
+      ...heldBack.map((r) => `removal:${r.id}`).sort(),
+      ...skippedRows.map((r) => `skipped:${r.tab ?? ""}:${r.row}:${r.reason}`).sort(),
+    ].join("|") || null;
+  if ((alertKey && alertKey !== sync.last_alert_key) || newTabs.length > 0) {
+    await alertAdminsSheetIssues({
+      brokerId: sync.broker_id,
+      businessName: broker.business_name,
+      sheetUrl: sync.sheet_url,
+      heldBack: heldBack.map((r) => [r.year, r.make, r.model, r.trim].filter(Boolean).join(" ")),
+      skipped: skippedRows.map((r) => ({ tab: r.tab ?? null, row: r.row, reason: r.reason })),
+      newTabs,
+    });
+  }
+
   await supabase
     .from("sheet_syncs")
     .update({
@@ -314,6 +347,7 @@ export async function runSheetSync(
       last_sync_removed: removedCount,
       last_sync_error: lastSyncError,
       row_cache: rowCache,
+      last_alert_key: alertKey,
     })
     .eq("id", sync.id);
 

@@ -167,7 +167,7 @@ function LinkForm({
   // time this effect runs (the action's revalidatePath resolves before
   // useActionState hands back the success state).
   useEffect(() => {
-    if (state.success && (state.parsedCount ?? 0) > 0) {
+    if (state.success && !state.sheetSynced && (state.parsedCount ?? 0) > 0) {
       document.getElementById("pending-drafts")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [state]);
@@ -178,9 +178,11 @@ function LinkForm({
     return (
       <div className="rounded-2xl border border-success/20 bg-success/5 p-4 sm:p-5">
         <p className="text-sm font-semibold text-success">
-          {parsedCount > 0
-            ? `Source saved — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it. Take a look above to review and publish them.`
-            : "Source saved."}
+          {parsedCount === 0
+            ? "Source saved."
+            : state.sheetSynced
+              ? `Sheet connected — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it and posted ${parsedCount === 1 ? "it" : "them"}.`
+              : `Source saved — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it. Take a look above to review and publish them.`}
           {skippedCount > 0 &&
             ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}
         </p>
@@ -397,10 +399,10 @@ function LinkForm({
                   <span>
                     Keep this sheet synced automatically
                     <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
-                      We&apos;ll check it every ~30 minutes: cars you add go live automatically,
-                      changed prices update, and cars you delete or cross out come down
-                      (recoverable from your removed list). This first check lands as drafts for
-                      you to review.
+                      Its cars go live now, and we&apos;ll check it every ~30 minutes: cars you add go
+                      live automatically, changed prices update, and cars you delete or cross out
+                      come down (recoverable from your removed list). Tabs you add later start off;
+                      switch them on in your dashboard.
                     </span>
                   </span>
                 </label>

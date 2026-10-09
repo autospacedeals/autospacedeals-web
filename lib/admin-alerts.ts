@@ -1,6 +1,6 @@
 // Emails to Drive's admins about things they shouldn't miss — right now,
-// a new broker or dealer signing up, their first car going live, or a
-// broker deleting their account.
+// a new broker or dealer signing up, their first car going live, a synced
+// sheet that needs a look, or a broker deleting their account.
 // Goes to every admin (lib/admin.ts: owners + the admins table).
 // SERVER-ONLY. Never throws: a failed alert must not break what it's about.
 import { adminEmails } from "@/lib/admin";
@@ -218,5 +218,80 @@ export async function alertAdminsFirstListing(brokerId: string): Promise<void> {
     );
   } catch (err) {
     console.error("first-listing alert threw:", err);
+  }
+}
+
+export interface SheetIssuesAlert {
+  brokerId: string;
+  businessName: string;
+  sheetUrl: string;
+  // Cars that vanished from the sheet all at once and weren't removed.
+  heldBack: string[];
+  // Rows the AI couldn't read.
+  skipped: { tab: string | null; row: number; reason: string }[];
+  // Tabs added to the sheet; they start switched off.
+  newTabs: string[];
+}
+
+// A synced Google Sheet needs a look (lib/sheet-sync.ts). Sent when the set
+// of problems changes, not on every check.
+export async function alertAdminsSheetIssues(a: SheetIssuesAlert): Promise<void> {
+  if (!isEmailConfigured()) return;
+  try {
+    const sections: { title: string; note: string; items: string[] }[] = [];
+    if (a.heldBack.length > 0) {
+      sections.push({
+        title: `${a.heldBack.length} car${a.heldBack.length === 1 ? "" : "s"} not removed`,
+        note: "They disappeared from the sheet all at once, which usually means a bad read (sheet unshared, tab renamed or emptied). They stay live until the sheet is fixed. If they really sold, remove them on Admin → Listings.",
+        items: a.heldBack,
+      });
+    }
+    if (a.skipped.length > 0) {
+      sections.push({
+        title: `${a.skipped.length} row${a.skipped.length === 1 ? "" : "s"} couldn't be read`,
+        note: "These rows aren't posted. Usually a missing payment, model or term on the sheet.",
+        items: a.skipped.map((r) => `${r.tab ? `${r.tab}, ` : ""}row ${r.row}: ${r.reason}`),
+      });
+    }
+    if (a.newTabs.length > 0) {
+      sections.push({
+        title: `New tab${a.newTabs.length === 1 ? "" : "s"} found, left off`,
+        note: "New tabs start switched off. The seller can turn them on in their dashboard.",
+        items: a.newTabs,
+      });
+    }
+    if (sections.length === 0) return;
+
+    const listingsUrl = `${SITE_URL}/admin/listings`;
+    const shown = (items: string[]) => items.slice(0, 25);
+    const html = emailLayoutHtml({
+      preheader: `${a.businessName}'s sheet: ${sections.map((s) => s.title).join(", ")}.`,
+      heading: `${a.businessName}'s sheet needs a look`,
+      bodyHtml:
+        sections
+          .map(
+            (s) =>
+              `<p style="margin:16px 0 4px 0;"><strong>${escapeHtml(s.title)}</strong></p>` +
+              `<p style="margin:0 0 6px 0;">${escapeHtml(s.note)}</p>` +
+              shown(s.items).map((i) => `<p style="margin:0 0 4px 0;">• ${escapeHtml(i)}</p>`).join("") +
+              (s.items.length > 25 ? `<p style="margin:0;">…and ${s.items.length - 25} more</p>` : "")
+          )
+          .join("") +
+        `<p style="margin:16px 0 0 0;"><a href="${escapeHtml(a.sheetUrl)}">Open the sheet</a> · <a href="${listingsUrl}">Admin → Listings</a></p>`,
+      footerHtml: "You're getting this because you're a Drive admin. Sent when a synced sheet's problems change.",
+    });
+    const text =
+      `${a.businessName}'s sheet needs a look.\n\n` +
+      sections.map((s) => `${s.title}\n${s.note}\n${shown(s.items).map((i) => `- ${i}`).join("\n")}`).join("\n\n") +
+      `\n\nSheet: ${a.sheetUrl}\nListings: ${listingsUrl}`;
+    const recipients = [...(await adminEmails())];
+    await Promise.all(
+      recipients.map(async (to) => {
+        const sent = await sendEmail({ to, subject: `Sheet check: ${a.businessName} (${sections.map((s) => s.title).join(", ")})`, html, text });
+        if (!sent.ok) console.error(`sheet-issues alert to ${to} failed:`, sent.error);
+      })
+    );
+  } catch (err) {
+    console.error("sheet-issues alert threw:", err);
   }
 }

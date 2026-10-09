@@ -396,8 +396,8 @@ export async function createSubmissionAction(
 
   // Google Sheet links can opt into a recurring check (every ~30 min) that
   // adds new rows and removes ones that disappear from the sheet — see
-  // app/api/cron/sync-sheets. This initial batch lands as drafts for
-  // review; rows the recurring job finds later go live right away.
+  // app/api/cron/sync-sheets. A synced sheet's cars go live right away,
+  // this first batch included; other sources land as drafts for review.
   let sheetSyncId: string | null = null;
   if (sourceType === "google_sheet" && formData.get("keepSynced") === "on") {
     const { data: sync, error: syncError } = await supabase
@@ -426,9 +426,11 @@ export async function createSubmissionAction(
   if (broker && parsedDeals.length > 0 && inserted) {
     const staging = await stageParsedDeals(supabase, user.id, broker, inserted.id, parsedDeals, {
       sheetSyncId,
+      status: sheetSyncId ? "published" : "draft",
     });
     stageFailed = staging.failed;
     stageLastError = staging.lastError;
+    if (sheetSyncId && staging.staged > 0) after(() => alertAdminsFirstListing(user.id));
   }
 
   revalidatePath("/broker/dashboard");
