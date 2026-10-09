@@ -4,6 +4,7 @@
 // mobile number, confirm it with the texted code, and texts are on. Only
 // rendered when Twilio is configured (the page decides).
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { MessageSquareText } from "lucide-react";
 import {
   confirmSmsVerificationAction,
@@ -105,8 +106,17 @@ export default function SmsSettings({
           </div>
           <p className="mt-2 text-xs leading-5 text-fg-muted">
             By turning on texts you agree to receive a text from Drive when you get a new message,
-            at this number. Message frequency varies with your conversations. Msg &amp; data rates
-            may apply. Reply STOP to opt out, HELP for help.
+            at this number. Texts are optional and not required to use Drive. Message frequency varies
+            with your conversations. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for
+            help. See our{" "}
+            <Link href="/terms" className="underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </form>
       )}

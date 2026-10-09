@@ -93,7 +93,7 @@ export async function confirmSmsVerificationAction(code: string): Promise<Result
   // The opt-in confirmation carriers expect (and what STOP/HELP do).
   await sendSms(
     row.pending_phone,
-    "Drive: You'll now get a text when you have a new message on Drive. Reply to a message text to answer it. Msg & data rates may apply. Reply STOP to opt out, HELP for help."
+    "Drive: You'll now get a text when you have a new message on Drive. Reply to a message text to answer it. Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help."
   );
   revalidate(me.role);
   return { ok: true };

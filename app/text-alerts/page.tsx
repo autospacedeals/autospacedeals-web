@@ -53,9 +53,18 @@ export default function TextAlertsPage() {
           </button>
         </div>
         <p className="mt-2 text-xs leading-5 text-fg-muted">
-          By turning on texts you agree to receive a text from Drive when you get a new message, at
-          this number. Message frequency varies with your conversations. Msg &amp; data rates may
-          apply. Reply STOP to opt out, HELP for help.
+          By turning on texts you agree to receive a text from Drive when you get a new message,
+          at this number. Texts are optional and not required to use Drive. Message frequency varies
+          with your conversations. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for
+          help. See our{" "}
+          <Link href="/terms" className="underline">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
 
@@ -69,10 +78,15 @@ export default function TextAlertsPage() {
           available. Want to set up a time to sign?&quot; Reply to this text to answer, or open
           https://www.idriveus.com/customer/messages
         </blockquote>
+        <p>After you confirm your number we send one confirmation text:</p>
+        <blockquote>
+          Drive: You&apos;ll now get a text when you have a new message on Drive. Reply to a message
+          text to answer it. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to opt
+          out, HELP for help.
+        </blockquote>
         <p>
-          After you confirm your number we send one confirmation text. We never send marketing or
-          promotional texts. Message frequency varies with your conversations. Message and data
-          rates may apply.
+          We never send marketing or promotional texts. Message frequency varies with your
+          conversations. Message and data rates may apply.
         </p>
         <h2>How to opt out or get help</h2>
         <p>
