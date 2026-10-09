@@ -25,6 +25,8 @@ function toParsedIncentives(list: Incentive[]): NonNullable<ParsedDeal["incentiv
 
 const MODEL = "claude-opus-5";
 
+const CONDITIONS = ["Loaner", "Demo", "CPO", "Used"] as const;
+
 const EXTRACT_TOOL = {
   name: "extract_deals",
   description: "Return every distinct vehicle listing found.",
@@ -201,10 +203,17 @@ const EXTRACT_TOOL = {
                 "term/mileage/payment. Never list the main term/mileage itself, and never make " +
                 "these into separate cars. Empty array if only one term is priced.",
             },
+            condition: {
+              type: ["string", "null"],
+              enum: ["Loaner", "Demo", "CPO", "Used", null],
+              description:
+                "Loaner, Demo, CPO or Used when the source says the car is one (\"Loaner\", \"demo unit\", " +
+                "\"certified pre-owned\"), else null. Never set it for a brand-new car.",
+            },
             notes: {
               type: "string",
               description:
-                "Anything else worth keeping — condition (CPO/loaner/demo), package/option names, or other details that didn't fit a field above. Empty string if nothing.",
+                "Anything else worth keeping — package/option names, or other details that didn't fit a field above. Empty string if nothing.",
             },
           },
           required: ["year", "make", "model", "notes"],
@@ -392,6 +401,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       city,
       delivery,
       notes,
+      condition: CONDITIONS.find((v) => v === c.condition) ?? null,
       onePay,
       incentives: toParsedIncentives(statedIncentives),
       mileageOptions,

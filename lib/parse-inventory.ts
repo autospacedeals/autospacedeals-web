@@ -18,6 +18,7 @@ import { createHash } from "node:crypto";
 import { readWorkbookTabs, rowNumber, type SheetTab } from "./google-sheet";
 import { mapLimit } from "./concurrency";
 import { moveProgramsToIncentives, normalizeModelTrim, splitProgramsFromTrim } from "@/lib/vehicle-names";
+import type { VehicleCondition } from "./deals-data";
 
 export interface ParsedDeal {
   year: number;
@@ -48,6 +49,9 @@ export interface ParsedDeal {
   city?: string | null;
   delivery?: "pickup" | "in_state" | "nationwide" | null;
   notes: string;
+  // "Loaner", "Demo", "CPO" or "Used" when the source says so (shown as a
+  // tag on the deal card); null otherwise.
+  condition?: VehicleCondition | null;
   // One-pay lease: a single upfront lump sum (stored in dueAtSigning) with
   // no separate monthly bill. payment is 0 by convention when this is true,
   // same as the manual "Add a car" forms.
@@ -201,6 +205,7 @@ function parseModelCell(text: string): {
   trim: string | null;
   msrp: number | null;
   conditionNote: string | null;
+  condition: VehicleCondition | null;
 } {
   const yearMatch = text.match(/\b(19|20)\d{2}\b/);
   const year = yearMatch ? Number(yearMatch[0]) : null;
@@ -211,9 +216,10 @@ function parseModelCell(text: string): {
   const msrp = msrpMatch ? Math.round(Number(msrpMatch[1]) * 1000) : null;
 
   let conditionNote: string | null = null;
-  if (/\bCPO\b/i.test(text)) conditionNote = "Certified pre-owned (CPO).";
-  else if (/\bloaner\b/i.test(text)) conditionNote = "Former loaner unit.";
-  else if (/\bdemo\b/i.test(text)) conditionNote = "Demo unit.";
+  let condition: VehicleCondition | null = null;
+  if (/\bCPO\b/i.test(text)) [conditionNote, condition] = ["Certified pre-owned (CPO).", "CPO"];
+  else if (/\bloaner\b/i.test(text)) [conditionNote, condition] = ["Former loaner unit.", "Loaner"];
+  else if (/\bdemo\b/i.test(text)) [conditionNote, condition] = ["Demo unit.", "Demo"];
 
   const upper = text.toUpperCase();
   let make: string | null = null;
@@ -243,7 +249,7 @@ function parseModelCell(text: string): {
   }
   const trim = rest.replace(/\s+/g, " ").trim() || null;
 
-  return { year, make, model, trim, msrp, conditionNote };
+  return { year, make, model, trim, msrp, conditionNote, condition };
 }
 
 function parseTermCell(text: string): {
@@ -475,7 +481,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
     // "ONEPAY"/"one-pay"), which becomes dueAtSigning below.
     const onePay = /\bone[\s-]?pay\b/i.test(paymentText) || /\bone[\s-]?pay\b/i.test(termText);
 
-    const { year, make, model, trim, msrp, conditionNote } = parseModelCell(modelText);
+    const { year, make, model, trim, msrp, conditionNote, condition } = parseModelCell(modelText);
     const payment = onePay ? 0 : firstNumber(paymentText);
     const { term, milesPerYear, dueAtSigning: dueFromTerm } = parseTermCell(termText);
     const dueAtSigning = onePay ? firstNumber(paymentText) : dueFromTerm;
@@ -533,6 +539,7 @@ function parseRows(rows: Record<string, unknown>[], brokerState: string): ParseR
       msdTotal: msd.msdTotal,
       state,
       notes,
+      condition,
       onePay,
     });
   });

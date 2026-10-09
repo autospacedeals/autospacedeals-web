@@ -102,7 +102,7 @@ export async function stageParsedDeals(
       state: d.state ?? broker.state,
       delivery: d.delivery ?? null,
       verified: true,
-      condition: null,
+      condition: d.condition ?? null,
       mileage_options: d.mileageOptions ?? [],
       lease_options: d.leaseOptions ?? [],
       photo_auto_sourced: true,

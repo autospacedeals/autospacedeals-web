@@ -255,9 +255,10 @@ export async function runSheetSync(
         miles_per_year: d.milesPerYear,
         mileage_options: d.mileageOptions ?? [],
         lease_options: d.leaseOptions ?? [],
-        // Only when the sheet states it — never wipe a price the seller
-        // entered on the site.
+        // Only when the sheet states it — never wipe a price or condition
+        // the seller entered on the site.
         ...(d.sellingPrice ? { selling_price: d.sellingPrice } : {}),
+        ...(d.condition ? { condition: d.condition } : {}),
         broker_fee: d.brokerFee,
         one_pay: d.onePay,
         match_signature: computeMatchSignature(d),
