@@ -187,13 +187,16 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
     .map(({ visitorSet, ...s }) => ({ ...s, visitors: visitorSet.size }))
     .sort((a, b) => b.visitors - a.visitors || b.conversations - a.conversations);
 
-  // By location (Vercel's IP lookup: approximate, and missing for some visits)
+  // By location (Vercel's IP lookup: approximate, and missing for some visits).
+  // US visits by state; other countries by full name ("IN" -> "India").
   const states = byLocation(visitRows, (v) =>
-    !v.country ? null : v.country === "US" ? (v.region ? `${v.region}` : "US (state unknown)") : v.country
+    !v.country ? null : v.country === "US" ? (v.region ? `${v.region}` : "US (state unknown)") : countryName(v.country)
   );
   const cities = byLocation(visitRows, (v) => {
     if (!v.city) return null;
-    return v.country === "US" ? `${v.city}, ${v.region ?? "US"}` : `${v.city}, ${v.country ?? ""}`.replace(/, $/, "");
+    return v.country === "US"
+      ? `${v.city}, ${v.region ?? "US"}`
+      : `${v.city}, ${v.country ? countryName(v.country) : ""}`.replace(/, $/, "");
   });
 
   // By broker
@@ -305,4 +308,14 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
     recent,
     ready,
   };
+}
+
+const COUNTRY_NAMES = new Intl.DisplayNames(["en"], { type: "region" });
+
+function countryName(code: string): string {
+  try {
+    return COUNTRY_NAMES.of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
 }
