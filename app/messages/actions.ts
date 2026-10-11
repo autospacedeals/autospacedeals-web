@@ -5,7 +5,9 @@
 // emails on or off. Writes go through the user's own session, so the
 // database's row-level security decides what's allowed (0024_messaging.sql).
 import { randomUUID } from "crypto";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
+import { alertAdminsFirstMessage } from "@/lib/admin-alerts";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   ATTACHMENT_BUCKET,
@@ -174,6 +176,8 @@ async function insertMessage(
     .filter(Boolean)
     .join("\n\n");
   await notifyOtherSide(conversationId, role, notice);
+  // A seller's first message ever: the admins check in (once per seller).
+  if (role === "customer") after(() => alertAdminsFirstMessage(conversationId));
   return { ok: true, message };
 }
 

@@ -346,3 +346,75 @@ ${
     console.error("assistant-request alert threw:", err);
   }
 }
+
+// The first time a seller gets a message from a shopper (0044): one email
+// to the admins, so someone can check the seller saw it — with how the
+// seller would have heard about it (message emails / texts on or off).
+export async function alertAdminsFirstMessage(conversationId: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: c } = await admin
+      .from("conversations")
+      .select("broker_id, customer_id, deal_label")
+      .eq("id", conversationId)
+      .maybeSingle<{ broker_id: string; customer_id: string; deal_label: string }>();
+    if (!c) return;
+    // Claim it: only one caller ever gets the row back.
+    const { data: broker } = await admin
+      .from("brokers")
+      .update({ first_message_at: new Date().toISOString() })
+      .eq("id", c.broker_id)
+      .is("first_message_at", null)
+      .select("business_name, contact_name, contact_phone, message_emails")
+      .maybeSingle<{ business_name: string; contact_name: string | null; contact_phone: string | null; message_emails: boolean }>();
+    if (!broker || !isEmailConfigured()) return;
+
+    const [{ data: user }, { data: sms }, { data: shopper }] = await Promise.all([
+      admin.auth.admin.getUserById(c.broker_id),
+      admin
+        .from("sms_settings")
+        .select("enabled, verified_at")
+        .eq("user_id", c.broker_id)
+        .maybeSingle<{ enabled: boolean; verified_at: string | null }>(),
+      admin.from("customers").select("first_name").eq("id", c.customer_id).maybeSingle<{ first_name: string }>(),
+    ]);
+    const email = user.user?.email ?? null;
+    const texts = Boolean(sms?.enabled && sms.verified_at);
+    const notified =
+      broker.message_emails && texts
+        ? "Emailed and texted"
+        : broker.message_emails
+          ? "Emailed (texts are off)"
+          : texts
+            ? "Texted (emails are off)"
+            : "NOT notified: their message emails and texts are both off";
+    const name = broker.business_name;
+    const rows: [string, string][] = [
+      ["Seller", name],
+      ["Contact", [broker.contact_name, email, broker.contact_phone].filter(Boolean).join(" · ")],
+      ["From", shopper?.first_name ? `${shopper.first_name} (shopper)` : "A shopper"],
+      ["About", c.deal_label || "General question"],
+      ["How they were told", notified],
+    ];
+    const url = `${SITE_URL}/admin/messages/${conversationId}`;
+    const html = emailLayoutHtml({
+      preheader: `${name} just got their first message from a shopper. ${notified}.`,
+      heading: `${name} got their first message`,
+      bodyHtml:
+        rows.map(([k, v]) => `<p style="margin:0 0 8px 0;"><strong>${k}:</strong> ${escapeHtml(v)}</p>`).join("") +
+        `<p style="margin:16px 0 8px 0;">Worth a quick check-in to make sure they saw it.</p>` +
+        `<p style="margin:0;"><a href="${url}">Read the conversation</a></p>`,
+      footerHtml: "You're getting this because you're a Drive admin. Sent once per seller, on their first message.",
+    });
+    const text = `${name} got their first message on Drive.\n\n${rows.map(([k, v]) => `${k}: ${v}`).join("\n")}\n\nWorth a quick check-in to make sure they saw it.\nConversation: ${url}`;
+    const recipients = [...(await adminEmails())];
+    await Promise.all(
+      recipients.map(async (to) => {
+        const sent = await sendEmail({ to, replyTo: email || undefined, subject: `First message: ${name}`, html, text });
+        if (!sent.ok) console.error(`first-message alert to ${to} failed:`, sent.error);
+      })
+    );
+  } catch (err) {
+    console.error("first-message alert threw:", err);
+  }
+}
