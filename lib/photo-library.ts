@@ -4,6 +4,7 @@
 // repeat CarsXE lookup (they're metered), and no broken image if the
 // original host moves it. Saved as a 960px-wide WebP so they're uniform.
 // SERVER-ONLY.
+import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -81,6 +82,34 @@ export async function saveImageToLibrary(k: LibraryKey, image: Buffer, opts: { f
     return `${publicUrl(path)}?v=${Date.now().toString(36)}`;
   } catch (err) {
     console.error("saveImageToLibrary failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+// A fallback photo (not a studio shot) copied into our storage under its
+// own path, never as the library photo for the car, so it can't break if
+// the original site removes it. Returns its URL here, or null on failure.
+export async function saveFallbackPhoto(k: LibraryKey, sourceUrl: string): Promise<string | null> {
+  const image = await downloadImage(sourceUrl);
+  if (!image) return null;
+  try {
+    const webp = await sharp(image)
+      .resize({ width: 960, withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .webp({ quality: 82 })
+      .toBuffer();
+    const id = createHash("sha1").update(sourceUrl).digest("hex").slice(0, 16);
+    const path = `fallback/${slug(k.make)}/${k.year}/${slug(k.model)}/${id}.webp`;
+    const { error } = await createAdminClient()
+      .storage.from(PHOTO_BUCKET)
+      .upload(path, webp, { contentType: "image/webp", upsert: true, cacheControl: "3600" });
+    if (error) {
+      console.error("saveFallbackPhoto upload failed:", error.message);
+      return null;
+    }
+    return publicUrl(path);
+  } catch (err) {
+    console.error("saveFallbackPhoto failed:", err instanceof Error ? err.message : err);
     return null;
   }
 }

@@ -54,17 +54,22 @@ export async function stageParsedDeals(
   // style for the whole batch in one go so they're searchable/filterable.
   const [classes, extras] = await Promise.all([classifyVehicles(deals), getDealExtras(userId)]);
 
-  // Several at a time — a 200-car sheet would take minutes one by one (each
-  // car looks up a photo).
-  await mapLimit(deals, 8, async (d, i) => {
+  // One photo lookup per distinct car (a big sheet repeats the same model
+  // many times), a few at a time so CarsXE doesn't start refusing them.
+  const photos = new Map<string, Promise<string | null>>();
+  const photoFor = (d: ParsedDeal) => {
+    const key = [d.year, d.make, d.model, d.trim ?? "", d.exterior ?? ""].join("|").toLowerCase();
+    let photo = photos.get(key);
+    if (!photo) {
+      photo = fetchCarsxePhoto({ year: d.year, make: d.make, model: d.model, trim: d.trim ?? undefined, color: d.exterior });
+      photos.set(key, photo);
+    }
+    return photo;
+  };
+
+  await mapLimit(deals, 4, async (d, i) => {
     let images: string[] = [];
-    const photo = await fetchCarsxePhoto({
-      year: d.year,
-      make: d.make,
-      model: d.model,
-      trim: d.trim ?? undefined,
-      color: d.exterior,
-    });
+    const photo = await photoFor(d);
     if (photo) images = [photo];
 
     const slug = slugify([d.year, d.make, d.model, d.trim ?? "", broker.state]);

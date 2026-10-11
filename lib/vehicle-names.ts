@@ -7,7 +7,32 @@ const SUB_MODELS: { make: string; family: string; models: string[] }[] = [
   { make: "Land Rover", family: "Range Rover", models: ["Sport", "Velar", "Evoque"] },
 ];
 
-export function normalizeModelTrim<T extends { make: string; model: string; trim: string | null }>(car: T): T {
+// One spelling per brand ("KIA", "kia" -> "Kia"), so filters don't list a
+// brand twice. Unknown makes are kept as written.
+const MAKES = [
+  "Acura", "Alfa Romeo", "Aston Martin", "Audi", "Bentley", "BMW", "Buick", "Cadillac", "Chevrolet", "Chrysler",
+  "Dodge", "Ferrari", "Fiat", "Fisker", "Ford", "Genesis", "GMC", "Honda", "Hyundai", "Infiniti", "Jaguar", "Jeep",
+  "Kia", "Lamborghini", "Land Rover", "Lexus", "Lincoln", "Lotus", "Lucid", "Maserati", "Mazda", "McLaren",
+  "Mercedes-Benz", "MINI", "Mitsubishi", "Nissan", "Polestar", "Porsche", "Ram", "Rivian", "Rolls-Royce", "Subaru",
+  "Tesla", "Toyota", "VinFast", "Volkswagen", "Volvo",
+];
+const makeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const MAKE_BY_KEY = new Map<string, string>([
+  ...MAKES.map((m) => [makeKey(m), m] as [string, string]),
+  ["mercedes", "Mercedes-Benz"],
+  ["benz", "Mercedes-Benz"],
+  ["mb", "Mercedes-Benz"],
+  ["vw", "Volkswagen"],
+  ["chevy", "Chevrolet"],
+]);
+
+export function canonicalMake(make: string): string {
+  const trimmed = make.trim().replace(/\s+/g, " ");
+  return MAKE_BY_KEY.get(makeKey(trimmed)) ?? trimmed;
+}
+
+export function normalizeModelTrim<T extends { make: string; model: string; trim: string | null }>(input: T): T {
+  const car = { ...input, make: canonicalMake(input.make) };
   const make = car.make.trim();
   const model = car.model.trim().replace(/\s+/g, " ");
   const trim = car.trim?.trim().replace(/\s+/g, " ") || null;

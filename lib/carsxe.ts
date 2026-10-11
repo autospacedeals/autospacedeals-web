@@ -10,7 +10,7 @@
 // is searched first, then any color. The first studio photo for a
 // year/make/model/color is saved to Drive's photo library
 // (lib/photo-library.ts) and reused from then on.
-import { downloadImage, getLibraryPhoto, saveImageToLibrary } from "@/lib/photo-library";
+import { downloadImage, getLibraryPhoto, saveFallbackPhoto, saveImageToLibrary } from "@/lib/photo-library";
 import { classifyCarView } from "@/lib/photo-view";
 
 interface PhotoQuery {
@@ -92,9 +92,11 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
   }
   const best = mirrored ?? anyStudio;
   if (best) return keep(best);
-  // No studio photo anywhere: better a real photo than none (not saved, so
-  // a later lookup can still find a studio one).
-  return fallback;
+  // No studio photo anywhere: better a real photo than none. It's copied to
+  // our storage (so it can't break if the other site moves it), but not as
+  // the library photo, so a later lookup can still find a studio one.
+  if (!fallback) return null;
+  return (await saveFallbackPhoto({ ...params, color }, fallback)) ?? fallback;
 }
 
 // Every exterior photo CarsXE has for the vehicle, studio photos first (the
@@ -145,22 +147,35 @@ async function queryCarsxe(params: PhotoQuery, color: string | null): Promise<st
   }
   if (params.trim) query.set("trim", params.trim);
 
-  try {
-    const res = await fetch(`https://api.carsxe.com/images?${query.toString()}`, {
-      // Photo lookups don't need to be re-fetched on every request — cache
-      // briefly so we're not hammering CarsXE if several listings publish
-      // back to back.
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    return extractImageUrls(data);
-  } catch (err) {
-    console.error("CarsXE photo lookup failed:", err);
-    return [];
+  // A big upload fires many lookups at once and CarsXE starts refusing
+  // some (rate limits); those are retried with a growing pause instead of
+  // being taken as "no photo for this car".
+  const label = `${params.year} ${params.make} ${params.model}`;
+  for (let attempt = 0; attempt < LOOKUP_ATTEMPTS; attempt++) {
+    if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1) + Math.random() * 500);
+    try {
+      const res = await fetch(`https://api.carsxe.com/images?${query.toString()}`, {
+        // Photo lookups don't need to be re-fetched on every request — cache
+        // briefly so we're not hammering CarsXE if several listings publish
+        // back to back.
+        next: { revalidate: 3600 },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (res.ok) return extractImageUrls(await res.json());
+      if (res.status !== 429 && res.status < 500) {
+        console.error(`CarsXE photo lookup refused (${res.status}) for ${label}`);
+        return [];
+      }
+      console.error(`CarsXE photo lookup busy (${res.status}) for ${label}, attempt ${attempt + 1}`);
+    } catch (err) {
+      console.error(`CarsXE photo lookup failed for ${label}, attempt ${attempt + 1}:`, err instanceof Error ? err.message : err);
+    }
   }
+  return [];
 }
+
+const LOOKUP_ATTEMPTS = 4;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // CarsXE's response shape has varied across versions of this API in
 // practice, so this checks the common shapes rather than assuming one.
