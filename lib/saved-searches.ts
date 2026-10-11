@@ -30,6 +30,16 @@ export const SAVED_SEARCHES_PER_CUSTOMER = 25;
 // read once and cleared by HomeClient.
 export const PENDING_SAVED_SEARCH_KEY = "asd_pending_saved_search_v1";
 
+// The shopper's current homepage filters and sort, so a deal page can offer
+// "Back to your search" and put them back. Written by HomeClient whenever
+// the filters or sort differ from the defaults (cleared when they don't),
+// read by DealBackLinks; the homepage restores it when its URL carries
+// RETURN_TO_SEARCH (set on that link, and kept on the homepage's own URL
+// while filtered, so the browser's back button restores it too).
+export const LAST_SEARCH_KEY = "asd_last_search_v1";
+export const RETURN_TO_SEARCH = { param: "search", value: "back" } as const;
+export const RETURN_TO_SEARCH_HREF = `/?${RETURN_TO_SEARCH.param}=${RETURN_TO_SEARCH.value}#deals`;
+
 // Where "Manage alerts" links point from outside the dashboard (alert
 // emails, the unsubscribe page): the login page, which sends a signed-in
 // customer straight on and anyone else there after logging in — linking to

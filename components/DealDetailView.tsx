@@ -32,6 +32,7 @@ import { ContactSellerButton } from "@/components/ContactSellerDialog";
 import DealCard, { BADGE_STYLES } from "@/components/DealCard";
 import { RatingBadge } from "@/components/StarRating";
 import SaveDealButton from "@/components/SaveDealButton";
+import DealBackLinks from "@/components/DealBackLinks";
 import type { BrokerRatingSummary } from "@/lib/supabase/reviews";
 
 // Up to two initials for the seller avatar in the contact card. Guarded like
@@ -49,7 +50,9 @@ function initials(label: string | null | undefined) {
 export default function DealDetailView({
   deal,
   similar = [],
-  backHref = "/#deals",
+  // Left out on the public deal page, which offers "Back to your search"
+  // when the shopper came from a filtered list (DealBackLinks).
+  backHref,
   backLabel = "Back to all deals",
   // A draft preview isn't public yet — reporting it as inaccurate, or
   // letting a shopper's "contact seller" click go out for a listing that
@@ -98,9 +101,13 @@ export default function DealDetailView({
     <main className="container-page max-w-6xl pt-8 pb-12 sm:pt-12">
       {previewBanner}
 
-      <Link href={backHref} className="link-arrow mb-6 min-h-9">
-        <ArrowLeft /> {backLabel}
-      </Link>
+      {backHref ? (
+        <Link href={backHref} className="link-arrow mb-6 min-h-9">
+          <ArrowLeft /> {backLabel}
+        </Link>
+      ) : (
+        <DealBackLinks />
+      )}
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* Left column: photo + details */}

@@ -12,6 +12,7 @@ import {
   filterDeals,
   formatCurrency,
   LAST_VIEWED_DEAL_KEY,
+  SORT_LABELS,
   pickFeatured,
   sortDeals,
   type DealFilters,
@@ -24,8 +25,11 @@ import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import {
+  LAST_SEARCH_KEY,
   PENDING_SAVED_SEARCH_KEY,
+  RETURN_TO_SEARCH,
   SAVED_SEARCH_QUERY_MAX,
+  hasActiveFilters,
   parseSavedSearchFilters,
 } from "@/lib/saved-searches";
 import { nearestState } from "@/lib/us-geo";
@@ -124,7 +128,40 @@ export default function HomeClient({
     } catch {
       // Ignore — just falls back to the default filters.
     }
+    // "Back to your search" from a deal page (or the browser's back button):
+    // put the shopper's filters and sort back. Re-validated, like above.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const last = sessionStorage.getItem(LAST_SEARCH_KEY);
+      if (params.get(RETURN_TO_SEARCH.param) === RETURN_TO_SEARCH.value && last) {
+        const parsed = JSON.parse(last) as { filters?: unknown; sortBy?: unknown };
+        const restored = parseSavedSearchFilters(parsed.filters);
+        if (restored) setFilters(restored);
+        if (typeof parsed.sortBy === "string" && parsed.sortBy in SORT_LABELS) {
+          setSortBy(parsed.sortBy as SortOption);
+        }
+      }
+    } catch {
+      // Ignore — just falls back to the default filters.
+    }
   }, []);
+
+  // Remember the current search for the deal pages' "Back to your search",
+  // and keep the marker on this page's URL so the browser's back button
+  // returns to it too. Back on the defaults, both are cleared.
+  useEffect(() => {
+    const searching = hasActiveFilters(filters) || sortBy !== "featured";
+    try {
+      if (searching) sessionStorage.setItem(LAST_SEARCH_KEY, JSON.stringify({ filters, sortBy }));
+      else sessionStorage.removeItem(LAST_SEARCH_KEY);
+    } catch {
+      // Ignore — the deal page just offers "Back to all deals".
+    }
+    const url = new URL(window.location.href);
+    if (searching) url.searchParams.set(RETURN_TO_SEARCH.param, RETURN_TO_SEARCH.value);
+    else url.searchParams.delete(RETURN_TO_SEARCH.param);
+    if (url.href !== window.location.href) window.history.replaceState(null, "", url);
+  }, [filters, sortBy]);
 
   // Once there's a deal to restore (and any pending filters above have been
   // applied), scroll it into view. Runs once per visit (restoredScrollRef
