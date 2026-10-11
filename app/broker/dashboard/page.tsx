@@ -6,6 +6,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
 import SmsSettings from "@/components/messages/SmsSettings";
+import SellerTextsNudge from "@/components/messages/SellerTextsNudge";
 import AccountSettings from "@/components/account/AccountSettings";
 import { hasPasswordLogin } from "@/lib/account";
 import { formatE164, isSmsConfigured } from "@/lib/twilio";
@@ -204,12 +205,15 @@ export default async function BrokerDashboardPage() {
 
       <div id="messages" className="mt-4 max-w-xl space-y-4">
         <MessageEmailsToggle initialEnabled={privateProfile?.message_emails ?? true} />
-        {smsAvailable && (
-          <SmsSettings
-            enabledPhone={sms?.enabled && sms.phone ? formatE164(sms.phone) : null}
-            defaultPhone={privateProfile?.contact_phone ?? ""}
-          />
-        )}
+        {smsAvailable &&
+          (sms?.enabled && sms.phone ? (
+            <SmsSettings enabledPhone={formatE164(sms.phone)} defaultPhone={privateProfile?.contact_phone ?? ""} />
+          ) : (
+            <SellerTextsNudge
+              defaultPhone={privateProfile?.contact_phone ?? ""}
+              emailsOn={privateProfile?.message_emails ?? true}
+            />
+          ))}
       </div>
 
       <AboutEditor about={broker?.about ?? null} brokerId={user.id} />

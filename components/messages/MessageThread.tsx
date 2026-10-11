@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { prepareAttachmentUploadsAction, sendMessageAction, shareDocumentsAction } from "@/app/messages/actions";
 import type { MessageRow } from "@/lib/messages";
 import { shrinkImage } from "@/lib/shrink-image";
+import TextRepliesPrompt from "@/components/messages/TextRepliesPrompt";
 import {
   ATTACHMENT_ACCEPT,
   ATTACHMENT_BUCKET,
@@ -86,6 +87,7 @@ export default function MessageThread({
   initialMessages,
   initialDraft = "",
   shareableDocs = [],
+  textPrompt = null,
 }: {
   conversationId: string;
   viewerRole: ViewerRole;
@@ -98,6 +100,9 @@ export default function MessageThread({
   // Shopper only: documents on their account they can send (see
   // shareDocumentsAction). Empty means none uploaded yet.
   shareableDocs?: ShareableDoc[];
+  // Shopper without texts on: offer them once they've written (the phone
+  // on their profile prefills it).
+  textPrompt?: { defaultPhone: string } | null;
 }) {
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
   const [files, setFiles] = useState<File[]>([]);
@@ -404,6 +409,10 @@ export default function MessageThread({
           </div>
           <p className="mt-2 text-xs text-fg-muted">Messages and files are kept on Drive for your records.</p>
         </form>
+      )}
+      {/* Outside the reply form: it has its own forms. */}
+      {viewerRole === "customer" && textPrompt && messages.some((m) => m.sender_role === "customer") && (
+        <TextRepliesPrompt sellerName={names.broker} defaultPhone={textPrompt.defaultPhone} />
       )}
     </div>
   );

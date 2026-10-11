@@ -14,6 +14,7 @@ import ConversationOutcome from "@/components/messages/ConversationOutcome";
 import { TOTAL_PRICE_SUFFIX, firstReplyDraft } from "@/lib/cars-act";
 import { formatCurrency } from "@/lib/deal-utils";
 import { OUTCOMES_ENABLED } from "@/lib/leads";
+import { isSmsConfigured } from "@/lib/twilio";
 import {
   CONVERSATION_COLUMNS,
   MESSAGE_COLUMNS,
@@ -118,7 +119,7 @@ export async function ConversationPage({
   if (viewer === "customer" && c.customer_id !== userId) notFound();
   if (viewer === "broker" && c.broker_id !== userId) notFound();
 
-  const [{ data: messages }, names, { data: deal }, { data: lead }, { data: docs }] = await Promise.all([
+  const [{ data: messages }, names, { data: deal }, { data: lead }, { data: docs }, { data: sms }] = await Promise.all([
     supabase
       .from("messages")
       .select(MESSAGE_COLUMNS)
@@ -143,9 +144,17 @@ export async function ConversationPage({
     viewer === "customer" && userId
       ? supabase
           .from("customers")
-          .select("drivers_license_path, insurance_card_path")
+          .select("drivers_license_path, insurance_card_path, phone")
           .eq("id", userId)
-          .maybeSingle<{ drivers_license_path: string | null; insurance_card_path: string | null }>()
+          .maybeSingle<{ drivers_license_path: string | null; insurance_card_path: string | null; phone: string | null }>()
+      : Promise.resolve({ data: null }),
+    // Whether they get texts already (else they're offered them).
+    viewer === "customer" && userId && isSmsConfigured()
+      ? supabase
+          .from("sms_settings")
+          .select("enabled, verified_at")
+          .eq("user_id", userId)
+          .maybeSingle<{ enabled: boolean; verified_at: string | null }>()
       : Promise.resolve({ data: null }),
   ]);
   const customer = names.customers.get(c.customer_id) ?? "Shopper";
@@ -185,6 +194,11 @@ export async function ConversationPage({
           <MessageThread
             conversationId={c.id}
             viewerRole={viewer}
+            textPrompt={
+              viewer === "customer" && isSmsConfigured() && !(sms?.enabled && sms.verified_at)
+                ? { defaultPhone: docs?.phone ?? "" }
+                : null
+            }
             shareableDocs={[
               ...(docs?.drivers_license_path ? (["license"] as const) : []),
               ...(docs?.insurance_card_path ? (["insurance"] as const) : []),
