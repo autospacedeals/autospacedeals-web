@@ -1,5 +1,6 @@
 "use client";
 
+import { limitFileSize, shrinkOnPick } from "@/lib/shrink-image";
 import { TOTAL_PRICE_HINT } from "@/lib/cars-act";
 import { useActionState, useEffect, useId, useState } from "react";
 import {
@@ -266,9 +267,10 @@ function LinkForm({
             id={`${uid}-excelFile`}
             name="file"
             accept=".xlsx,.xls,.csv"
+            onChange={limitFileSize}
             className="file-input"
           />
-          <p className="field-hint">Max 10MB.</p>
+          <p className="field-hint">Max 4MB.</p>
         </div>
       ) : sourceType === "free_text" ? (
         <div>
@@ -297,11 +299,13 @@ function LinkForm({
             id={`${uid}-screenshot`}
             name="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
+            // Screenshots keep more detail so the AI can read the text.
+            onChange={shrinkOnPick({ maxSide: 3000, quality: 0.9, minBytes: 3_000_000 })}
             className="file-input"
           />
           <p className="field-hint">
             A screenshot of a text thread, post, or spreadsheet. Our AI reads it and pulls
-            out each car as a draft for you to review before it publishes. Max 10MB.
+            out each car as a draft for you to review before it publishes. Max 4MB.
           </p>
         </div>
       ) : (

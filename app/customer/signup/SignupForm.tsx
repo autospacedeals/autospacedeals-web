@@ -1,5 +1,6 @@
 "use client";
 
+import { shrinkOnPick } from "@/lib/shrink-image";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { MailCheck, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
@@ -155,6 +156,7 @@ export default function SignupForm() {
                 type="file"
                 name="driversLicense"
                 accept="image/*"
+                onChange={shrinkOnPick()}
                 className={fileInputClass}
               />
             </div>
@@ -167,6 +169,7 @@ export default function SignupForm() {
                 type="file"
                 name="insuranceCard"
                 accept="image/*"
+                onChange={shrinkOnPick()}
                 className={fileInputClass}
               />
             </div>

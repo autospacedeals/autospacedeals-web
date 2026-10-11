@@ -1,5 +1,6 @@
 "use client";
 
+import { shrinkOnPick } from "@/lib/shrink-image";
 import { useState } from "react";
 import { MapPin, Car, IdCard, ShieldCheck, Pencil, X, ExternalLink } from "lucide-react";
 import { updateCustomerProfileAction } from "./actions";
@@ -230,6 +231,7 @@ export default function ProfileEditor({
             type="file"
             name="driversLicense"
             accept="image/*"
+            onChange={shrinkOnPick()}
             className={fileInputClass}
           />
         </div>
@@ -242,6 +244,7 @@ export default function ProfileEditor({
             type="file"
             name="insuranceCard"
             accept="image/*"
+            onChange={shrinkOnPick()}
             className={fileInputClass}
           />
         </div>

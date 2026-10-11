@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      // Uploads through forms (license / insurance photos, inventory
+      // spreadsheets and screenshots). The default is 1MB; Vercel itself
+      // stops at 4.5MB. Photos are shrunk in the browser first
+      // (lib/shrink-image.ts); chat attachments go straight to storage.
+      bodySizeLimit: "4mb",
+    },
+  },
   async redirects() {
     return [
       // The old domain still points at this project; send every page to the

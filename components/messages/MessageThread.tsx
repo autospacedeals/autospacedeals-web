@@ -13,6 +13,7 @@ import { FileText, IdCard, Paperclip, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { prepareAttachmentUploadsAction, sendMessageAction, shareDocumentsAction } from "@/app/messages/actions";
 import type { MessageRow } from "@/lib/messages";
+import { shrinkImage } from "@/lib/shrink-image";
 import {
   ATTACHMENT_ACCEPT,
   ATTACHMENT_BUCKET,
@@ -31,25 +32,6 @@ type ViewerRole = "customer" | "broker" | "admin";
 
 const attachmentUrl = (messageId: string, index: number, download = false) =>
   `/api/messages/attachment?m=${messageId}&i=${index}${download ? "&download=1" : ""}`;
-
-// Big phone photos are shrunk before upload (longest side 2000px, JPEG).
-// Anything the browser can't decode (e.g. HEIC outside Safari) goes as is.
-async function shrinkPhoto(file: File): Promise<File> {
-  if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type) || file.size < 1_200_000) return file;
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-    if (!blob || blob.size >= file.size) return file;
-    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
-  } catch {
-    return file;
-  }
-}
 
 function Attachments({ message, onAccent }: { message: MessageRow; onAccent: boolean }) {
   const list = message.attachments ?? [];
@@ -193,7 +175,7 @@ export default function MessageThread({
 
   // Uploads the picked files straight to storage; returns their attachments.
   async function uploadFiles(): Promise<MessageAttachment[] | string> {
-    const ready = await Promise.all(files.map(shrinkPhoto));
+    const ready = await Promise.all(files.map((f) => shrinkImage(f, { minBytes: 1_200_000 })));
     const tooBig = ready.find((f) => f.size > MAX_ATTACHMENT_BYTES);
     if (tooBig) return `"${tooBig.name}" is over ${MAX_ATTACHMENT_BYTES / 1024 / 1024} MB.`;
     const prepared = await prepareAttachmentUploadsAction({

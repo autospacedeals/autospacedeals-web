@@ -224,8 +224,8 @@ export async function createSubmissionAction(
     if (!file || file.size === 0) {
       return { error: "Please choose a file to upload." };
     }
-    if (file.size > 10 * 1024 * 1024) {
-      return { error: "File is too large — please keep it under 10MB." };
+    if (file.size > 4 * 1024 * 1024) {
+      return { error: "File is too large — please keep it under 4MB." };
     }
 
     if (broker) {
@@ -341,8 +341,8 @@ export async function createSubmissionAction(
     if (!file || file.size === 0) {
       return { error: "Please choose a screenshot to upload." };
     }
-    if (file.size > 10 * 1024 * 1024) {
-      return { error: "Image is too large — please keep it under 10MB." };
+    if (file.size > 4 * 1024 * 1024) {
+      return { error: "Image is too large — please keep it under 4MB." };
     }
     if (!SUPPORTED_IMAGE_TYPES.includes(file.type as SupportedImageType)) {
       return { error: "Please upload a JPEG, PNG, WEBP, or GIF image." };
