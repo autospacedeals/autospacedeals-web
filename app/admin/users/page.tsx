@@ -12,6 +12,18 @@ function day(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "never";
 }
 
+// "Today, 3:42 PM" / "Yesterday" / "Oct 4, 2026" (Pacific time).
+function seen(iso: string | null): string {
+  if (!iso) return "never";
+  const d = new Date(iso);
+  const tz = "America/Los_Angeles";
+  const dayOf = (x: Date) => x.toLocaleDateString("en-US", { timeZone: tz });
+  const now = new Date();
+  if (dayOf(d) === dayOf(now)) return `Today, ${d.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" })}`;
+  if (dayOf(d) === dayOf(new Date(now.getTime() - 86400000))) return "Yesterday";
+  return d.toLocaleDateString("en-US", { timeZone: tz, month: "short", day: "numeric", year: "numeric" });
+}
+
 function Activity({ a }: { a: AdminAccount }) {
   const parts: string[] = [];
   if (a.kind === "broker") {
@@ -48,7 +60,7 @@ function AccountTable({ accounts, kind }: { accounts: AdminAccount[]; kind: Admi
             <th className="px-4 py-2.5 font-medium">Phone</th>
             <th className="px-4 py-2.5 font-medium">{kind === "broker" ? "Location" : "Zip"}</th>
             <th className="px-4 py-2.5 font-medium">Signed up</th>
-            <th className="px-4 py-2.5 font-medium">Last sign-in</th>
+            <th className="px-4 py-2.5 font-medium">Last on site</th>
             <th className="px-4 py-2.5 font-medium">Activity</th>
           </tr>
         </thead>
@@ -86,7 +98,7 @@ function AccountTable({ accounts, kind }: { accounts: AdminAccount[]; kind: Admi
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{a.location.replace(/^zip /, "")}</td>
               <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{day(a.signedUpAt)}</td>
-              <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{day(a.lastSignInAt)}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{seen(a.lastSeenAt)}</td>
               <td className="px-4 py-3">
                 <Activity a={a} />
               </td>

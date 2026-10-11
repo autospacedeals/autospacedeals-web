@@ -16,6 +16,9 @@ export interface AdminAccount {
   location: string; // "City, ST" (broker) or "zip 91401" (shopper)
   signedUpAt: string;
   lastSignInAt: string | null;
+  // Last time on the site: the latest of their last page view while signed
+  // in (account_activity, 0040) and their last sign-in.
+  lastSeenAt: string | null;
   emailConfirmed: boolean;
   via: "Google" | "Email";
   liveListings: number; // brokers
@@ -65,7 +68,7 @@ function countBy<T>(rows: T[] | null, key: (row: T) => string | null): Map<strin
 
 export async function listAccounts(): Promise<AdminAccount[]> {
   const admin = createAdminClient();
-  const [admins, users, brokers, customers, deals, conversations, saved, searches] = await Promise.all([
+  const [admins, users, brokers, customers, deals, conversations, saved, searches, activity] = await Promise.all([
     adminEmails(),
     allAuthUsers(),
     admin
@@ -76,7 +79,11 @@ export async function listAccounts(): Promise<AdminAccount[]> {
     admin.from("conversations").select("customer_id, broker_id"),
     admin.from("saved_deals").select("customer_id"),
     admin.from("saved_searches").select("customer_id"),
+    admin.from("account_activity").select("user_id, last_seen_at"),
   ]);
+  const seenAt = new Map(
+    ((activity.data ?? []) as { user_id: string; last_seen_at: string }[]).map((a) => [a.user_id, a.last_seen_at])
+  );
 
   type BrokerRow = {
     id: string;
@@ -111,6 +118,7 @@ export async function listAccounts(): Promise<AdminAccount[]> {
         email: u.email ?? "",
         signedUpAt: u.created_at,
         lastSignInAt: u.last_sign_in_at ?? null,
+        lastSeenAt: [seenAt.get(u.id), u.last_sign_in_at].filter((d): d is string => Boolean(d)).sort().pop() ?? null,
         emailConfirmed: Boolean(u.email_confirmed_at),
         via: (u.app_metadata?.providers ?? []).includes("google") ? ("Google" as const) : ("Email" as const),
         liveListings: live.get(u.id) ?? 0,

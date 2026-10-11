@@ -4,6 +4,7 @@ import "./globals.css";
 import { type HeaderAccount } from "@/components/SiteHeader";
 import SiteChrome from "@/components/SiteChrome";
 import VisitTracker from "@/components/VisitTracker";
+import SeenPing from "@/components/SeenPing";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
@@ -110,6 +111,7 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col bg-canvas font-sans text-fg">
         <SiteChrome account={account}>{children}</SiteChrome>
         <VisitTracker />
+        {account && <SeenPing />}
       </body>
     </html>
   );
