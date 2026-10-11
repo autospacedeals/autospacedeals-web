@@ -618,9 +618,19 @@ export function byBrokerFee(a: Deal, b: Deal): number {
   return feeOf(a) - feeOf(b);
 }
 
+// Which of several sellers tied on the lowest fee leads a grouped card:
+// takes turns by day (UTC, so the server and browser agree), offset per
+// deal so the grid isn't all one seller on any given day.
+function rotationPick(key: string, count: number): number {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  const day = Math.floor(Date.now() / 86_400_000);
+  return (Math.abs(hash) + day) % count;
+}
+
 // One entry per deal, in list order: listings that are the same deal from
 // different sellers are grouped, shown by the one with the lowest broker
-// fee (the earlier one on a tie). A seller's own repeats stay separate.
+// fee (sellers tied on it take turns). A seller's own repeats stay separate.
 export function groupSameDeals(deals: Deal[]): { deal: Deal; others: Deal[] }[] {
   const groups: { deal: Deal; others: Deal[] }[] = [];
   const byKey = new Map<string, { deal: Deal; others: Deal[] }[]>();
@@ -639,9 +649,12 @@ export function groupSameDeals(deals: Deal[]): { deal: Deal; others: Deal[] }[] 
   }
   for (const g of groups) {
     if (g.others.length === 0) continue;
-    const [first, ...rest] = [g.deal, ...g.others].sort(byBrokerFee);
-    g.deal = first;
-    g.others = rest;
+    const sellerOf = (d: Deal) => d.brokerId ?? d.sellerName;
+    const all = [g.deal, ...g.others].sort((a, b) => byBrokerFee(a, b) || sellerOf(a).localeCompare(sellerOf(b)));
+    const tied = all.filter((d) => feeOf(d) === feeOf(all[0])).length;
+    const lead = all[tied > 1 ? rotationPick(sameDealKey(all[0]), tied) : 0];
+    g.deal = lead;
+    g.others = all.filter((d) => d !== lead);
   }
   return groups;
 }
