@@ -6,6 +6,7 @@ import SiteFooter from "./SiteFooter";
 import BrokerHeader from "./BrokerHeader";
 import BrokerFooter from "./BrokerFooter";
 import { CustomerSessionProvider } from "./CustomerSession";
+import { TaxRateProvider } from "./TaxRate";
 
 // The broker/dealer portal (/broker/*) is intentionally not linked from the
 // consumer site anymore — it gets its own minimal header/footer instead of
@@ -35,6 +36,7 @@ export default function SiteChrome({
       enabled={!isPortalRoute}
       accountKey={account ? `${account.href}|${account.label}` : null}
     >
+      <TaxRateProvider>
       {isPortalRoute ? (
         <>
           <BrokerHeader />
@@ -48,6 +50,7 @@ export default function SiteChrome({
           <SiteFooter />
         </>
       )}
+      </TaxRateProvider>
     </CustomerSessionProvider>
   );
 }

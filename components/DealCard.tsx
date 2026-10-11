@@ -8,6 +8,7 @@
 "use client";
 
 import { deliveryLabel } from "@/lib/deal-location";
+import { CardTaxLine } from "@/components/TaxRate";
 import { useId } from "react";
 import Link from "next/link";
 import { MapPin, ArrowRight, Store, CircleAlert } from "lucide-react";
@@ -164,6 +165,8 @@ export default function DealCard({
                 </span>
               )}
             </p>
+            {/* With the signed-in shopper's sales tax (California ZIPs). */}
+            <CardTaxLine deal={deal} />
             {/* The vehicle's total price, when the seller gives it (required on
                 dealership listings by California's CARS Act). */}
             {deal.sellingPrice != null && (

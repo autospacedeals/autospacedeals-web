@@ -33,6 +33,7 @@ import DealCard, { BADGE_STYLES } from "@/components/DealCard";
 import { RatingBadge } from "@/components/StarRating";
 import SaveDealButton from "@/components/SaveDealButton";
 import DealBackLinks from "@/components/DealBackLinks";
+import { DealTaxBox } from "@/components/TaxRate";
 import type { BrokerRatingSummary } from "@/lib/supabase/reviews";
 
 // Up to two initials for the seller avatar in the contact card. Guarded like
@@ -336,6 +337,8 @@ export default function DealDetailView({
                 {formatTerm(deal.term)}
                 {deal.milesPerYear ? ` · ${formatMileage(deal.milesPerYear)}` : ""}
               </p>
+              {/* With the signed-in shopper's sales tax (California ZIPs). */}
+              <DealTaxBox deal={deal} />
               {deal.sellingPrice != null && (
                 <p className="mt-1.5 text-sm text-fg-secondary">
                   {TOTAL_PRICE_LABEL} <strong className="font-semibold text-fg">{formatCurrency(deal.sellingPrice)}</strong>

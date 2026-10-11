@@ -24,6 +24,7 @@ import HeroDealsCarousel from "@/components/HeroDealsCarousel";
 import CompareModal from "@/components/CompareModal";
 import FilterPanel from "@/components/FilterPanel";
 import SortBar from "@/components/SortBar";
+import { TaxZipBar } from "@/components/TaxRate";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import {
   LAST_SEARCH_KEY,
@@ -407,6 +408,7 @@ export default function HomeClient({
             )}
             <div className="flex flex-wrap items-center gap-3 border-b border-line pb-4">
               <SortBar sortBy={sortBy} onSortChange={setSortBy} resultCount={grouped.length} />
+              <TaxZipBar className="w-full" />
             </div>
 
             {/* Small screens, filters collapsed: the panel's Save button is
