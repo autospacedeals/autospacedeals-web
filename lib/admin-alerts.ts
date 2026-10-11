@@ -306,3 +306,43 @@ export async function alertAdminsSheetIssues(a: SheetIssuesAlert): Promise<void>
     console.error("sheet-issues alert threw:", err);
   }
 }
+
+// A seller hit the listing assistant's daily cap and asked for more
+// (0042_listing_assistant_requests.sql) — approve or deny on Admin → Users.
+export async function alertAdminsAssistantRequest(a: {
+  businessName: string;
+  used: number;
+  recentMessages: string[];
+}): Promise<void> {
+  if (!isEmailConfigured()) return;
+  try {
+    const recipients = [...(await adminEmails())];
+    const usersUrl = `${SITE_URL}/admin/users#assistant-requests`;
+    const recent = a.recentMessages.slice(0, 5);
+    const html = emailLayoutHtml({
+      preheader: `${a.businessName} used all their listing assistant messages today and asked for more.`,
+      heading: "More assistant messages requested",
+      bodyHtml: `<p style="margin:0 0 12px 0;"><strong>${escapeHtml(a.businessName)}</strong> sent ${a.used} messages to the listing assistant in the last 24 hours and asked for more.</p>
+${
+  recent.length
+    ? `<p style="margin:0 0 6px 0;"><strong>Their latest messages:</strong></p>${recent
+        .map((m) => `<p style="margin:0 0 6px 0;">&ldquo;${escapeHtml(m)}&rdquo;</p>`)
+        .join("")}`
+    : ""
+}
+<p style="margin:12px 0 0 0;"><a href="${usersUrl}">Approve or deny on Admin → Users</a></p>`,
+      footerHtml: "You're getting this because you're a Drive admin.",
+    });
+    const text = `${a.businessName} sent ${a.used} messages to the listing assistant in the last 24 hours and asked for more.\n\n${recent
+      .map((m) => `"${m}"`)
+      .join("\n")}\n\nApprove or deny: ${usersUrl}`;
+    await Promise.all(
+      recipients.map(async (to) => {
+        const sent = await sendEmail({ to, subject: `More assistant messages requested: ${a.businessName}`, html, text });
+        if (!sent.ok) console.error(`assistant-request alert to ${to} failed:`, sent.error);
+      })
+    );
+  } catch (err) {
+    console.error("assistant-request alert threw:", err);
+  }
+}

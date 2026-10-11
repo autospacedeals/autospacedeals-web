@@ -20,6 +20,8 @@ import MyListings from "./MyListings";
 import RemovedListings from "./RemovedListings";
 import AboutEditor from "./AboutEditor";
 import SheetSyncManager, { type SheetSync } from "./SheetSyncManager";
+import ListingAssistant from "./ListingAssistant";
+import { loadAssistantState } from "@/lib/listing-assistant-store";
 
 // Always fetch fresh so the broker's own edits (price changes, drafts
 // confirmed, listings removed) show up immediately, not from a stale cache.
@@ -148,7 +150,7 @@ export default async function BrokerDashboardPage() {
   // the public API (0024_messaging.sql), so the broker's own come from the
   // server side.
   const smsAvailable = isSmsConfigured();
-  const [{ data: privateProfile }, { data: conversations }, { data: sms }] = await Promise.all([
+  const [{ data: privateProfile }, { data: conversations }, { data: sms }, assistant] = await Promise.all([
     createAdminClient()
       .from("brokers")
       .select("contact_phone, message_emails, approved_at")
@@ -158,6 +160,7 @@ export default async function BrokerDashboardPage() {
     smsAvailable
       ? supabase.from("sms_settings").select("phone, enabled").eq("user_id", user.id).maybeSingle<{ phone: string | null; enabled: boolean }>()
       : Promise.resolve({ data: null }),
+    loadAssistantState(user.id),
   ]);
   const unreadMessages = (conversations ?? []).filter((c) => isUnreadFor("broker", c)).length;
   const unverifiedSeller = Boolean(privateProfile && !privateProfile.approved_at);
@@ -223,6 +226,15 @@ export default async function BrokerDashboardPage() {
         <div id="pending-drafts" className="mt-8">
           <DraftConfirmList drafts={pendingDrafts} />
         </div>
+      )}
+
+      {assistant.available && (
+        <ListingAssistant
+          initialMessages={assistant.messages}
+          rules={assistant.rules}
+          disclaimerMakes={assistant.disclaimerMakes}
+          initialUsage={assistant.usage}
+        />
       )}
 
       {sheetSyncs.length > 0 ? (

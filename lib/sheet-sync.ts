@@ -20,6 +20,7 @@ import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { normalizeModelTrim, splitProgramsFromTrim } from "@/lib/vehicle-names";
 import { alertAdminsFirstListing, alertAdminsSheetIssues } from "@/lib/admin-alerts";
+import { getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
 
 export interface SheetSyncRow {
   id: string;
@@ -244,6 +245,7 @@ export async function runSheetSync(
   const { toInsert, toUpdate, toRemoveIds, matched } = planSheetSync(parsedDeals, activeRows);
 
   let updatedCount = 0;
+  const extras = toUpdate.length > 0 ? await getDealExtras(sync.broker_id) : null;
   for (const { id, deal: d } of toUpdate) {
     const { error: updateError } = await supabase
       .from("deals")
@@ -263,6 +265,9 @@ export async function runSheetSync(
         one_pay: d.onePay,
         match_signature: computeMatchSignature(d),
         sheet_tab: d.sheetTab ?? null,
+        // The seller's standing rules win over the sheet (e.g. a fee they
+        // told the listing assistant).
+        ...(extras ? ruleColumns(d, extras) : {}),
         updated_at: nowIso,
       })
       .eq("id", id);

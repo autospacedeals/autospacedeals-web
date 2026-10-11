@@ -9,7 +9,7 @@ import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
 import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
 import { mapLimit } from "@/lib/concurrency";
-import { applyDealExtras, getDealExtras } from "@/lib/deal-disclaimers";
+import { applyDealExtras, getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
 
 export interface BrokerProfile {
   business_name: string;
@@ -114,8 +114,10 @@ export async function stageParsedDeals(
       photo_auto_sourced: true,
       in_stock: true,
       popularity: 50,
-      // notes + incentives, with the broker's standing extras
+      // notes + incentives, and any fee/condition/delivery the broker's
+      // standing rules set
       ...applyDealExtras(d, extras),
+      ...ruleColumns(d, extras),
       images,
       one_pay: d.onePay,
       // A dealership listing can't go live without its total price

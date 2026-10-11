@@ -690,7 +690,7 @@ export async function createManualDealAction(
   }
 
   // The broker's standing extras (incentive rules, disclosures) by make.
-  const extras = applyDealExtras({ make, model, trim, notes, incentives }, await getDealExtras(user.id));
+  const extras = applyDealExtras({ year, make, model, trim, notes, incentives }, await getDealExtras(user.id));
 
   const slug = slugify([year, make, model, trim ?? "", location.state]);
 

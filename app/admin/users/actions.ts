@@ -8,6 +8,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/server";
 import { emailSellerApproved } from "@/lib/seller-verification";
+import { emailLayoutHtml, escapeHtml, isEmailConfigured, sendEmail } from "@/lib/email";
+import { SITE_URL } from "@/lib/site";
 
 export async function approveSellerAction(formData: FormData): Promise<void> {
   await requireAdmin("/admin/users");
@@ -42,4 +44,64 @@ export async function approveSellerAction(formData: FormData): Promise<void> {
 
   revalidatePath("/admin/users");
   revalidatePath("/");
+}
+
+// A seller's request for more listing assistant messages
+// (0042_listing_assistant_requests.sql). Approving adds the request's extra
+// messages for the next 24 hours and emails them.
+export async function decideAssistantRequestAction(formData: FormData): Promise<void> {
+  await requireAdmin("/admin/users");
+  const id = String(formData.get("requestId") ?? "");
+  const approve = formData.get("decision") === "approve";
+  if (!id) return;
+
+  const admin = createAdminClient();
+  const { data: request, error } = await admin
+    .from("listing_assistant_requests")
+    .update({ status: approve ? "approved" : "denied", decided_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "pending")
+    .select("broker_id, extra")
+    .maybeSingle<{ broker_id: string; extra: number }>();
+  if (error) {
+    console.error("decideAssistantRequest failed:", error.message);
+    return;
+  }
+  if (!request) return; // already decided
+
+  if (approve) {
+    const [{ data: broker }, { data: user }] = await Promise.all([
+      admin
+        .from("brokers")
+        .select("contact_name, business_name")
+        .eq("id", request.broker_id)
+        .maybeSingle<{ contact_name: string | null; business_name: string }>(),
+      admin.auth.admin.getUserById(request.broker_id),
+    ]);
+    const to = user.user?.email ?? "";
+    const name = broker?.contact_name || broker?.business_name || "there";
+    after(() => emailAssistantApproved(to, name, request.extra));
+  }
+  revalidatePath("/admin/users");
+  revalidatePath("/broker/dashboard");
+}
+
+async function emailAssistantApproved(to: string, name: string, extra: number): Promise<void> {
+  if (!isEmailConfigured() || !to) return;
+  try {
+    const url = `${SITE_URL}/broker/dashboard#assistant`;
+    const line = `You can send the listing assistant ${extra} more messages over the next 24 hours.`;
+    const html = emailLayoutHtml({
+      preheader: line,
+      heading: "More assistant messages",
+      bodyHtml:
+        `<p style="margin:0 0 12px 0;">Hi ${escapeHtml(name)}, ${escapeHtml(line)}</p>` +
+        `<p style="margin:0;"><a href="${url}">Open the listing assistant</a></p>`,
+      footerHtml: "You're getting this because you asked for more listing assistant messages on Drive.",
+    });
+    const sent = await sendEmail({ to, subject: "Your listing assistant request is approved", html, text: `Hi ${name}, ${line}\n\n${url}` });
+    if (!sent.ok) console.error("assistant-approved email failed:", sent.error);
+  } catch (err) {
+    console.error("assistant-approved email threw:", err);
+  }
 }

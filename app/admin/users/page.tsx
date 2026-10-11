@@ -3,7 +3,8 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { listAccounts, type AdminAccount } from "@/lib/admin-data";
 import { DMV_LICENSE_LOOKUP_URL, verificationSteps } from "@/lib/seller-verification";
-import { approveSellerAction } from "./actions";
+import { approveSellerAction, decideAssistantRequestAction } from "./actions";
+import { listPendingAssistantRequests, type PendingAssistantRequest } from "@/lib/listing-assistant-store";
 
 export const metadata: Metadata = { title: "Users", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -152,11 +153,45 @@ function PendingSellers({ sellers }: { sellers: AdminAccount[] }) {
   );
 }
 
+// Sellers out of listing assistant messages for the day who asked for more.
+function AssistantRequests({ requests }: { requests: PendingAssistantRequest[] }) {
+  return (
+    <div className="space-y-3">
+      {requests.map((r) => (
+        <div key={r.id} className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 text-sm">
+            <p className="font-medium text-fg">{r.businessName}</p>
+            <p className="mt-1 text-fg-muted">
+              {`Asked ${seen(r.createdAt)} · ${r.usedToday} message${r.usedToday === 1 ? "" : "s"} in the last 24 hours`}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <form action={decideAssistantRequestAction}>
+              <input type="hidden" name="requestId" value={r.id} />
+              <input type="hidden" name="decision" value="deny" />
+              <button type="submit" className="btn btn-secondary btn-sm">
+                Deny
+              </button>
+            </form>
+            <form action={decideAssistantRequestAction}>
+              <input type="hidden" name="requestId" value={r.id} />
+              <input type="hidden" name="decision" value="approve" />
+              <button type="submit" className="btn btn-primary btn-sm">
+                Approve 40 more
+              </button>
+            </form>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Every account on the site — brokers, shoppers, and sign-ups that never
 // finished a profile — with contact details and what they've done.
 export default async function AdminUsersPage() {
   await requireAdmin("/admin/users");
-  const accounts = await listAccounts();
+  const [accounts, assistantRequests] = await Promise.all([listAccounts(), listPendingAssistantRequests()]);
   const brokers = accounts.filter((a) => a.kind === "broker");
   const pending = brokers.filter((a) => !a.approvedAt);
   const shoppers = accounts.filter((a) => a.kind === "shopper");
@@ -178,6 +213,17 @@ export default async function AdminUsersPage() {
             public.
           </p>
           <PendingSellers sellers={pending} />
+        </section>
+      )}
+
+      {assistantRequests.length > 0 && (
+        <section id="assistant-requests" className="mt-8">
+          <h2 className="type-title mb-1">Listing assistant requests ({assistantRequests.length})</h2>
+          <p className="mb-3 text-sm text-fg-muted">
+            They used all their assistant messages for the day. Approving gives them 40 more for the next 24 hours and
+            emails them.
+          </p>
+          <AssistantRequests requests={assistantRequests} />
         </section>
       )}
 
