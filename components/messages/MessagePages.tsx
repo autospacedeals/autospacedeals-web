@@ -118,7 +118,7 @@ export async function ConversationPage({
   if (viewer === "customer" && c.customer_id !== userId) notFound();
   if (viewer === "broker" && c.broker_id !== userId) notFound();
 
-  const [{ data: messages }, names, { data: deal }, { data: lead }] = await Promise.all([
+  const [{ data: messages }, names, { data: deal }, { data: lead }, { data: docs }] = await Promise.all([
     supabase
       .from("messages")
       .select(MESSAGE_COLUMNS)
@@ -139,6 +139,14 @@ export async function ConversationPage({
     viewer === "customer" || !OUTCOMES_ENABLED
       ? Promise.resolve({ data: null })
       : createAdminClient().from("conversations").select("outcome").eq("id", c.id).maybeSingle<{ outcome: string | null }>(),
+    // A shopper's documents they can send the seller from the chat.
+    viewer === "customer" && userId
+      ? supabase
+          .from("customers")
+          .select("drivers_license_path, insurance_card_path")
+          .eq("id", userId)
+          .maybeSingle<{ drivers_license_path: string | null; insurance_card_path: string | null }>()
+      : Promise.resolve({ data: null }),
   ]);
   const customer = names.customers.get(c.customer_id) ?? "Shopper";
   const broker = names.brokers.get(c.broker_id) ?? "Seller";
@@ -177,6 +185,10 @@ export async function ConversationPage({
           <MessageThread
             conversationId={c.id}
             viewerRole={viewer}
+            shareableDocs={[
+              ...(docs?.drivers_license_path ? (["license"] as const) : []),
+              ...(docs?.insurance_card_path ? (["insurance"] as const) : []),
+            ]}
             names={{ customer, broker }}
             initialMessages={messages ?? []}
             initialDraft={

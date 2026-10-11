@@ -5,6 +5,7 @@
 // Who's who: a "customer" is an account with a customers row, a "broker"
 // one with a brokers row. Conversations are always shopper ↔ broker about
 // one listing; Drive's admin can read every conversation but never posts.
+import type { MessageAttachment } from "@/lib/message-attachments";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
@@ -23,6 +24,8 @@ export interface MessageRow {
   body: string;
   channel: string;
   created_at: string;
+  // Photos and documents (0043); [] for text-only messages.
+  attachments?: MessageAttachment[];
 }
 
 export interface ConversationRow {
@@ -45,7 +48,7 @@ export const CONVERSATION_COLUMNS =
   "id, customer_id, broker_id, deal_id, deal_label, created_at, last_message_at, last_message_preview, " +
   "last_sender_role, customer_last_read_at, broker_last_read_at, customer_notified_at, broker_notified_at";
 
-export const MESSAGE_COLUMNS = "id, conversation_id, sender_id, sender_role, body, channel, created_at";
+export const MESSAGE_COLUMNS = "id, conversation_id, sender_id, sender_role, body, channel, created_at, attachments";
 
 // Where each side reads a conversation.
 export function conversationPath(role: MessageRole | "admin", id: string): string {

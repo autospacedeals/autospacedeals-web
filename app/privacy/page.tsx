@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "October 4, 2026";
+const LAST_UPDATED = "October 11, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -76,8 +76,10 @@ export default function PrivacyPolicyPage() {
             <p>
               <strong>Messages.</strong> Shoppers and dealers/brokers talk to
               each other through {SITE_NAME}&apos;s messaging. We store every message (who sent it,
-              when, and what it says) so there&apos;s a record of each conversation, and we may
-              review conversations to resolve disputes, prevent fraud or abuse, and keep the
+              when, and what it says), including any photos or files attached to it, so there&apos;s a
+              record of each conversation. If you share your driver&apos;s license or insurance card in
+              a conversation, a copy goes to that seller only, and it stays in the conversation even
+              if you later change the one on your account. We may review conversations to resolve disputes, prevent fraud or abuse, and keep the
               marketplace working well. Only the two people in a conversation and {SITE_NAME} can
               read it (at {SITE_NAME}, that means a small number of team members with admin
               access). If you turn on message emails, we also email you new messages. If you email
@@ -136,8 +138,9 @@ export default function PrivacyPolicyPage() {
             <p>
               Driver&apos;s license and insurance/AAA card photos, if you choose to upload them,
               are &quot;sensitive personal information&quot; under California law. We use them only
-              to help verify who you are; they&apos;re stored privately, aren&apos;t shared with
-              dealers/brokers or shown publicly, and aren&apos;t used to infer anything about you.
+              to help verify who you are, and to send to a dealer/broker when you choose to share
+              them in a conversation; they&apos;re stored privately, aren&apos;t shown publicly or
+              shared with anyone else, and aren&apos;t used to infer anything about you.
               Your account password is handled by our authentication provider and we never see it.
             </p>
           </Section>
