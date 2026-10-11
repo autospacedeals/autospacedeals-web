@@ -57,11 +57,11 @@ export async function stageParsedDeals(
   // One photo lookup per distinct car (a big sheet repeats the same model
   // many times), a few at a time so CarsXE doesn't start refusing them.
   const photos = new Map<string, Promise<string | null>>();
-  const photoFor = (d: ParsedDeal) => {
+  const photoFor = (d: ParsedDeal, bodyStyle: string | null) => {
     const key = [d.year, d.make, d.model, d.trim ?? "", d.exterior ?? ""].join("|").toLowerCase();
     let photo = photos.get(key);
     if (!photo) {
-      photo = fetchCarsxePhoto({ year: d.year, make: d.make, model: d.model, trim: d.trim ?? undefined, color: d.exterior });
+      photo = fetchCarsxePhoto({ year: d.year, make: d.make, model: d.model, trim: d.trim ?? undefined, color: d.exterior, bodyStyle });
       photos.set(key, photo);
     }
     return photo;
@@ -69,7 +69,7 @@ export async function stageParsedDeals(
 
   await mapLimit(deals, 4, async (d, i) => {
     let images: string[] = [];
-    const photo = await photoFor(d);
+    const photo = await photoFor(d, classes[i]?.bodyStyle ?? null);
     if (photo) images = [photo];
 
     const slug = slugify([d.year, d.make, d.model, d.trim ?? "", broker.state]);

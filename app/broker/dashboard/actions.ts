@@ -685,7 +685,7 @@ export async function createManualDealAction(
 
   const photoAutoSourced = images.length === 0;
   if (images.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior, bodyStyle });
     if (photo) images = [photo];
   }
 
@@ -831,7 +831,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   let finalImages = images;
   const photoAutoSourced = images.length === 0;
   if (finalImages.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior, bodyStyle });
     if (photo) finalImages = [photo];
   }
 
@@ -1088,7 +1088,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   let finalImages = images;
   const photoAutoSourced = images.length === 0;
   if (finalImages.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior, bodyStyle });
     if (photo) finalImages = [photo];
   }
 

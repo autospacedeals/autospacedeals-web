@@ -18,6 +18,9 @@ export interface CarPhotoCheck {
   // Whether it shows the right car (make and model, any trim or color):
   // null when the check couldn't run.
   matches: boolean | null;
+  // On a plain studio background (no dealership, showroom or lot behind
+  // it): null when the check couldn't run.
+  clean: boolean | null;
 }
 
 async function smallJpeg(image: Buffer): Promise<string> {
@@ -75,15 +78,15 @@ export async function classifyCarView(image: Buffer): Promise<CarView> {
 export async function photoMatchesCar(
   image: Buffer,
   car: { year: number; make: string; model: string }
-): Promise<boolean | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
+): Promise<{ matches: boolean | null; clean: boolean | null }> {
+  if (!process.env.ANTHROPIC_API_KEY) return { matches: null, clean: null };
   try {
     // Asked alongside the view (the wording that tested most accurate);
     // only the second word, the yes/no, is used.
     const line = await ask(
       MATCH_MODEL,
       await smallJpeg(image),
-      "Answer with exactly two words separated by a space.\n" +
+      "Answer with exactly three words separated by spaces.\n" +
         "Word 1, which view of the car this is: front-left (front three-quarter: the grille and both " +
         "headlights are clearly visible along with the side, nose toward the left of the image), " +
         "front-right (the same but nose toward the right), rear (any rear or rear three-quarter view), " +
@@ -92,15 +95,21 @@ export async function photoMatchesCar(
         `Word 2: is the main car a ${car.make} ${car.model} (any trim or color, model years ` +
         `${car.year - 2} to ${car.year})? yes or no. Answer no if it's a different model, including a ` +
         "different size or body of a model with a similar name (for example a full-size Range Rover is " +
-        "not a Range Rover Sport).",
+        "not a Range Rover Sport).\n" +
+        "Word 3: clean if the car is on a plain studio background (white, light gray or transparent, " +
+        "maybe a floor shadow), scene if there's a dealership, building, showroom, parking lot, street, " +
+        "people or other cars behind it.",
       // A quick look, not a reasoned answer: thinking would use up the budget.
       { thinking: { type: "disabled" } }
     );
-    const answer = line.split(/\s+/)[1] ?? "";
-    return answer.startsWith("yes") ? true : answer.startsWith("no") ? false : null;
+    const [, answer = "", background = ""] = line.split(/\s+/);
+    return {
+      matches: answer.startsWith("yes") ? true : answer.startsWith("no") ? false : null,
+      clean: background.startsWith("clean") ? true : background.startsWith("scene") ? false : null,
+    };
   } catch (err) {
     console.error("photoMatchesCar failed:", err instanceof Error ? err.message : err);
-    return null;
+    return { matches: null, clean: null };
   }
 }
 
@@ -108,6 +117,6 @@ export async function inspectCarPhoto(
   image: Buffer,
   car: { year: number; make: string; model: string }
 ): Promise<CarPhotoCheck> {
-  const [view, matches] = await Promise.all([classifyCarView(image), photoMatchesCar(image, car)]);
-  return { view, matches };
+  const [view, { matches, clean }] = await Promise.all([classifyCarView(image), photoMatchesCar(image, car)]);
+  return { view, matches, clean };
 }

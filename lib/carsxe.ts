@@ -21,6 +21,47 @@ interface PhotoQuery {
   // The listing's exterior color as the broker wrote it ("Chalk", "Onyx
   // Black"), or null/undefined/"" when not given.
   color?: string | null;
+  // "SUV", "Sedan", "Truck"... when known, so a manufacturer render can be
+  // found without guessing.
+  bodyStyle?: string | null;
+}
+
+// Dealer.com serves manufacturer renders — white background, front
+// three-quarter view with the nose to the left — at a predictable address
+// per year/make/model/body. Free to check, so it's tried before a metered
+// CarsXE lookup; covers new models Chrome Data doesn't have yet.
+const RENDER_BODIES: Record<string, string> = { SUV: "SUV", Sedan: "Sedan", Truck: "Truck", Hatchback: "Hatchback", Minivan: "Van", Coupe: "Coupe", Convertible: "Convertible", Wagon: "Wagon" };
+// Variants usually shown with the regular model's render.
+const VARIANT_SUFFIX = /\s+(plug-in hybrid|plug-in|phev|hybrid|n line)$/i;
+
+function renderUrl(year: number, make: string, model: string, body: string): string {
+  const seg = (s: string) => encodeURIComponent(s);
+  return `https://images.dealer.com/ddc/vehicles/${year}/${seg(make)}/${seg(model)}/${body}/still/front-left/front-left-640-en_US.jpg`;
+}
+
+async function findRender(params: PhotoQuery): Promise<string | null> {
+  const models = [params.model];
+  for (let m = params.model; VARIANT_SUFFIX.test(m); ) {
+    m = m.replace(VARIANT_SUFFIX, "");
+    models.push(m);
+  }
+  const preferred = params.bodyStyle ? RENDER_BODIES[params.bodyStyle] : undefined;
+  const bodies = [...new Set([preferred, "SUV", "Sedan", "Truck", "Hatchback", "Van", "Coupe"].filter((b): b is string => Boolean(b)))];
+  // This model year first; last year's (usually the same body) only if this year has none.
+  for (const year of [params.year, params.year - 1]) {
+    for (const model of models) {
+      for (const body of bodies) {
+        const url = renderUrl(year, params.make, model, body);
+        try {
+          const res = await fetch(url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(5000) });
+          if (res.ok && (res.headers.get("content-type") ?? "").startsWith("image/")) return url;
+        } catch {
+          // try the next one
+        }
+      }
+    }
+  }
+  return null;
 }
 
 // Chrome Data stock renders: served from their own CDN, J.D. Power's copy of
@@ -32,6 +73,8 @@ export function isStudioPhoto(url: string): boolean {
     if (u.hostname === "media.chromedata.com") return true;
     if (u.hostname === "cdn.jdpower.com") return u.pathname.startsWith("/ChromeImageGallery/");
     if (u.hostname === "platform.cstatic-images.com") return u.pathname.includes("/stock_photos/");
+    // Dealer.com's manufacturer renders (not a dealer's own lot photos).
+    if (u.hostname === "images.dealer.com") return u.pathname.startsWith("/ddc/vehicles/");
     return u.hostname === "vehicle-images.carscommerce.inc" && u.pathname.startsWith("/stock-images/chrome/");
   } catch {
     return false;
@@ -71,6 +114,19 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
     return url;
   };
 
+  // A manufacturer render, when there is one and it's the right car.
+  const render = await findRender(params);
+  if (render) {
+    const image = await downloadImage(render);
+    if (image) {
+      const { matches } = await inspectCarPhoto(image, params);
+      if (matches !== false) {
+        const url = await keep({ image, flop: false, color: null });
+        if (url) return url;
+      }
+    }
+  }
+
   // This model year first; the year before (usually the same body) only if
   // this one has no front-left studio shot.
   const tries = [
@@ -95,23 +151,31 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
   const best = mirrored ?? anyStudio;
   if (best) return keep(best);
   // No studio photo anywhere: a non-studio photo that's checked to be the
-  // right car, from the outside. It's copied to our storage (so it can't
+  // right car, from the outside, preferring a plain background over a
+  // dealership or lot behind it. It's copied to our storage (so it can't
   // break if the other site moves it), but not as the library photo, so a
   // later lookup can still find a studio one.
-  let backup: { url: string; image: Buffer; flop: boolean } | null = null;
+  type Backup = { url: string; image: Buffer; flop: boolean };
+  let cleanBackup: Backup | null = null;
+  let sceneBackup: Backup | null = null;
   for (const url of fallbacks.slice(0, MAX_FALLBACK_CHECKS)) {
     const image = await downloadImage(url);
     if (!image) continue;
-    const { view, matches } = await inspectCarPhoto(image, params);
+    const { view, matches, clean } = await inspectCarPhoto(image, params);
     if (matches !== true || view === "rear" || view === "other") continue;
-    if (view === "front-left" || view === "unknown") return saveFallbackImage({ ...params, color }, url, image);
-    backup ??= { url, image, flop: view === "front-right" };
+    const pick = { url, image, flop: view === "front-right" };
+    if (clean !== false && (view === "front-left" || view === "unknown")) {
+      return saveFallbackImage({ ...params, color }, url, image);
+    }
+    if (clean !== false) cleanBackup ??= pick;
+    else sceneBackup ??= pick;
   }
+  const backup = cleanBackup ?? sceneBackup;
   return backup ? saveFallbackImage({ ...params, color }, backup.url, backup.image, { flop: backup.flop }) : null;
 }
 
 // Non-studio photos checked per car before giving up (each is a small AI call).
-const MAX_FALLBACK_CHECKS = 8;
+const MAX_FALLBACK_CHECKS = 12;
 
 // Every exterior photo CarsXE has for the vehicle, studio photos first (the
 // listing's color, then any color) — the "Re-pull photo" button steps

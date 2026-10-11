@@ -175,7 +175,7 @@ export async function stageDealDraftAction(
 
   const photoAutoSourced = images.length === 0;
   if (images.length === 0) {
-    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior });
+    const photo = await fetchCarsxePhoto({ year, make, model, trim: trim ?? undefined, color: exterior, bodyStyle });
     if (photo) images = [photo];
   }
 
