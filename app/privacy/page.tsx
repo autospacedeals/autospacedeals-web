@@ -76,10 +76,12 @@ export default function PrivacyPolicyPage() {
             <p>
               <strong>Messages.</strong> Shoppers and dealers/brokers talk to
               each other through {SITE_NAME}&apos;s messaging. We store every message (who sent it,
-              when, and what it says), including any photos or files attached to it, so there&apos;s a
-              record of each conversation. If you share your driver&apos;s license or insurance card in
-              a conversation, a copy goes to that seller only, and it stays in the conversation even
-              if you later change the one on your account. We may review conversations to resolve disputes, prevent fraud or abuse, and keep the
+              when, and what it says) so there&apos;s a record of each conversation. Photos and files
+              sent in a conversation are kept only briefly: each one is deleted 15 minutes after the
+              person it was sent to first opens it, or a week after it was sent if they never do. If
+              you share your driver&apos;s license or insurance card in a conversation, a copy goes to
+              that seller only and is deleted the same way (the one on your account isn&apos;t
+              affected). We may review conversations to resolve disputes, prevent fraud or abuse, and keep the
               marketplace working well. Only the two people in a conversation and {SITE_NAME} can
               read it (at {SITE_NAME}, that means a small number of team members with admin
               access). If you turn on message emails, we also email you new messages. If you email

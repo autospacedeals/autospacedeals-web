@@ -9,7 +9,7 @@
 // documents on their account.
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { FileText, IdCard, Paperclip, Send, X } from "lucide-react";
+import { FileText, FileX, IdCard, ImageOff, Paperclip, Send, Timer, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { prepareAttachmentUploadsAction, sendMessageAction, shareDocumentsAction } from "@/app/messages/actions";
 import type { MessageRow } from "@/lib/messages";
@@ -22,7 +22,9 @@ import {
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   SHAREABLE_DOCS,
+  attachmentExpiresAt,
   attachmentLabel,
+  isAttachmentGone,
   isDisplayableImage,
   isImageType,
   type MessageAttachment,
@@ -34,40 +36,131 @@ type ViewerRole = "customer" | "broker" | "admin";
 const attachmentUrl = (messageId: string, index: number, download = false) =>
   `/api/messages/attachment?m=${messageId}&i=${index}${download ? "&download=1" : ""}`;
 
-function Attachments({ message, onAccent }: { message: MessageRow; onAccent: boolean }) {
+function countdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const sec = String(total % 60).padStart(2, "0");
+  return `${m}:${sec}`;
+}
+
+// A file's status line: how long until it disappears, or that it hasn't
+// been opened yet (the 15 minutes start then).
+function TimerLine({
+  expiresAt,
+  opened,
+  mine,
+  admin,
+  otherName,
+  now,
+  align,
+}: {
+  expiresAt: number;
+  opened: boolean;
+  mine: boolean;
+  admin: boolean;
+  otherName: string;
+  now: number;
+  align: string;
+}) {
+  let text: string;
+  if (opened) text = `Disappears in ${countdown(expiresAt - now)}`;
+  else if (admin) text = "Not opened yet";
+  else if (mine) text = `Disappears 15 min after ${otherName} opens it`;
+  else text = "Disappears 15 min after you open it";
+  return (
+    // The countdown differs by a second or two between server and browser.
+    <span suppressHydrationWarning className={`mt-1 flex items-center gap-1 text-[11px] text-fg-muted ${align}`}>
+      <Timer className="size-3" /> {text}
+    </span>
+  );
+}
+
+function Attachments({
+  message,
+  onAccent,
+  viewerRole,
+  otherName,
+  now,
+  localOpened,
+  onOpened,
+}: {
+  message: MessageRow;
+  onAccent: boolean;
+  viewerRole: ViewerRole;
+  otherName: string;
+  now: number;
+  // Files this viewer just opened, before the server's openedAt arrives.
+  localOpened: Record<string, string>;
+  onOpened: (key: string) => void;
+}) {
   const list = message.attachments ?? [];
   if (list.length === 0) return null;
+  const mine = viewerRole !== "admin" && message.sender_role === viewerRole;
+  const recipient = viewerRole !== "admin" && !mine;
+  const align = onAccent ? "justify-end" : "";
   return (
-    <div className={`mt-1.5 flex flex-wrap gap-2 ${onAccent ? "justify-end" : ""}`}>
-      {list.map((a, i) =>
-        isDisplayableImage(a.type) ? (
-          <a key={a.path} href={attachmentUrl(message.id, i)} target="_blank" rel="noopener noreferrer" className="block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={attachmentUrl(message.id, i)}
-              alt={attachmentLabel(a)}
-              className="max-h-56 max-w-[240px] rounded-xl border border-line object-cover"
-              loading="lazy"
-            />
-            {(a.kind === "license" || a.kind === "insurance") && (
-              <span className={`mt-1 block text-[11px] text-fg-muted ${onAccent ? "text-right" : "text-left"}`}>
-                {attachmentLabel(a)}
-              </span>
-            )}
-          </a>
+    <div className={`mt-1.5 flex flex-wrap gap-2 ${align}`}>
+      {list.map((a, i) => {
+        const key = `${message.id}:${i}`;
+        const openedAt = a.openedAt ?? localOpened[key] ?? null;
+        const gone = isAttachmentGone({ ...a, openedAt }, message.created_at, now);
+        if (gone) {
+          return (
+            <span
+              key={a.path}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-line px-3 py-2 text-xs text-fg-muted"
+            >
+              {isImageType(a.type) ? <ImageOff className="size-3.5" /> : <FileX className="size-3.5" />}
+              {a.kind === "license" || a.kind === "insurance" ? attachmentLabel(a) : isImageType(a.type) ? "Photo" : "File"} deleted
+              for privacy
+            </span>
+          );
+        }
+        const timer = (
+          <TimerLine
+            expiresAt={attachmentExpiresAt({ openedAt }, message.created_at)}
+            opened={Boolean(openedAt)}
+            mine={mine}
+            admin={viewerRole === "admin"}
+            otherName={otherName}
+            now={now}
+            align={align}
+          />
+        );
+        const label = (a.kind === "license" || a.kind === "insurance") && (
+          <span className={`mt-1 block text-[11px] text-fg-muted ${onAccent ? "text-right" : "text-left"}`}>{attachmentLabel(a)}</span>
+        );
+        return isDisplayableImage(a.type) ? (
+          <div key={a.path}>
+            <a href={attachmentUrl(message.id, i)} target="_blank" rel="noopener noreferrer" className="block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={attachmentUrl(message.id, i)}
+                alt={attachmentLabel(a)}
+                className="max-h-56 max-w-[240px] rounded-xl border border-line object-cover"
+                // Showing it to the person it was sent to is opening it.
+                onLoad={() => recipient && !openedAt && onOpened(key)}
+              />
+            </a>
+            {label}
+            {timer}
+          </div>
         ) : (
-          <a
-            key={a.path}
-            href={attachmentUrl(message.id, i, isImageType(a.type))}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex max-w-[240px] items-center gap-2 rounded-xl border border-line bg-raised px-3 py-2 text-left text-sm text-fg hover:border-line-strong"
-          >
-            <FileText className="size-4 shrink-0 text-fg-muted" />
-            <span className="truncate">{attachmentLabel(a)}</span>
-          </a>
-        )
-      )}
+          <div key={a.path}>
+            <a
+              href={attachmentUrl(message.id, i, isImageType(a.type))}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => recipient && !openedAt && onOpened(key)}
+              className="inline-flex max-w-[240px] items-center gap-2 rounded-xl border border-line bg-raised px-3 py-2 text-left text-sm text-fg hover:border-line-strong"
+            >
+              <FileText className="size-4 shrink-0 text-fg-muted" />
+              <span className="truncate">{attachmentLabel(a)}</span>
+            </a>
+            {timer}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -109,6 +202,17 @@ export default function MessageThread({
   const [docsOpen, setDocsOpen] = useState(false);
   const [pickedDocs, setPickedDocs] = useState<ShareableDoc[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [localOpened, setLocalOpened] = useState<Record<string, string>>({});
+  // Ticks once a second while any file is counting down, for the timers.
+  const [now, setNow] = useState(() => Date.now());
+  const counting = messages.some((m) =>
+    (m.attachments ?? []).some((a, i) => !a.deletedAt && (a.openedAt || localOpened[`${m.id}:${i}`]))
+  );
+  useEffect(() => {
+    if (!counting) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [counting]);
   const [draft, setDraft] = useState(initialDraft);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -148,6 +252,15 @@ export default function MessageThread({
             const row = payload.new as MessageRow;
             setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
             if (row.sender_role !== viewerRole) markRead();
+          }
+        )
+        // A file being opened (its countdown starts) or deleted.
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+          (payload) => {
+            const row = payload.new as MessageRow;
+            setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, attachments: row.attachments } : m)));
           }
         )
         .subscribe();
@@ -277,7 +390,15 @@ export default function MessageThread({
                     {m.body}
                   </p>
                 )}
-                <Attachments message={m} onAccent={right} />
+                <Attachments
+                  message={m}
+                  onAccent={right}
+                  viewerRole={viewerRole}
+                  otherName={viewerRole === "customer" ? names.broker : names.customer}
+                  now={now}
+                  localOpened={localOpened}
+                  onOpened={(key) => setLocalOpened((prev) => (prev[key] ? prev : { ...prev, [key]: new Date().toISOString() }))}
+                />
               </div>
             </li>
           );
@@ -407,7 +528,10 @@ export default function MessageThread({
               <Send /> {pending ? "Sending…" : "Send"}
             </button>
           </div>
-          <p className="mt-2 text-xs text-fg-muted">Messages and files are kept on Drive for your records.</p>
+          <p className="mt-2 text-xs text-fg-muted">
+            Messages are kept on Drive for your records. For privacy, photos and files disappear 15 minutes after
+            they&apos;re opened (or after a week if they never are).
+          </p>
         </form>
       )}
       {/* Outside the reply form: it has its own forms. */}

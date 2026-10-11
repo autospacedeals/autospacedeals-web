@@ -172,7 +172,11 @@ async function insertMessage(
 
   // Tell the other side by email/text (best-effort; never fails the send).
   const sentFiles = describeAttachments(attachments);
-  const notice = [body, sentFiles && `[Sent ${sentFiles}. Open the conversation on Drive to see ${attachments.length === 1 ? "it" : "them"}.]`]
+  const it = attachments.length === 1 ? "it" : "them";
+  const notice = [
+    body,
+    sentFiles && `[Sent ${sentFiles}. Open the conversation on Drive to see ${it}; for privacy, ${it} disappear${attachments.length === 1 ? "s" : ""} 15 minutes after you open ${it}.]`,
+  ]
     .filter(Boolean)
     .join("\n\n");
   await notifyOtherSide(conversationId, role, notice);

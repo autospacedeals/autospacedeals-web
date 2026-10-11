@@ -24,6 +24,26 @@ export interface MessageAttachment {
   type: string;
   size: number;
   kind: AttachmentKind;
+  // When the other person first opened it: it disappears VIEW_WINDOW_MS
+  // later (or UNOPENED_TTL_MS after sending if they never do).
+  openedAt?: string | null;
+  // Set once the file has been deleted from storage.
+  deletedAt?: string | null;
+}
+
+// Files disappear for privacy: 15 minutes after the recipient first opens
+// them, or a week after sending if they never do (/api/cron/expire-attachments
+// deletes them; /api/messages/attachment stops serving them on time).
+export const VIEW_WINDOW_MS = 15 * 60 * 1000;
+export const UNOPENED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// When this attachment disappears, as epoch ms.
+export function attachmentExpiresAt(a: Pick<MessageAttachment, "openedAt">, sentAt: string): number {
+  return a.openedAt ? Date.parse(a.openedAt) + VIEW_WINDOW_MS : Date.parse(sentAt) + UNOPENED_TTL_MS;
+}
+
+export function isAttachmentGone(a: Pick<MessageAttachment, "openedAt" | "deletedAt">, sentAt: string, now = Date.now()): boolean {
+  return Boolean(a.deletedAt) || now >= attachmentExpiresAt(a, sentAt);
 }
 
 // The documents a shopper can share from their account.
