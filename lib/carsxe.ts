@@ -10,8 +10,8 @@
 // is searched first, then any color. The first studio photo for a
 // year/make/model/color is saved to Drive's photo library
 // (lib/photo-library.ts) and reused from then on.
-import { downloadImage, getLibraryPhoto, saveFallbackPhoto, saveImageToLibrary } from "@/lib/photo-library";
-import { classifyCarView } from "@/lib/photo-view";
+import { downloadImage, getLibraryPhoto, saveFallbackImage, saveImageToLibrary } from "@/lib/photo-library";
+import { inspectCarPhoto } from "@/lib/photo-view";
 
 interface PhotoQuery {
   year: number;
@@ -54,13 +54,14 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
   const saved = await getLibraryPhoto({ ...params, color });
   if (saved) return saved;
 
-  // Every studio candidate is checked for its angle; the first front
-  // three-quarter with the nose to the left wins. Otherwise a right-facing
-  // one (mirrored), then any studio shot, then any photo at all.
+  // Every studio candidate is checked for its angle and that it's the right
+  // car; the first front three-quarter with the nose to the left wins.
+  // Otherwise a right-facing one (mirrored), then any studio shot, then a
+  // checked non-studio photo, then none (better than the wrong car).
   type Pick = { image: Buffer; flop: boolean; color: string | null };
   let mirrored: Pick | null = null;
   let anyStudio: Pick | null = null;
-  let fallback: string | null = null;
+  const fallbacks: string[] = [];
   const seen = new Set<string>();
   const keep = async (p: Pick): Promise<string | null> => {
     const url = await saveImageToLibrary({ ...params, color: p.color }, p.image, { flop: p.flop });
@@ -78,12 +79,13 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
   ];
   for (const a of tries) {
     const urls = await queryCarsxe({ ...params, year: a.year, trim: a.trim }, a.color);
-    fallback ??= urls[0] ?? null;
+    for (const u of urls) if (!isStudioPhoto(u) && !fallbacks.includes(u)) fallbacks.push(u);
     for (const url of urls.filter((u) => isStudioPhoto(u) && !seen.has(u))) {
       seen.add(url);
       const image = await downloadImage(url);
       if (!image) continue;
-      const view = await classifyCarView(image);
+      const { view, matches } = await inspectCarPhoto(image, { ...params, year: a.year });
+      if (matches === false) continue;
       const pick = { image, flop: false, color: a.color };
       if (view === "front-left" || view === "unknown") return (await keep(pick)) ?? url;
       if (view === "front-right") mirrored ??= { ...pick, flop: true };
@@ -92,12 +94,24 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
   }
   const best = mirrored ?? anyStudio;
   if (best) return keep(best);
-  // No studio photo anywhere: better a real photo than none. It's copied to
-  // our storage (so it can't break if the other site moves it), but not as
-  // the library photo, so a later lookup can still find a studio one.
-  if (!fallback) return null;
-  return (await saveFallbackPhoto({ ...params, color }, fallback)) ?? fallback;
+  // No studio photo anywhere: a non-studio photo that's checked to be the
+  // right car, from the outside. It's copied to our storage (so it can't
+  // break if the other site moves it), but not as the library photo, so a
+  // later lookup can still find a studio one.
+  let backup: { url: string; image: Buffer; flop: boolean } | null = null;
+  for (const url of fallbacks.slice(0, MAX_FALLBACK_CHECKS)) {
+    const image = await downloadImage(url);
+    if (!image) continue;
+    const { view, matches } = await inspectCarPhoto(image, params);
+    if (matches !== true || view === "rear" || view === "other") continue;
+    if (view === "front-left" || view === "unknown") return saveFallbackImage({ ...params, color }, url, image);
+    backup ??= { url, image, flop: view === "front-right" };
+  }
+  return backup ? saveFallbackImage({ ...params, color }, backup.url, backup.image, { flop: backup.flop }) : null;
 }
+
+// Non-studio photos checked per car before giving up (each is a small AI call).
+const MAX_FALLBACK_CHECKS = 8;
 
 // Every exterior photo CarsXE has for the vehicle, studio photos first (the
 // listing's color, then any color) — the "Re-pull photo" button steps

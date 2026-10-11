@@ -91,13 +91,19 @@ export async function saveImageToLibrary(k: LibraryKey, image: Buffer, opts: { f
 // the original site removes it. Returns its URL here, or null on failure.
 export async function saveFallbackPhoto(k: LibraryKey, sourceUrl: string): Promise<string | null> {
   const image = await downloadImage(sourceUrl);
-  if (!image) return null;
+  return image ? saveFallbackImage(k, sourceUrl, image) : null;
+}
+
+export async function saveFallbackImage(
+  k: LibraryKey,
+  sourceUrl: string,
+  image: Buffer,
+  opts: { flop?: boolean } = {}
+): Promise<string | null> {
   try {
-    const webp = await sharp(image)
-      .resize({ width: 960, withoutEnlargement: true })
-      .flatten({ background: "#ffffff" })
-      .webp({ quality: 82 })
-      .toBuffer();
+    let pipeline = sharp(image).resize({ width: 960, withoutEnlargement: true });
+    if (opts.flop) pipeline = pipeline.flop();
+    const webp = await pipeline.flatten({ background: "#ffffff" }).webp({ quality: 82 }).toBuffer();
     const id = createHash("sha1").update(sourceUrl).digest("hex").slice(0, 16);
     const path = `fallback/${slug(k.make)}/${k.year}/${slug(k.model)}/${id}.webp`;
     const { error } = await createAdminClient()
