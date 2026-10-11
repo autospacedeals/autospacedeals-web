@@ -4,7 +4,7 @@ import type { Deal } from "@/lib/deals-data";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import { getBrokerRatingSummary, type BrokerRatingSummary } from "@/lib/supabase/reviews";
 import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
-import { dealTitle, formatCurrency, getSimilarDealsFrom } from "@/lib/deal-utils";
+import { byBrokerFee, dealTitle, formatCurrency, getSimilarDealsFrom, sameDealKey } from "@/lib/deal-utils";
 import { buildDealJsonLd, serializeJsonLd } from "@/lib/deal-json-ld";
 import DealDetailView from "@/components/DealDetailView";
 import { SITE_NAME } from "@/lib/site";
@@ -92,9 +92,18 @@ export default async function DealDetailPage({
   });
 
   let similar: Deal[] = [];
+  let sameDeals: Deal[] = [];
   try {
     const allDeals = await getPublishedDeals();
-    similar = getSimilarDealsFrom(allDeals, deal, 3);
+    // The same deal from other sellers is listed in the contact card, not
+    // repeated among the similar deals.
+    const key = sameDealKey(deal);
+    const seller = deal.brokerId ?? deal.sellerName;
+    sameDeals = allDeals
+      .filter((d) => d.id !== deal.id && (d.brokerId ?? d.sellerName) !== seller && sameDealKey(d) === key)
+      .sort(byBrokerFee);
+    const sameIds = new Set(sameDeals.map((d) => d.id));
+    similar = getSimilarDealsFrom(allDeals.filter((d) => !sameIds.has(d.id)), deal, 3);
   } catch (err) {
     console.error("DealDetailPage: similar deals failed for", deal.id, err);
   }
@@ -119,6 +128,7 @@ export default async function DealDetailPage({
       <DealDetailView
         deal={deal}
         similar={similar}
+        sameDeals={sameDeals}
         brokerRating={brokerRating}
         alertsAvailable={alertsAvailable}
       />

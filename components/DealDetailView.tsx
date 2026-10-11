@@ -68,9 +68,13 @@ export default function DealDetailView({
   // matched" can offer an alert for new matches. Off unless the page
   // checked.
   alertsAvailable = false,
+  // The same deal listed by other sellers (lib/deal-utils.ts sameDealKey),
+  // lowest broker fee first.
+  sameDeals = [],
 }: {
   deal: Deal;
   similar?: Deal[];
+  sameDeals?: Deal[];
   backHref?: string;
   backLabel?: string;
   isPreview?: boolean;
@@ -390,6 +394,41 @@ export default function DealDetailView({
                 />
               </div>
             </div>
+
+            {sameDeals.length > 0 && (
+              <div className="border-t border-line p-6">
+                <p className="label">Same deal, other sellers</p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  {sameDeals.length === 1 ? "Another seller offers" : `${sameDeals.length} other sellers offer`} this
+                  exact deal. Compare their broker fees and reviews.
+                </p>
+                <ul className="mt-4 space-y-3">
+                  {sameDeals.map((d) => {
+                    const diff = d.brokerFee != null && deal.brokerFee != null ? d.brokerFee - deal.brokerFee : null;
+                    return (
+                      <li key={d.id} className="flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-3">
+                        <div className="min-w-0 text-sm">
+                          <p className="truncate font-medium text-fg">{d.sellerName}</p>
+                          <p className="text-fg-muted">
+                            {d.brokerFee != null ? `Broker fee ${formatCurrency(d.brokerFee)}` : "Broker fee not listed"}
+                            {diff ? (
+                              <span className={diff < 0 ? "text-success" : ""}>
+                                {` · ${formatCurrency(Math.abs(diff))} ${diff < 0 ? "lower" : "higher"}`}
+                              </span>
+                            ) : diff === 0 ? (
+                              " · same fee"
+                            ) : null}
+                          </p>
+                        </div>
+                        <Link href={`/deals/${d.slug}`} className="btn btn-secondary btn-sm shrink-0">
+                          View
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
 
             <p className="border-t border-line px-6 py-4 text-xs leading-5 text-fg-muted">
               Contacting the seller connects you directly — Drive does not process

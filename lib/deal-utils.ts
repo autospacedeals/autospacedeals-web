@@ -591,3 +591,57 @@ export function formatMsds(count: number, total?: number | null): string {
   const label = `${count} MSD${count === 1 ? "" : "s"}`;
   return total ? `${label} · ${formatCurrency(total)} refundable` : label;
 }
+
+// The same deal from different sellers: the same car (year, make, model,
+// MSRP) at the same terms. Usually a dealer's monthly special that several
+// brokers pass on.
+export function sameDealKey(d: Deal): string {
+  return [
+    d.year,
+    d.make,
+    d.model.replace(/\s+/g, ""),
+    d.msrp,
+    d.onePay ? "one-pay" : "",
+    d.payment,
+    d.dueAtSigning,
+    d.term,
+    d.milesPerYear ?? "",
+  ]
+    .join("|")
+    .toLowerCase();
+}
+
+const feeOf = (d: Deal) => d.brokerFee ?? Number.POSITIVE_INFINITY;
+
+// Lowest broker fee first, the only real difference between them.
+export function byBrokerFee(a: Deal, b: Deal): number {
+  return feeOf(a) - feeOf(b);
+}
+
+// One entry per deal, in list order: listings that are the same deal from
+// different sellers are grouped, shown by the one with the lowest broker
+// fee (the earlier one on a tie). A seller's own repeats stay separate.
+export function groupSameDeals(deals: Deal[]): { deal: Deal; others: Deal[] }[] {
+  const groups: { deal: Deal; others: Deal[] }[] = [];
+  const byKey = new Map<string, { deal: Deal; others: Deal[] }[]>();
+  for (const d of deals) {
+    const key = sameDealKey(d);
+    const seller = d.brokerId ?? d.sellerName;
+    const candidates = byKey.get(key) ?? [];
+    const group = candidates.find((g) => ![g.deal, ...g.others].some((x) => (x.brokerId ?? x.sellerName) === seller));
+    if (group) {
+      group.others.push(d);
+    } else {
+      const g = { deal: d, others: [] as Deal[] };
+      groups.push(g);
+      byKey.set(key, [...candidates, g]);
+    }
+  }
+  for (const g of groups) {
+    if (g.others.length === 0) continue;
+    const [first, ...rest] = [g.deal, ...g.others].sort(byBrokerFee);
+    g.deal = first;
+    g.others = rest;
+  }
+  return groups;
+}

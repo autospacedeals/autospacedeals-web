@@ -13,6 +13,7 @@ import {
   formatCurrency,
   LAST_VIEWED_DEAL_KEY,
   SORT_LABELS,
+  groupSameDeals,
   pickFeatured,
   sortDeals,
   type DealFilters,
@@ -269,6 +270,8 @@ export default function HomeClient({
     const referenceState = filters.state !== "All" ? filters.state : detectedState ?? "All";
     return sortDeals(filtered, sortBy, referenceState);
   }, [deals, filters, sortBy, detectedState]);
+  // The same deal from several sellers shows as one card (lowest broker fee).
+  const grouped = useMemo(() => groupSameDeals(results), [results]);
 
   return (
     <main>
@@ -403,7 +406,7 @@ export default function HomeClient({
               </p>
             )}
             <div className="flex flex-wrap items-center gap-3 border-b border-line pb-4">
-              <SortBar sortBy={sortBy} onSortChange={setSortBy} resultCount={results.length} />
+              <SortBar sortBy={sortBy} onSortChange={setSortBy} resultCount={grouped.length} />
             </div>
 
             {/* Small screens, filters collapsed: the panel's Save button is
@@ -418,9 +421,9 @@ export default function HomeClient({
               />
             )}
 
-            {results.length > 0 ? (
+            {grouped.length > 0 ? (
               <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {results.map((deal, i) => (
+                {grouped.map(({ deal, others }, i) => (
                   <div
                     key={deal.id}
                     id={`deal-${deal.id}`}
@@ -429,6 +432,7 @@ export default function HomeClient({
                   >
                     <DealCard
                       deal={deal}
+                      otherSellers={others}
                       compareSelected={compareIds.includes(deal.id)}
                       compareDisabled={compareIds.length >= MAX_COMPARE}
                       onToggleCompare={() => toggleCompare(deal.id)}

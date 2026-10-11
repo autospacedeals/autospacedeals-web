@@ -46,8 +46,12 @@ export default function DealCard({
   onToggleCompare,
   compareDisabled,
   savedHint,
+  otherSellers = [],
 }: {
   deal: Deal;
+  // The same deal listed by other sellers (lib/deal-utils.ts groupSameDeals),
+  // named under this seller; the deal page lists them all.
+  otherSellers?: Deal[];
   // Compare-mode props are all optional and only passed from the homepage
   // grid — DealCard renders in several other places (similar deals, a
   // broker's public profile) where comparing doesn't make sense, and
@@ -102,6 +106,7 @@ export default function DealCard({
               {deal.badge && BADGE_STYLES[deal.badge] && (
                 <span className={BADGE_STYLES[deal.badge]}>{deal.badge}</span>
               )}
+              {otherSellers.length > 0 && <span className="tag">{otherSellers.length + 1} sellers</span>}
               {!deal.inStock && (
                 <span className="tag">
                   <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
@@ -238,6 +243,13 @@ export default function DealCard({
                   <span className="font-medium text-fg-secondary">{deal.sellerName}</span>
                 )}{" "}
                 · {deal.sellerType}
+                {otherSellers.length > 0 && (
+                  <span className="mt-0.5 block text-fg-faint">
+                    {otherSellers.length === 1
+                      ? `Also offered by ${otherSellers[0].sellerName}`
+                      : `Also offered by ${otherSellers.length} other sellers`}
+                  </span>
+                )}
                 {deal.sellerDealership && ` at ${deal.sellerDealership}`}
               </span>
             </p>
