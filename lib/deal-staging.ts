@@ -97,6 +97,7 @@ export async function stageParsedDeals(
       broker_fee: d.brokerFee,
       msd_count: d.msdCount ?? null,
       msd_total: d.msdTotal ?? null,
+      msd_payment: d.msdCount ? (d.msdPayment ?? null) : null,
       term: d.term,
       miles_per_year: d.milesPerYear,
       apr: null,

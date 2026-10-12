@@ -165,6 +165,13 @@ export default function DealCard({
                 </span>
               )}
             </p>
+            {/* The lower payment with MSDs, when they're an option. */}
+            {!deal.onePay && deal.msdPayment && deal.msdCount ? (
+              <p className="mt-1 text-[13px] text-fg-secondary">
+                or <strong className="font-semibold text-success">{formatCurrency(deal.msdPayment)}/mo</strong> with{" "}
+                {deal.msdCount} MSD{deal.msdCount === 1 ? "" : "s"}
+              </p>
+            ) : null}
             {/* With the signed-in shopper's sales tax (California ZIPs). */}
             <CardTaxLine deal={deal} />
             {/* The vehicle's total price, when the seller gives it (required on
@@ -207,8 +214,8 @@ export default function DealCard({
         )}
         {deal.msdCount ? (
           <p className="spec-footnote mt-2">
-            Payment assumes <strong>{formatMsds(deal.msdCount, deal.msdTotal)}</strong> · paid at
-            signing
+            {deal.msdPayment ? "MSD option: " : "Payment assumes "}
+            <strong>{formatMsds(deal.msdCount, deal.msdTotal)}</strong> · paid at signing
           </p>
         ) : null}
         {(deal.incentives ?? []).some(isRequiredProgram) && (

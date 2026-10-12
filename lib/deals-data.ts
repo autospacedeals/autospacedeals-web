@@ -126,6 +126,9 @@ export interface Deal {
   // no MSDs.
   msdCount?: number | null;
   msdTotal?: number | null;
+  // The monthly payment WITH those MSDs, when the listing offers them as an
+  // option (payment is then without them). Null = payment assumes the MSDs.
+  msdPayment?: number | null;
 
   // When true, the public MSRP display masks digits (e.g. "$49,XXX")
   // instead of showing the exact figure — set automatically when a broker

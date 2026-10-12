@@ -43,6 +43,9 @@ export interface ParsedDeal {
   // don't have them.
   msdCount?: number | null;
   msdTotal?: number | null;
+  // The lower payment with the MSDs, when the source also gives a payment
+  // without them (that one is `payment`).
+  msdPayment?: number | null;
   state: string | null;
   // Where the car is, as the source names it ("SoCal", "Phoenix"), and
   // whether it ships — optional; staging falls back to the broker's city.

@@ -69,12 +69,19 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
     }
   }
 
+  // MSDs offered as an option: the seller's with-MSD payment, as a monthly
+  // saving off whichever term/mileage is picked.
+  const msdOption = !deal.onePay && deal.msdCount && deal.msdPayment ? deal.msdPayment - deal.payment : null;
+  const [withMsds, setWithMsds] = useState(false);
+  const msdAdjustment = msdOption != null && withMsds ? msdOption : 0;
+
   const dueAtSigning = Math.max(0, Number(dueAtSigningInput) || 0);
   const estimate = estimatePayment(
     { ...deal, term: chosen.term, payment: chosen.payment },
-    { dueAtSigning, incentivesTotal, monthlyAdjustment: incentivesMonthly }
+    { dueAtSigning, incentivesTotal, monthlyAdjustment: incentivesMonthly + msdAdjustment }
   );
   const isDefault =
+    !withMsds &&
     dueAtSigning === deal.dueAtSigning &&
     chosen.headline &&
     selected.size === defaultSelected.size &&
@@ -99,6 +106,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
     setSelected(defaultSelected);
     setTerm(deal.term);
     setMiles(deal.milesPerYear);
+    setWithMsds(false);
   }
 
   return (
@@ -196,6 +204,39 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
         </div>
       )}
 
+      {msdOption != null && deal.msdCount && deal.msdPayment && (
+        <div className="mt-6">
+          <p className="field-label">Multiple security deposits (MSDs)</p>
+          <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Multiple security deposits">
+            {[false, true].map((on) => (
+              <button
+                key={String(on)}
+                type="button"
+                role="radio"
+                aria-checked={withMsds === on}
+                onClick={() => setWithMsds(on)}
+                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                  withMsds === on ? "border-accent bg-accent-soft text-fg" : "border-line text-fg-secondary hover:border-line-strong"
+                }`}
+              >
+                <span className="block font-medium">
+                  {on ? `With ${deal.msdCount} MSD${deal.msdCount === 1 ? "" : "s"}` : "Without MSDs"}
+                </span>
+                <span className="block text-xs text-fg-muted">
+                  {formatCurrency(on ? deal.msdPayment! : deal.payment)}/mo advertised
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs leading-5 text-fg-muted">
+            MSDs are refundable deposits that lower the payment
+            {deal.msdTotal ? `: ${formatCurrency(deal.msdTotal)} paid at signing, on top of due at signing,` : ", paid at signing"}{" "}
+            and returned at the end of the lease. Saves about {formatCurrency(Math.abs(msdOption))}/mo
+            {` (${formatCurrency(Math.abs(msdOption) * deal.term)} over ${formatTerm(deal.term)})`}.
+          </p>
+        </div>
+      )}
+
       {required.length > 0 && (
         <div className="callout mt-6 text-sm">
           <p className="font-medium text-fg">
@@ -275,6 +316,9 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
             <div className="text-right">
               <p className="label">Due at signing</p>
               <p className="mt-2 text-lg font-semibold text-fg">{formatCurrency(estimate.total)}</p>
+              {withMsds && deal.msdTotal ? (
+                <p className="mt-0.5 text-xs text-fg-muted">+ {formatCurrency(deal.msdTotal)} refundable MSDs</p>
+              ) : null}
             </div>
           </div>
         )}

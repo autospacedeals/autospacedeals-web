@@ -161,9 +161,11 @@ function offer(deal: Deal, url: string): JsonLd | undefined {
     details.push(`${milesPerYear.toLocaleString("en-US")} miles per year`);
   }
   if (!isFinance && deal.msdCount) {
+    const msds =
+      `${deal.msdCount} multiple security deposit${deal.msdCount === 1 ? "" : "s"}` +
+      (deal.msdTotal ? ` ($${Number(deal.msdTotal).toLocaleString("en-US")} refundable)` : "");
     details.push(
-      `assumes ${deal.msdCount} multiple security deposit${deal.msdCount === 1 ? "" : "s"}` +
-        (deal.msdTotal ? ` ($${Number(deal.msdTotal).toLocaleString("en-US")} refundable)` : "")
+      deal.msdPayment ? `or $${Number(deal.msdPayment).toLocaleString("en-US")}/mo with ${msds}` : `assumes ${msds}`
     );
   }
 

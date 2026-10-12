@@ -102,6 +102,14 @@ const EXTRACT_TOOL = {
                 "Number of multiple security deposits (MSDs) the advertised payment assumes, e.g. " +
                 "\"w/ 7 MSDs\" or \"7 MSD\" -> 7. null if MSDs aren't mentioned.",
             },
+            msdPayment: {
+              type: ["number", "null"],
+              description:
+                "When the car shows TWO monthly payments, one without MSDs and a lower one with MSDs " +
+                "(\"$520/mo no MSD, $470/mo with MSD\"): payment is the one WITHOUT MSDs and this is " +
+                "the one WITH them (470), with msdCount/msdTotal describing those MSDs. null when " +
+                "there's only one payment (if that one assumes MSDs, it's just payment + msdCount).",
+            },
             msdTotal: {
               type: ["number", "null"],
               description:
@@ -261,7 +269,9 @@ const COMBINED_CELL_GUIDANCE =
   `called "drive-off", "total drive-off", "drive off", "DAS", "due at signing", "at signing", ` +
   `"initial payment" or "out of pocket"; "sign and drive" / "$0 down $0 due" means 0. "w/ 7 MSDs" ` +
   `(multiple security deposits) goes in msdCount (7), and a stated MSD dollar total in msdTotal — ` +
-  `MSDs are refundable and separate from due at signing, so never add them into dueAtSigning. A ` +
+  `MSDs are refundable and separate from due at signing, so never add them into dueAtSigning. When a ` +
+  `car shows a payment without MSDs AND a lower one with them, payment is the no-MSD one and the ` +
+  `with-MSD one goes in msdPayment (one car, not two). A ` +
   `vehicle whose name/trim is crossed out (strikethrough) — or most of whose row is — is sold or no ` +
   `longer available: leave it out entirely, even if its other cells look normal. Only a lone ` +
   `crossed-out old price sitting next to a new one is different: use the new price. A location or ` +
@@ -332,6 +342,12 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
         : null;
     const msdTotalRaw = typeof c.msdTotal === "number" ? c.msdTotal : msdFromNotes.msdTotal;
     const msdTotal = msdCount != null && msdTotalRaw != null && msdTotalRaw > 0 ? msdTotalRaw : null;
+    // A lower with-MSD payment next to the main (no-MSD) one.
+    const msdPaymentRaw = typeof c.msdPayment === "number" ? Math.round(c.msdPayment) : null;
+    const msdPayment =
+      msdCount != null && !onePay && msdPaymentRaw != null && payment != null && msdPaymentRaw > 0 && msdPaymentRaw < payment
+        ? msdPaymentRaw
+        : null;
     const state = parseStateCode(c.state) ?? brokerState;
     const city = cleanCity(c.city);
     const delivery = parseDelivery(c.delivery);
@@ -397,6 +413,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       brokerFee,
       msdCount,
       msdTotal,
+      msdPayment,
       state,
       city,
       delivery,

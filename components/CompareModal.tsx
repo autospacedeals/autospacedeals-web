@@ -77,7 +77,15 @@ export default function CompareModal({
       label: "Mileage",
       render: (d) => (d.milesPerYear ? formatMileage(d.milesPerYear) : "N/A"),
     },
-    { label: "MSDs", render: (d) => (d.msdCount ? formatMsds(d.msdCount, d.msdTotal) : "None") },
+    {
+      label: "MSDs",
+      render: (d) =>
+        d.msdCount
+          ? d.msdPayment
+            ? `Optional: ${formatCurrency(d.msdPayment)}/mo with ${formatMsds(d.msdCount, d.msdTotal)}`
+            : formatMsds(d.msdCount, d.msdTotal)
+          : "None",
+    },
     { label: "MSRP", render: (d) => displayMsrp(d) },
     {
       label: "Off MSRP",

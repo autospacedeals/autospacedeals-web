@@ -766,6 +766,22 @@ function ManualForm({
               />
               <p className="field-hint">Refundable, paid at signing on top of due at signing.</p>
             </div>
+            <div>
+              <label htmlFor={`${uid}-msdPayment`} className={labelClass}>Payment with MSDs (optional)</label>
+              <input
+                type="number"
+                step="1"
+                id={`${uid}-msdPayment`}
+                name="msdPayment"
+                defaultValue={initialValues?.msdPayment ?? undefined}
+                placeholder="470"
+                className={inputClass}
+              />
+              <p className="field-hint">
+                If MSDs are optional: the lower monthly payment with them. The monthly payment above is then the one
+                without MSDs.
+              </p>
+            </div>
           </div>
         </div>
 

@@ -175,7 +175,13 @@ export default function DealDetailView({
                 label={deal.onePay ? "One-pay lease total" : "Monthly payment"}
                 value={headline}
                 unit={deal.onePay ? undefined : deal.paymentTaxRate ? "/mo" : "/mo + tax"}
-                note={!deal.onePay && deal.paymentTaxRate ? `Includes ~${deal.paymentTaxRate}% tax` : undefined}
+                note={
+                  !deal.onePay && deal.msdPayment && deal.msdCount
+                    ? `or ${formatCurrency(deal.msdPayment)}/mo with ${deal.msdCount} MSD${deal.msdCount === 1 ? "" : "s"}`
+                    : !deal.onePay && deal.paymentTaxRate
+                      ? `Includes ~${deal.paymentTaxRate}% tax`
+                      : undefined
+                }
               />
               <KeyFigure
                 label="Due at signing"
@@ -197,7 +203,11 @@ export default function DealDetailView({
               {deal.msdCount ? (
                 <Row
                   label="Multiple security deposits"
-                  note="The payment assumes these. Paid at signing on top of due at signing, refunded at lease end"
+                  note={
+                    deal.msdPayment
+                      ? `Optional: lowers the payment to ${formatCurrency(deal.msdPayment)}/mo. Paid at signing on top of due at signing, refunded at lease end`
+                      : "The payment assumes these. Paid at signing on top of due at signing, refunded at lease end"
+                  }
                   value={formatMsds(deal.msdCount, deal.msdTotal)}
                 />
               ) : null}
@@ -288,7 +298,11 @@ export default function DealDetailView({
                 ? "The broker fee shown above is separate from the due-at-signing amount."
                 : "A broker fee may apply and isn't included in the due-at-signing amount shown."}{" "}
               {deal.msdCount
-                ? `The payment assumes ${deal.msdCount} multiple security deposit${deal.msdCount === 1 ? "" : "s"}${
+                ? `${
+                    deal.msdPayment
+                      ? `The ${formatCurrency(deal.msdPayment)}/mo payment assumes`
+                      : "The payment assumes"
+                  } ${deal.msdCount} multiple security deposit${deal.msdCount === 1 ? "" : "s"}${
                     deal.msdTotal ? ` (${formatCurrency(deal.msdTotal)})` : ""
                   }, paid at signing in addition to the due-at-signing amount and refunded at the end of the lease.`
                 : ""}{" "}
@@ -332,6 +346,13 @@ export default function DealDetailView({
                   <span className="price-unit text-base">/mo{deal.paymentTaxRate ? "" : " + tax"}</span>
                 )}
               </p>
+              {!deal.onePay && deal.msdPayment && deal.msdCount ? (
+                <p className="mt-1 text-sm text-fg-secondary">
+                  or <strong className="font-semibold text-success">{formatCurrency(deal.msdPayment)}/mo</strong> with{" "}
+                  {deal.msdCount} MSD{deal.msdCount === 1 ? "" : "s"}
+                  {deal.msdTotal ? ` (${formatCurrency(deal.msdTotal)} refundable)` : ""}
+                </p>
+              ) : null}
               <p className="mt-3 text-sm text-fg-secondary">
                 {!deal.onePay && `${formatCurrency(deal.dueAtSigning)} due at signing · `}
                 {formatTerm(deal.term)}

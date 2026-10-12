@@ -123,6 +123,7 @@ interface RowDraft {
   brokerFee: string;
   msdCount: string;
   msdTotal: string;
+  msdPayment: string;
   term: string;
   milesPerYear: string;
   location: LocationValue;
@@ -157,6 +158,7 @@ function deriveDraft(deal: Deal): RowDraft {
     brokerFee: deal.brokerFee != null ? String(deal.brokerFee) : "",
     msdCount: deal.msdCount != null ? String(deal.msdCount) : "",
     msdTotal: deal.msdTotal != null ? String(deal.msdTotal) : "",
+    msdPayment: deal.msdPayment != null ? String(deal.msdPayment) : "",
     term: String(deal.term ?? ""),
     milesPerYear: deal.milesPerYear != null ? String(deal.milesPerYear) : "",
     location: { city: deal.city ?? "", state: deal.state ?? "", delivery: deal.delivery ?? "" },
@@ -453,6 +455,7 @@ function ListingRow({
       if (draft.brokerFee) fd.set("brokerFee", draft.brokerFee);
       if (draft.msdCount) fd.set("msdCount", draft.msdCount);
       if (draft.msdTotal) fd.set("msdTotal", draft.msdTotal);
+      if (draft.msdPayment) fd.set("msdPayment", draft.msdPayment);
       fd.set("term", draft.term);
       if (draft.milesPerYear) fd.set("milesPerYear", draft.milesPerYear);
       if (draft.apr) fd.set("apr", draft.apr);
@@ -876,6 +879,19 @@ function ListingRow({
                       value={draft.msdTotal}
                       onChange={(e) => set("msdTotal", e.target.value)}
                       placeholder="6300"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label htmlFor={`listing-${deal.id}-msd-payment`} className={labelClass}>
+                      Payment with MSDs (if optional)
+                    </label>
+                    <input
+                      id={`listing-${deal.id}-msd-payment`}
+                      type="number"
+                      value={draft.msdPayment}
+                      onChange={(e) => set("msdPayment", e.target.value)}
+                      placeholder="470"
                       className={inputClass}
                     />
                   </div>

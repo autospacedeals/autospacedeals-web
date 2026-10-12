@@ -631,7 +631,7 @@ export async function createManualDealAction(
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
   const brokerFeeRaw = formData.get("brokerFee");
   const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
-  const msd = parseMsdFields(formData);
+  const msd = parseMsdFields(formData, payment);
   if ("error" in msd) return { error: msd.error };
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
@@ -718,6 +718,7 @@ export async function createManualDealAction(
     broker_fee: brokerFee,
     msd_count: msd.msdCount,
     msd_total: msd.msdTotal,
+    msd_payment: msd.msdPayment,
     term,
     miles_per_year: milesPerYear,
     apr,
@@ -778,7 +779,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
   const brokerFeeRaw = formData.get("brokerFee");
   const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
-  const msd = parseMsdFields(formData);
+  const msd = parseMsdFields(formData, payment);
   if ("error" in msd) return { error: msd.error };
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
@@ -858,6 +859,7 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
       broker_fee: brokerFee,
       msd_count: msd.msdCount,
       msd_total: msd.msdTotal,
+      msd_payment: msd.msdPayment,
       term,
       miles_per_year: milesPerYear,
       apr,
@@ -1036,7 +1038,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   const paymentTaxRate = paymentTaxRateRaw ? Number(paymentTaxRateRaw) : null;
   const brokerFeeRaw = formData.get("brokerFee");
   const brokerFee = brokerFeeRaw ? Number(brokerFeeRaw) : null;
-  const msd = parseMsdFields(formData);
+  const msd = parseMsdFields(formData, payment);
   if ("error" in msd) return { error: msd.error };
   const term = Number(formData.get("term"));
   const milesPerYearRaw = formData.get("milesPerYear");
@@ -1115,6 +1117,7 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
       broker_fee: brokerFee,
       msd_count: msd.msdCount,
       msd_total: msd.msdTotal,
+      msd_payment: msd.msdPayment,
       term,
       miles_per_year: milesPerYear,
       apr,
@@ -1230,8 +1233,9 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
 // the advertised payment assumes, and their refundable total. Both blank =
 // no MSDs; a total without a count doesn't mean anything, so it's refused.
 function parseMsdFields(
-  formData: FormData
-): { msdCount: number | null; msdTotal: number | null } | { error: string } {
+  formData: FormData,
+  payment: number
+): { msdCount: number | null; msdTotal: number | null; msdPayment: number | null } | { error: string } {
   const countRaw = String(formData.get("msdCount") ?? "").trim();
   const totalRaw = String(formData.get("msdTotal") ?? "").replace(/[$,\s]/g, "");
   const msdCount = countRaw ? Number(countRaw) : null;
@@ -1245,5 +1249,15 @@ function parseMsdFields(
   if (msdTotal != null && msdCount == null) {
     return { error: "Add how many MSDs the payment assumes, or clear the MSD total." };
   }
-  return { msdCount, msdTotal };
+  // The lower payment with MSDs, when they're an option (0047): the main
+  // payment is then the one without them.
+  const msdPaymentRaw = String(formData.get("msdPayment") ?? "").replace(/[$,\s]/g, "");
+  const msdPayment = msdPaymentRaw ? Number(msdPaymentRaw) : null;
+  if (msdPayment != null) {
+    if (msdCount == null) return { error: "Add how many MSDs the lower payment uses, or clear the payment with MSDs." };
+    if (!Number.isFinite(msdPayment) || msdPayment <= 0 || !(msdPayment < payment)) {
+      return { error: "The payment with MSDs should be lower than the monthly payment without them." };
+    }
+  }
+  return { msdCount, msdTotal, msdPayment: msdPayment != null ? Math.round(msdPayment) : null };
 }
