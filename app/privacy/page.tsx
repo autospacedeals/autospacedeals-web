@@ -85,7 +85,8 @@ export default function PrivacyPolicyPage() {
               marketplace working well. Only the two people in a conversation and {SITE_NAME} can
               read it (at {SITE_NAME}, that means a small number of team members with admin
               access). If you turn on message emails, we also email you new messages. If you email
-              us or use our contact form, we receive whatever you send.
+              us or use our contact form, we receive whatever you send; with a contact form message we
+              also keep your approximate city and state (from your IP address) and how you found us.
             </p>
             <p>
               <strong>Text messages.</strong> If you turn on &quot;Text me new

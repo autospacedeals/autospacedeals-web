@@ -10,12 +10,14 @@
 // match_email_log (the Get matched send log, 0018 — rows with no deal).
 //
 // Every message is also saved in contact_messages (0028) and listed at
-// /admin/contact, so it isn't lost if the email gets filtered.
+// /admin/contact, so it isn't lost if the email gets filtered — with the
+// sender's approximate location and how they found Drive (0048).
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { withTimeout } from "@/lib/supabase/with-timeout";
 import { emailLayoutHtml, escapeHtml, isEmailConfigured, sendEmail } from "@/lib/email";
 import { isValidEmailAddress } from "@/lib/get-matched";
+import { currentVisitSource } from "@/lib/leads";
 
 const SUPPORT_INBOX = "rob@idriveus.com";
 const CONTACT_LIMIT = 5;
@@ -54,16 +56,31 @@ export async function sendContactAction(_prev: ContactState, formData: FormData)
   }
 
   const from = name ? `${name} <${email}>` : email;
-  const text = `From: ${from}\nTopic: ${topic}\n\n${message}`;
+  const where = await senderLocation();
+  const visit = await currentVisitSource();
+  const place = locationLabel(where) ?? "Unknown";
+  const found = visit?.source ? `${visit.source}${visit.campaign ? ` (${visit.campaign})` : ""}` : "Unknown";
+  const text = `From: ${from}\nTopic: ${topic}\nLocation: ${place}\nFound Drive via: ${found}\n\n${message}`;
   const html = emailLayoutHtml({
     preheader: message.slice(0, 120),
     heading: `Contact form: ${topic}`,
-    bodyHtml: `<p style="margin:0 0 12px 0;"><strong>From:</strong> ${escapeHtml(from)}</p>
+    bodyHtml: `<p style="margin:0 0 4px 0;"><strong>From:</strong> ${escapeHtml(from)}</p>
+<p style="margin:0 0 4px 0;"><strong>Location:</strong> ${escapeHtml(place)}</p>
+<p style="margin:0 0 12px 0;"><strong>Found Drive via:</strong> ${escapeHtml(found)}</p>
 <p style="margin:0;white-space:pre-wrap;">${escapeHtml(message)}</p>`,
     footerHtml: "Sent from the contact form on idriveus.com. Reply to this email to answer them.",
   });
 
-  const savedId = await saveMessage({ name, email, topic, message, ip });
+  const savedId = await saveMessage({
+    name,
+    email,
+    topic,
+    message,
+    ip,
+    ...where,
+    source: visit?.source ?? null,
+    campaign: visit?.campaign ?? null,
+  });
 
   const sent = await sendEmail({
     to: SUPPORT_INBOX,
@@ -90,6 +107,11 @@ async function saveMessage(row: {
   topic: string;
   message: string;
   ip: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  source: string | null;
+  campaign: string | null;
 }): Promise<string | null> {
   try {
     const { data, error } = await withTimeout(
@@ -123,6 +145,40 @@ async function markEmailed(id: string): Promise<void> {
   } catch (err) {
     console.error("contact form: mark emailed threw:", err);
   }
+}
+
+// The sender's approximate location, from Vercel's IP lookup headers.
+async function senderLocation(): Promise<{ country: string | null; region: string | null; city: string | null }> {
+  const list = await headers();
+  const read = (name: string, max: number) => {
+    const raw = list.get(name);
+    if (!raw) return null;
+    let value = raw;
+    try {
+      value = decodeURIComponent(raw);
+    } catch {
+      // keep as sent
+    }
+    return value.trim().slice(0, max) || null;
+  };
+  return {
+    country: read("x-vercel-ip-country", 8),
+    region: read("x-vercel-ip-country-region", 16),
+    city: read("x-vercel-ip-city", 80),
+  };
+}
+
+// "Glendale, CA" in the US, "Rotterdam, Netherlands" elsewhere.
+function locationLabel(l: { country: string | null; region: string | null; city: string | null }): string | null {
+  if (!l.country && !l.city) return null;
+  if (l.country === "US") return [l.city, l.region].filter(Boolean).join(", ") || "United States";
+  let country = l.country ?? "";
+  try {
+    country = (l.country && new Intl.DisplayNames(["en"], { type: "region" }).of(l.country)) || country;
+  } catch {
+    // keep the code
+  }
+  return [l.city, country].filter(Boolean).join(", ");
 }
 
 async function requesterIp(): Promise<string | null> {

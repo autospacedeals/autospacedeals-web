@@ -13,6 +13,26 @@ interface ContactMessage {
   message: string;
   emailed: boolean;
   created_at: string;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  source: string | null;
+  campaign: string | null;
+}
+
+const COUNTRY_NAMES = new Intl.DisplayNames(["en"], { type: "region" });
+
+// "Glendale, CA" in the US, "Rotterdam, Netherlands" elsewhere (0048).
+function place(m: ContactMessage): string | null {
+  if (!m.country && !m.city) return null;
+  if (m.country === "US") return [m.city, m.region].filter(Boolean).join(", ") || "United States";
+  let country = m.country ?? "";
+  try {
+    country = (m.country && COUNTRY_NAMES.of(m.country)) || country;
+  } catch {
+    // keep the code
+  }
+  return [m.city, country].filter(Boolean).join(", ");
 }
 
 function when(iso: string): string {
@@ -32,7 +52,7 @@ export default async function AdminContactPage() {
   await requireAdmin("/admin/contact");
   const { data, error } = await createAdminClient()
     .from("contact_messages")
-    .select("id, name, email, topic, message, emailed, created_at")
+    .select("id, name, email, topic, message, emailed, created_at, country, region, city, source, campaign")
     .order("created_at", { ascending: false })
     .limit(500)
     .returns<ContactMessage[]>();
@@ -68,6 +88,8 @@ export default async function AdminContactPage() {
               </div>
               <p className="mt-1 text-xs text-fg-muted">
                 {m.topic}
+                {place(m) && ` · ${place(m)}`}
+                {m.source && ` · found Drive via ${m.source}${m.campaign ? ` (${m.campaign})` : ""}`}
                 {!m.emailed && <span className="text-warning"> · email didn&apos;t send</span>}
               </p>
               <p className="mt-3 text-sm whitespace-pre-wrap text-fg-secondary">{m.message}</p>
