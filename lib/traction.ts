@@ -85,3 +85,26 @@ export async function getTraction(): Promise<Traction | null> {
   const months = first > 0 ? raw.months.slice(first) : raw.months;
   return { months, channels, topSources, now: raw.now };
 }
+
+// How often people come back (0049 admin_return_metrics), all time.
+export interface ReturnMetrics {
+  visitors: number;
+  cameBack: number;
+  days1: number;
+  days2: number;
+  days3to5: number;
+  days6plus: number;
+  within7: number;
+  within30: number;
+  medianDaysToReturn: number | null;
+  avgDays: number | null;
+}
+
+export async function getReturnMetrics(): Promise<ReturnMetrics | null> {
+  const { data, error } = await createAdminClient().rpc("admin_return_metrics");
+  if (error || !data) {
+    console.error("admin_return_metrics failed:", error?.message);
+    return null;
+  }
+  return data as ReturnMetrics;
+}

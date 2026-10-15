@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin";
-import { CHANNELS, getTraction, type TractionMonth } from "@/lib/traction";
+import { CHANNELS, getReturnMetrics, getTraction, type ReturnMetrics, type TractionMonth } from "@/lib/traction";
 import CopyTable from "./CopyTable";
 
 export const metadata: Metadata = { title: "Traction", robots: { index: false } };
@@ -80,9 +80,59 @@ function Section({
   );
 }
 
+// How often people come back: the share who returned on another day, how
+// many days they visited, and how soon.
+function ComingBack({ r }: { r: ReturnMetrics }) {
+  const share = (n: number) => pct(n, r.visitors);
+  const median = r.medianDaysToReturn;
+  const cards = [
+    { label: "Came back on another day", value: `${r.cameBack} of ${r.visitors}`, note: share(r.cameBack) },
+    {
+      label: "Typical time before coming back",
+      value: median == null ? "—" : median < 1 ? "Same week" : `${Math.round(median)} day${Math.round(median) === 1 ? "" : "s"}`,
+      note: "median, for people who came back",
+    },
+    { label: "Came back within 7 days", value: r.within7, note: share(r.within7) },
+    { label: "Came back within 30 days", value: r.within30, note: share(r.within30) },
+  ];
+  const head = ["Days visited", "Visitors", "Share"];
+  const rows: (string | number)[][] = [
+    ["1 day (didn't come back yet)", r.days1, share(r.days1)],
+    ["2 days", r.days2, share(r.days2)],
+    ["3–5 days", r.days3to5, share(r.days3to5)],
+    ["6+ days", r.days6plus, share(r.days6plus)],
+  ];
+  return (
+    <section className="mt-10">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="type-title">Coming back</h2>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">
+            How often people return, all time. A visit is one browsing session; coming back means visiting again on a
+            different day. A cleared browser or a second device counts as a new visitor, so these run a little low.
+          </p>
+        </div>
+        <CopyTable rows={[["Measure", "Value", "Share"], ...cards.map((c) => [c.label, c.value, c.note]), [], head, ...rows]} />
+      </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {cards.map((c) => (
+          <div key={c.label} className="card p-4">
+            <p className="label">{c.label}</p>
+            <p className="mt-1.5 text-2xl font-semibold text-fg tabular-nums">{c.value}</p>
+            <p className="mt-0.5 text-xs text-fg-muted">{c.note}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4">
+        <Table head={head} rows={rows} />
+      </div>
+    </section>
+  );
+}
+
 export default async function TractionPage() {
   await requireAdmin("/admin/traction");
-  const t = await getTraction();
+  const [t, returns] = await Promise.all([getTraction(), getReturnMetrics()]);
 
   if (!t) {
     return (
@@ -157,6 +207,8 @@ export default async function TractionPage() {
         head={["Month", "Visitors", "vs. last month", "New", "Returning", "Direct", "From AI assistants"]}
         rows={awareness}
       />
+
+      {returns && returns.visitors > 0 && <ComingBack r={returns} />}
 
       <Section
         title="How people found Drive"
