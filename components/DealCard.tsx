@@ -212,10 +212,10 @@ export default function DealCard({
             signing
           </p>
         )}
-        {deal.msdCount ? (
+        {/* When MSDs are an option, the payment line above already says so. */}
+        {deal.msdCount && !deal.msdPayment ? (
           <p className="spec-footnote mt-2">
-            {deal.msdPayment ? "MSD option: " : "Payment assumes "}
-            <strong>{formatMsds(deal.msdCount, deal.msdTotal)}</strong> · paid at signing
+            Payment assumes <strong>{formatMsds(deal.msdCount, deal.msdTotal)}</strong> · paid at signing
           </p>
         ) : null}
         {(deal.incentives ?? []).some(isRequiredProgram) && (
