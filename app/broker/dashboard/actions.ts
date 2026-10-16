@@ -21,6 +21,7 @@ import {
 } from "@/lib/ai-parse-inventory";
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { readWebsiteDeals } from "@/lib/website-inventory";
+import { LOGO_TYPES, MAX_LOGO_BYTES, removeBrokerLogo, saveBrokerLogo } from "@/lib/broker-logos";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { applyDealExtras, getDealExtras } from "@/lib/deal-disclaimers";
 import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
@@ -94,6 +95,43 @@ export async function updateBrokerAboutAction(formData: FormData): Promise<{ err
 
   const { error } = await supabase.from("brokers").update({ about }).eq("id", user.id);
   if (error) return { error: error.message };
+
+  revalidatePath("/broker/dashboard");
+  revalidatePath(`/brokers/${user.id}`);
+  return { error: null };
+}
+
+// The seller's logo, shown instead of their initials on deal pages and
+// their profile (lib/broker-logos.ts).
+export async function uploadBrokerLogoAction(formData: FormData): Promise<{ error: string | null; logoUrl?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  const file = formData.get("logo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose an image first." };
+  if (!LOGO_TYPES.includes(file.type)) return { error: "Please upload a PNG, JPG, WEBP or GIF." };
+  if (file.size > MAX_LOGO_BYTES) return { error: "That image is too large — please keep it under 4MB." };
+
+  const { url, error } = await saveBrokerLogo(user.id, Buffer.from(await file.arrayBuffer()));
+  if (error || !url) return { error: error ?? "Couldn't save your logo." };
+
+  revalidatePath("/broker/dashboard");
+  revalidatePath(`/brokers/${user.id}`);
+  return { error: null, logoUrl: url };
+}
+
+export async function removeBrokerLogoAction(): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/broker/login");
+
+  const { error } = await removeBrokerLogo(user.id);
+  if (error) return { error };
 
   revalidatePath("/broker/dashboard");
   revalidatePath(`/brokers/${user.id}`);

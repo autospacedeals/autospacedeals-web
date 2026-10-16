@@ -45,6 +45,7 @@ interface Broker {
   city: string;
   state: string;
   about: string | null;
+  logo_url: string | null;
 }
 
 export default async function BrokerDashboardPage() {
@@ -57,7 +58,7 @@ export default async function BrokerDashboardPage() {
   const { data: broker, error: brokerError } = await supabase
     .from("brokers")
     .select(
-      "id, contact_name, business_name, seller_type, dealership_name, city, state, about"
+      "id, contact_name, business_name, seller_type, dealership_name, city, state, about, logo_url"
     )
     .eq("id", user.id)
     .single<Broker>();
@@ -218,7 +219,12 @@ export default async function BrokerDashboardPage() {
           ))}
       </div>
 
-      <AboutEditor about={broker?.about ?? null} brokerId={user.id} />
+      <AboutEditor
+        about={broker?.about ?? null}
+        brokerId={user.id}
+        businessName={broker?.business_name ?? ""}
+        logoUrl={broker?.logo_url ?? null}
+      />
 
       {dealsError && (
         <div className="alert alert-danger mt-8">

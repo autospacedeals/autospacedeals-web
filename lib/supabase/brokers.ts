@@ -12,6 +12,8 @@ export interface BrokerProfile {
   city: string;
   state: string;
   about: string | null;
+  // Their uploaded logo (0051_broker_logos.sql), shown instead of initials.
+  logoUrl: string | null;
 }
 
 interface BrokerRow {
@@ -22,6 +24,7 @@ interface BrokerRow {
   city: string;
   state: string;
   about: string | null;
+  logo_url: string | null;
 }
 
 function publicClient() {
@@ -37,7 +40,7 @@ export async function getBrokerProfile(id: string): Promise<BrokerProfile | null
     const { data, error } = await withTimeout(
       supabase
         .from("brokers")
-        .select("id, business_name, seller_type, dealership_name, city, state, about")
+        .select("id, business_name, seller_type, dealership_name, city, state, about, logo_url")
         .eq("id", id)
         // No public page until their license is verified (0038_seller_verification.sql).
         .not("approved_at", "is", null)
@@ -60,6 +63,7 @@ export async function getBrokerProfile(id: string): Promise<BrokerProfile | null
       city: data.city ?? "",
       state: data.state ?? "",
       about: data.about,
+      logoUrl: data.logo_url ?? null,
     };
   } catch (err) {
     // Defensive: a thrown (not returned-as-error) exception here — e.g. a
@@ -71,3 +75,20 @@ export async function getBrokerProfile(id: string): Promise<BrokerProfile | null
     return null;
   }
 }
+
+// Just a seller's logo, for their avatar on a deal page: null when they
+// haven't uploaded one (or it can't be read).
+export async function getBrokerLogo(id: string): Promise<string | null> {
+  try {
+    const { data, error } = await withTimeout(
+      publicClient().from("brokers").select("logo_url").eq("id", id).maybeSingle<{ logo_url: string | null }>(),
+      5000,
+      "getBrokerLogo"
+    );
+    if (error) return null;
+    return data?.logo_url ?? null;
+  } catch {
+    return null;
+  }
+}
+

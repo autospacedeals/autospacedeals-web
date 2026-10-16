@@ -35,18 +35,8 @@ import SaveDealButton from "@/components/SaveDealButton";
 import DealBackLinks from "@/components/DealBackLinks";
 import { DealTaxBox } from "@/components/TaxRate";
 import type { BrokerRatingSummary } from "@/lib/supabase/reviews";
+import SellerAvatar from "@/components/SellerAvatar";
 
-// Up to two initials for the seller avatar in the contact card. Guarded like
-// every other deal-derived value below — a missing name just renders an
-// empty avatar instead of throwing.
-function initials(label: string | null | undefined) {
-  return String(label ?? "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join("");
-}
 
 export default function DealDetailView({
   deal,
@@ -72,6 +62,8 @@ export default function DealDetailView({
   // The same deal listed by other sellers (lib/deal-utils.ts sameDealKey),
   // lowest broker fee first.
   sameDeals = [],
+  // The seller's logo, shown instead of their initials (null: none).
+  sellerLogo = null,
 }: {
   deal: Deal;
   similar?: Deal[];
@@ -82,6 +74,7 @@ export default function DealDetailView({
   previewBanner?: ReactNode;
   brokerRating?: BrokerRatingSummary | null;
   alertsAvailable?: boolean;
+  sellerLogo?: string | null;
 }) {
   // Every value derived from the deal is computed defensively — a single
   // bad field (a stray null slipping through a type that assumes it can't
@@ -370,9 +363,7 @@ export default function DealDetailView({
 
             <div className="border-t border-line p-6">
               <div className="flex items-start gap-3">
-                <span aria-hidden="true" className="avatar">
-                  {initials(deal.sellerName)}
-                </span>
+                <SellerAvatar name={deal.sellerName} logoUrl={sellerLogo} />
                 <div className="min-w-0">
                   <p className="label">{deal.sellerType}</p>
                   {deal.brokerId ? (

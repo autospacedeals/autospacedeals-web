@@ -1,16 +1,97 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, X } from "lucide-react";
-import { updateBrokerAboutAction } from "./actions";
+import { useRef, useState, useTransition } from "react";
+import { ImageUp, Pencil, Trash2, X } from "lucide-react";
+import SellerAvatar from "@/components/SellerAvatar";
+import { removeBrokerLogoAction, updateBrokerAboutAction, uploadBrokerLogoAction } from "./actions";
 
-export default function AboutEditor({ about, brokerId }: { about: string | null; brokerId: string }) {
+// The seller's logo: shown instead of their initials on their deal pages and
+// public profile. Picking a file uploads it right away.
+function LogoEditor({ businessName, logoUrl }: { businessName: string; logoUrl: string | null }) {
+  const [logo, setLogo] = useState(logoUrl);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const input = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-line pb-4">
+      <SellerAvatar name={businessName} logoUrl={logo} className="size-14 text-base" />
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-fg">Your logo</p>
+        <p className="text-xs text-fg-muted">
+          Shown instead of your initials on your listings and profile. A square PNG with a transparent
+          background looks best.
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            ref={input}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="sr-only"
+            aria-label="Upload your logo"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setError(null);
+              startTransition(async () => {
+                const data = new FormData();
+                data.set("logo", file);
+                const result = await uploadBrokerLogoAction(data);
+                if (result.error) setError(result.error);
+                else if (result.logoUrl) setLogo(result.logoUrl);
+              });
+            }}
+          />
+          <button type="button" disabled={pending} onClick={() => input.current?.click()} className="btn btn-secondary btn-sm">
+            <ImageUp /> {pending ? "Uploading…" : logo ? "Change logo" : "Upload logo"}
+          </button>
+          {logo && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                setError(null);
+                startTransition(async () => {
+                  const result = await removeBrokerLogoAction();
+                  if (result.error) setError(result.error);
+                  else setLogo(null);
+                });
+              }}
+              className="btn btn-ghost btn-sm"
+            >
+              <Trash2 /> Remove
+            </button>
+          )}
+        </div>
+        {error && (
+          <p role="alert" className="mt-2 text-xs text-danger">
+            {error}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function AboutEditor({
+  about,
+  brokerId,
+  businessName,
+  logoUrl,
+}: {
+  about: string | null;
+  brokerId: string;
+  businessName: string;
+  logoUrl: string | null;
+}) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!editing) {
     return (
       <div className="panel mt-6">
+        <LogoEditor businessName={businessName} logoUrl={logoUrl} />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="type-title">About your business</p>

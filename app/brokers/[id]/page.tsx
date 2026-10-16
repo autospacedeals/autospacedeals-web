@@ -9,6 +9,7 @@ import { formatAverageRating, reviewCountLabel, reviewDateLabel, reviewFullDate 
 import BrokerListings from "@/components/BrokerListings";
 import { pageMetadata } from "@/lib/site";
 import StarRating, { RatingBadge } from "@/components/StarRating";
+import SellerAvatar from "@/components/SellerAvatar";
 import ReviewForm from "./ReviewForm";
 
 export const dynamic = "force-dynamic";
@@ -77,9 +78,7 @@ export default async function BrokerProfilePage({
       <section className="card relative overflow-hidden p-6 sm:p-8">
         <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
         <div className="flex items-start gap-4">
-          <span aria-hidden="true" className="avatar size-16 rounded-2xl text-xl">
-            {initials(broker.businessName)}
-          </span>
+          <SellerAvatar name={broker.businessName} logoUrl={broker.logoUrl} className="size-16 rounded-2xl text-xl" />
           <div className="min-w-0">
             <p className="label">{broker.sellerType}</p>
             <h1 className="type-page mt-1 text-3xl break-words sm:text-4xl">{broker.businessName}</h1>

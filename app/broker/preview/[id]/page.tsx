@@ -3,6 +3,7 @@ import { CircleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDealByIdForBroker } from "@/lib/supabase/broker-preview";
 import DealDetailView from "@/components/DealDetailView";
+import { getBrokerLogo } from "@/lib/supabase/brokers";
 
 // Lets a broker see exactly what shoppers will see for one of their own
 // deals — draft or already-published — before hitting "Confirm & publish."
@@ -25,6 +26,7 @@ export default async function BrokerDealPreviewPage({
 
   const deal = await getDealByIdForBroker(id, user.id);
   if (!deal) notFound();
+  const sellerLogo = await getBrokerLogo(user.id);
 
   return (
     <DealDetailView
@@ -32,6 +34,7 @@ export default async function BrokerDealPreviewPage({
       backHref="/broker/dashboard"
       backLabel="Back to dashboard"
       isPreview
+      sellerLogo={sellerLogo}
       previewBanner={
         <div className="alert alert-warning mb-6 font-medium">
           <CircleAlert />

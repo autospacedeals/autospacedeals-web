@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Deal } from "@/lib/deals-data";
 import { getDealBySlugDb, getPublishedDeals } from "@/lib/supabase/deals";
 import { getBrokerRatingSummary, type BrokerRatingSummary } from "@/lib/supabase/reviews";
+import { getBrokerLogo } from "@/lib/supabase/brokers";
 import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
 import { byBrokerFee, dealTitle, formatCurrency, getSimilarDealsFrom, sameDealKey } from "@/lib/deal-utils";
 import { buildDealJsonLd, serializeJsonLd } from "@/lib/deal-json-ld";
@@ -107,7 +108,11 @@ export default async function DealDetailPage({
   } catch (err) {
     console.error("DealDetailPage: similar deals failed for", deal.id, err);
   }
-  const [brokerRating, alertsAvailable] = await Promise.all([ratingPromise, alertsPromise]);
+  const [brokerRating, alertsAvailable, sellerLogo] = await Promise.all([
+    ratingPromise,
+    alertsPromise,
+    deal.brokerId ? getBrokerLogo(deal.brokerId) : Promise.resolve(null),
+  ]);
 
   // schema.org Car + lease Offer for search engines, rendered server-side.
   // Purely additive — if anything about this listing can't be described or
@@ -131,6 +136,7 @@ export default async function DealDetailPage({
         sameDeals={sameDeals}
         brokerRating={brokerRating}
         alertsAvailable={alertsAvailable}
+        sellerLogo={sellerLogo}
       />
     </>
   );
