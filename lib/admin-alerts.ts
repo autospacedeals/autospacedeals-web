@@ -236,6 +236,8 @@ export interface SheetIssuesAlert {
   brokerId: string;
   businessName: string;
   sheetUrl: string;
+  // A synced website instead of a sheet (no tabs).
+  source?: "google_sheet" | "website";
   // Cars that vanished from the sheet all at once and weren't removed.
   heldBack: string[];
   // Rows the AI couldn't read.
@@ -248,19 +250,23 @@ export interface SheetIssuesAlert {
 // of problems changes, not on every check.
 export async function alertAdminsSheetIssues(a: SheetIssuesAlert): Promise<void> {
   if (!isEmailConfigured()) return;
+  const noun = a.source === "website" ? "website" : "sheet";
   try {
     const sections: { title: string; note: string; items: string[] }[] = [];
     if (a.heldBack.length > 0) {
       sections.push({
         title: `${a.heldBack.length} car${a.heldBack.length === 1 ? "" : "s"} not removed`,
-        note: "They disappeared from the sheet all at once, which usually means a bad read (sheet unshared, tab renamed or emptied). They stay live until the sheet is fixed. If they really sold, remove them on Admin → Listings.",
+        note:
+          noun === "website"
+            ? "They disappeared from the website all at once, which usually means a bad read (site down or redesigned). They stay live until it reads again. If they really sold, remove them on Admin → Listings."
+            : "They disappeared from the sheet all at once, which usually means a bad read (sheet unshared, tab renamed or emptied). They stay live until the sheet is fixed. If they really sold, remove them on Admin → Listings.",
         items: a.heldBack,
       });
     }
     if (a.skipped.length > 0) {
       sections.push({
         title: `${a.skipped.length} row${a.skipped.length === 1 ? "" : "s"} couldn't be read`,
-        note: "These rows aren't posted. Usually a missing payment, model or term on the sheet.",
+        note: `These ${noun === "website" ? "cars" : "rows"} aren't posted. Usually a missing payment, model or term on the ${noun}.`,
         items: a.skipped.map((r) => `${r.tab ? `${r.tab}, ` : ""}row ${r.row}: ${r.reason}`),
       });
     }
@@ -276,8 +282,8 @@ export async function alertAdminsSheetIssues(a: SheetIssuesAlert): Promise<void>
     const listingsUrl = `${SITE_URL}/admin/listings`;
     const shown = (items: string[]) => items.slice(0, 25);
     const html = emailLayoutHtml({
-      preheader: `${a.businessName}'s sheet: ${sections.map((s) => s.title).join(", ")}.`,
-      heading: `${a.businessName}'s sheet needs a look`,
+      preheader: `${a.businessName}'s ${noun}: ${sections.map((s) => s.title).join(", ")}.`,
+      heading: `${a.businessName}'s ${noun} needs a look`,
       bodyHtml:
         sections
           .map(
@@ -288,17 +294,17 @@ export async function alertAdminsSheetIssues(a: SheetIssuesAlert): Promise<void>
               (s.items.length > 25 ? `<p style="margin:0;">…and ${s.items.length - 25} more</p>` : "")
           )
           .join("") +
-        `<p style="margin:16px 0 0 0;"><a href="${escapeHtml(a.sheetUrl)}">Open the sheet</a> · <a href="${listingsUrl}">Admin → Listings</a></p>`,
-      footerHtml: "You're getting this because you're a Drive admin. Sent when a synced sheet's problems change.",
+        `<p style="margin:16px 0 0 0;"><a href="${escapeHtml(a.sheetUrl)}">Open the ${noun}</a> · <a href="${listingsUrl}">Admin → Listings</a></p>`,
+      footerHtml: "You're getting this because you're a Drive admin. Sent when a synced sheet or website's problems change.",
     });
     const text =
-      `${a.businessName}'s sheet needs a look.\n\n` +
+      `${a.businessName}'s ${noun} needs a look.\n\n` +
       sections.map((s) => `${s.title}\n${s.note}\n${shown(s.items).map((i) => `- ${i}`).join("\n")}`).join("\n\n") +
-      `\n\nSheet: ${a.sheetUrl}\nListings: ${listingsUrl}`;
+      `\n\n${noun === "website" ? "Website" : "Sheet"}: ${a.sheetUrl}\nListings: ${listingsUrl}`;
     const recipients = [...(await adminEmails())];
     await Promise.all(
       recipients.map(async (to) => {
-        const sent = await sendEmail({ to, subject: `Sheet check: ${a.businessName} (${sections.map((s) => s.title).join(", ")})`, html, text });
+        const sent = await sendEmail({ to, subject: `${noun === "website" ? "Website" : "Sheet"} check: ${a.businessName} (${sections.map((s) => s.title).join(", ")})`, html, text });
         if (!sent.ok) console.error(`sheet-issues alert to ${to} failed:`, sent.error);
       })
     );

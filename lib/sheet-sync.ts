@@ -14,9 +14,14 @@
 // when a check needs a look (alertAdminsSheetIssues). Each row's parse is
 // cached on the sync (row_cache), so a check only sends new or changed rows
 // to the AI.
+//
+// A seller's website syncs the same way (source "website", its address in
+// sheet_url): its deals are re-read from the site (lib/website-inventory.ts)
+// with no tabs to switch, and new cars come in with the seller's photos.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseTabs, computeMatchSignature, type ParsedDeal, type SkippedRow, type TabRowCache } from "@/lib/parse-inventory";
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
+import { readWebsiteDeals, WEBSITE_FEED_TAB } from "@/lib/website-inventory";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { normalizeModelTrim, splitProgramsFromTrim } from "@/lib/vehicle-names";
 import { alertAdminsFirstListing, alertAdminsSheetIssues } from "@/lib/admin-alerts";
@@ -25,6 +30,7 @@ import { getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
 export interface SheetSyncRow {
   id: string;
   broker_id: string;
+  source: "google_sheet" | "website";
   sheet_url: string;
   tabs: string[] | null;
   disabled_tabs: string[] | null;
@@ -32,7 +38,7 @@ export interface SheetSyncRow {
   last_alert_key: string | null;
 }
 
-export const SHEET_SYNC_COLUMNS = "id, broker_id, sheet_url, tabs, disabled_tabs, row_cache, last_alert_key";
+export const SHEET_SYNC_COLUMNS = "id, broker_id, source, sheet_url, tabs, disabled_tabs, row_cache, last_alert_key";
 
 export interface SheetSyncResult {
   syncId: string;
@@ -163,41 +169,67 @@ export async function runSheetSync(
     return { syncId: sync.id, added: 0, removed: 0, updated: 0, error: message };
   };
 
-  const fetched = await fetchGoogleSheetTabs(sync.sheet_url);
-  if (!fetched.ok) return fail(fetched.error);
-
-  // Tabs added since the last check start switched off.
-  const known = new Set(sync.tabs ?? []);
-  const newTabs = known.size > 0 ? fetched.tabs.map((t) => t.name).filter((name) => !known.has(name)) : [];
-  const disabled = new Set([...(sync.disabled_tabs ?? []), ...newTabs]);
-  const enabledTabs = fetched.tabs.filter((t) => !disabled.has(t.name));
-
+  let tabNames: string[];
+  let newTabs: string[] = [];
+  let disabled = new Set<string>();
+  let enabledTabCount = 1;
   let parsedDeals: ParsedDeal[];
   let skippedCount: number;
   let skippedRows: SkippedRow[];
   let rowCache: TabRowCache;
   let rowsRead: number;
-  try {
-    const result = await parseTabs(enabledTabs, broker.state, sync.row_cache ?? {});
-    parsedDeals = result.parsed;
-    skippedCount = result.skipped.length;
-    skippedRows = result.skipped;
-    // Switched-off tabs that still exist keep their cache for later.
-    const kept = Object.fromEntries(
-      Object.entries(sync.row_cache ?? {}).filter(([tab]) => disabled.has(tab) && fetched.tabs.some((t) => t.name === tab))
-    );
-    rowCache = { ...kept, ...result.cache };
-    rowsRead = result.rowsRead;
-  } catch (err) {
-    console.error(`Sheet sync ${sync.id}: parse failed:`, err);
-    return fail(err instanceof Error ? err.message : "Failed to parse the sheet.");
+
+  if (sync.source === "website") {
+    try {
+      const result = await readWebsiteDeals(sync.sheet_url, broker.state, sync.row_cache ?? {});
+      if (!result.ok) return fail(`Couldn't read your website: ${result.error}`);
+      if (sync.tabs?.includes(WEBSITE_FEED_TAB) && result.tab !== WEBSITE_FEED_TAB) {
+        return fail("Couldn't find your website's deals this check — skipped to avoid removing everything.");
+      }
+      tabNames = [result.tab];
+      parsedDeals = result.parsed;
+      skippedCount = result.skipped.length;
+      skippedRows = result.skipped;
+      rowCache = result.cache;
+      rowsRead = result.rowsRead;
+    } catch (err) {
+      console.error(`Website sync ${sync.id}: read failed:`, err);
+      return fail(err instanceof Error ? err.message : "Failed to read the website.");
+    }
+  } else {
+    const fetched = await fetchGoogleSheetTabs(sync.sheet_url);
+    if (!fetched.ok) return fail(fetched.error);
+    tabNames = fetched.tabs.map((t) => t.name);
+
+    // Tabs added since the last check start switched off.
+    const known = new Set(sync.tabs ?? []);
+    newTabs = known.size > 0 ? tabNames.filter((name) => !known.has(name)) : [];
+    disabled = new Set([...(sync.disabled_tabs ?? []), ...newTabs]);
+    const enabledTabs = fetched.tabs.filter((t) => !disabled.has(t.name));
+    enabledTabCount = enabledTabs.length;
+
+    try {
+      const result = await parseTabs(enabledTabs, broker.state, sync.row_cache ?? {});
+      parsedDeals = result.parsed;
+      skippedCount = result.skipped.length;
+      skippedRows = result.skipped;
+      // Switched-off tabs that still exist keep their cache for later.
+      const kept = Object.fromEntries(
+        Object.entries(sync.row_cache ?? {}).filter(([tab]) => disabled.has(tab) && tabNames.includes(tab))
+      );
+      rowCache = { ...kept, ...result.cache };
+      rowsRead = result.rowsRead;
+    } catch (err) {
+      console.error(`Sheet sync ${sync.id}: parse failed:`, err);
+      return fail(err instanceof Error ? err.message : "Failed to parse the sheet.");
+    }
   }
 
   // Remember the tab list either way, so the broker can switch tabs on/off.
   await supabase
     .from("sheet_syncs")
     .update({
-      tabs: fetched.tabs.map((t) => t.name),
+      tabs: tabNames,
       ...(newTabs.length > 0 ? { disabled_tabs: [...disabled] } : {}),
     })
     .eq("id", sync.id);
@@ -236,9 +268,9 @@ export async function runSheetSync(
   // "we read nothing" as "delete everything."
   if (parsedDeals.length === 0 && skippedCount === 0 && rowsRead === 0) {
     return fail(
-      enabledTabs.length === 0
+      enabledTabCount === 0
         ? "Every tab is switched off, so nothing was checked."
-        : "Last check found no rows on the sheet — skipped to avoid removing everything."
+        : `Last check found no rows on the ${sync.source === "website" ? "website" : "sheet"} — skipped to avoid removing everything.`
     );
   }
 
@@ -342,6 +374,7 @@ export async function runSheetSync(
       brokerId: sync.broker_id,
       businessName: broker.business_name,
       sheetUrl: sync.sheet_url,
+      source: sync.source,
       heldBack: heldBack.map((r) => [r.year, r.make, r.model, r.trim].filter(Boolean).join(" ")),
       skipped: skippedRows.map((r) => ({ tab: r.tab ?? null, row: r.row, reason: r.reason })),
       newTabs,

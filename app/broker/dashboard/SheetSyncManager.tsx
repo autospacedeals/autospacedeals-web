@@ -12,6 +12,8 @@ import type { Deal } from "@/lib/deals-data";
 
 export interface SheetSync {
   id: string;
+  // A Google Sheet, or the seller's own website (no tabs).
+  source: "google_sheet" | "website";
   sheetUrl: string;
   active: boolean;
   lastSyncedAt: string | null;
@@ -44,8 +46,8 @@ function shortUrl(url: string): string {
   }
 }
 
-// Lets a broker see and control every Google Sheet they've set to
-// auto-sync — pause it or unlink it —
+// Lets a broker see and control every Google Sheet (or website) they've set
+// to auto-sync — pause it or unlink it —
 // with the live cars that sheet created listed right under it, kept apart
 // from cars added by hand. The actual recurring check runs server-side on a
 // schedule (see app/api/cron/sync-sheets); this is just the control panel.
@@ -85,12 +87,24 @@ export default function SheetSyncManager({
     void run(sync.id, () => setSheetTabEnabledAction(sync.id, tab, enabled));
   }
 
+  const hasSheet = syncs.some((s) => s.source !== "website");
+  const hasWebsite = syncs.some((s) => s.source === "website");
+
   return (
     <section className="mt-8">
-      <h2 className="type-title">From your live Google Sheet</h2>
+      <h2 className="type-title">
+        {hasSheet && hasWebsite
+          ? "From your live sheet and website"
+          : hasWebsite
+            ? "From your website"
+            : "From your live Google Sheet"}
+      </h2>
       <p className="mt-1 text-sm text-fg-secondary">
         Checked automatically for new, repriced, and removed cars. To change a price or take a
-        car down, edit the sheet — deleted or crossed-out rows come off on the next check.
+        car down,{" "}
+        {hasSheet
+          ? `edit the ${hasWebsite ? "sheet or website" : "sheet"} — deleted or crossed-out rows come off on the next check.`
+          : "change it on your website — it updates here on the next check."}
       </p>
 
       {error && (
@@ -102,6 +116,8 @@ export default function SheetSyncManager({
       <div className="mt-5 space-y-8">
         {syncs.map((sync) => {
           const listings = listingsBySync[sync.id] ?? [];
+          const website = sync.source === "website";
+          const noun = website ? "website" : "sheet";
           return (
             <div key={sync.id}>
               <div className="rounded-xl border border-line bg-hover p-4">
@@ -159,57 +175,60 @@ export default function SheetSyncManager({
                 </div>
 
                 <p className="mt-3 text-xs text-fg-muted">
-                  Cars you add to the sheet go live automatically, price changes update, and cars you delete
-                  come down.
+                  {website
+                    ? "We check your website about every 30 minutes: cars you add go live automatically with your photos, price changes update, and cars you take off your site come down."
+                    : "Cars you add to the sheet go live automatically, price changes update, and cars you delete come down."}
                 </p>
 
-                <div className="mt-4 border-t border-line pt-3">
-                  <p className="text-xs font-medium text-fg-secondary">Tabs to pull cars from</p>
-                  {sync.tabs.length === 0 ? (
-                    <p className="mt-1.5 text-xs text-fg-muted">The sheet&apos;s tabs show up here after its next check.</p>
-                  ) : (
-                    <>
-                      <ul className="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2">
-                        {sync.tabs.map((tab) => {
-                          const on = !sync.disabledTabs.includes(tab);
-                          const liveCount = listings.filter((d) => d.sheetTab === tab).length;
-                          return (
-                            <li key={tab}>
-                              <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm text-fg has-[:disabled]:cursor-not-allowed">
-                                <input
-                                  type="checkbox"
-                                  checked={on}
-                                  disabled={busyId === sync.id}
-                                  onChange={(e) => toggleTab(sync, tab, e.target.checked, liveCount)}
-                                  className="checkbox"
-                                />
-                                <span className={`min-w-0 truncate ${on ? "" : "text-fg-muted line-through"}`}>{tab}</span>
-                                {on && liveCount > 0 && <span className="shrink-0 text-xs text-fg-muted">{liveCount} live</span>}
-                              </label>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                      <p className="mt-1.5 text-xs text-fg-muted">
-                        Uncheck an outdated tab to take its cars down and stop pulling it; check it again
-                        when it&apos;s ready. New tabs are pulled automatically. Hidden tabs are skipped.
+                {!website && (
+                  <div className="mt-4 border-t border-line pt-3">
+                    <p className="text-xs font-medium text-fg-secondary">Tabs to pull cars from</p>
+                    {sync.tabs.length === 0 ? (
+                      <p className="mt-1.5 text-xs text-fg-muted">The sheet&apos;s tabs show up here after its next check.</p>
+                    ) : (
+                      <>
+                        <ul className="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                          {sync.tabs.map((tab) => {
+                            const on = !sync.disabledTabs.includes(tab);
+                            const liveCount = listings.filter((d) => d.sheetTab === tab).length;
+                            return (
+                              <li key={tab}>
+                                <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm text-fg has-[:disabled]:cursor-not-allowed">
+                                  <input
+                                    type="checkbox"
+                                    checked={on}
+                                    disabled={busyId === sync.id}
+                                    onChange={(e) => toggleTab(sync, tab, e.target.checked, liveCount)}
+                                    className="checkbox"
+                                  />
+                                  <span className={`min-w-0 truncate ${on ? "" : "text-fg-muted line-through"}`}>{tab}</span>
+                                  {on && liveCount > 0 && <span className="shrink-0 text-xs text-fg-muted">{liveCount} live</span>}
+                                </label>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        <p className="mt-1.5 text-xs text-fg-muted">
+                          Uncheck an outdated tab to take its cars down and stop pulling it; check it again
+                          when it&apos;s ready. New tabs are pulled automatically. Hidden tabs are skipped.
+                        </p>
+                      </>
+                    )}
+                    {busyId === sync.id && busyNote && (
+                      <p role="status" className="mt-2 flex items-center gap-1.5 text-xs text-fg-secondary">
+                        <Loader2 size={12} className="animate-spin" /> {busyNote}
                       </p>
-                    </>
-                  )}
-                  {busyId === sync.id && busyNote && (
-                    <p role="status" className="mt-2 flex items-center gap-1.5 text-xs text-fg-secondary">
-                      <Loader2 size={12} className="animate-spin" /> {busyNote}
-                    </p>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <p className="mt-4 mb-3 text-sm font-medium text-fg">
-                {listings.length} live {listings.length === 1 ? "car" : "cars"} from this sheet
+                {listings.length} live {listings.length === 1 ? "car" : "cars"} from this {noun}
               </p>
               <MyListings
                 deals={listings}
-                emptyMessage="No live cars from this sheet yet — new rows show up here after the next check."
+                emptyMessage={`No live cars from this ${noun} yet — new ones show up here after the next check.`}
               />
             </div>
           );

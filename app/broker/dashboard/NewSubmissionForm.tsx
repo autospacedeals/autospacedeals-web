@@ -184,15 +184,16 @@ function LinkForm({
           {parsedCount === 0
             ? "Source saved."
             : state.sheetSynced
-              ? `Sheet connected — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it and posted ${parsedCount === 1 ? "it" : "them"}.`
+              ? `${sourceType === "website" ? "Website" : "Sheet"} connected — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it and posted ${parsedCount === 1 ? "it" : "them"}.`
               : `Source saved — we pulled ${parsedCount} car${parsedCount === 1 ? "" : "s"} from it. Take a look above to review and publish them.`}
           {skippedCount > 0 &&
             ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}
         </p>
         {state.sheetSynced && (
           <p className="mt-2 text-sm text-success">
-            This sheet is now set to check for updates automatically — manage it above under
-            &quot;From your live Google Sheet.&quot;
+            {sourceType === "website"
+              ? "Your website is now set to check for updates automatically — manage it above under \"From your website.\""
+              : "This sheet is now set to check for updates automatically — manage it above under \"From your live Google Sheet.\""}
           </p>
         )}
         <p className="mt-2 text-sm text-fg-secondary">
@@ -306,8 +307,28 @@ function LinkForm({
           />
           <p className="field-hint">
             The page on your own website that lists your deals. Our AI reads every car on it, with your
-            photos, as drafts for you to review before they publish. Can take a minute or two.
+            photos, as drafts for you to review before they publish (or live right away if you keep it
+            synced). Can take a minute or two.
           </p>
+          <div className="mt-3 rounded-xl border border-line bg-hover p-3.5">
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm text-fg-secondary">
+              <input
+                type="checkbox"
+                name="keepSynced"
+                checked={keepSynced}
+                onChange={(e) => setKeepSynced(e.target.checked)}
+                className="checkbox mt-px"
+              />
+              <span>
+                Keep my website synced automatically
+                <span className="mt-0.5 block text-xs leading-5 text-fg-muted">
+                  Its cars go live now instead of as drafts, and we&apos;ll check your site every ~30
+                  minutes: cars you add go live automatically with your photos, changed prices update,
+                  and cars you take off your site come down (recoverable from your removed list).
+                </span>
+              </span>
+            </label>
+          </div>
         </div>
       ) : sourceType === "screenshot" ? (
         <div>

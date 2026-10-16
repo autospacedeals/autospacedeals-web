@@ -104,12 +104,13 @@ export default async function BrokerDashboardPage() {
 
   const { data: sheetSyncRows } = await supabase
     .from("sheet_syncs")
-    .select("id, sheet_url, active, last_synced_at, last_sync_added, last_sync_removed, last_sync_error, tabs, disabled_tabs")
+    .select("id, source, sheet_url, active, last_synced_at, last_sync_added, last_sync_removed, last_sync_error, tabs, disabled_tabs")
     .eq("broker_id", user.id)
     .order("created_at", { ascending: false })
     .returns<
       {
         id: string;
+        source: "google_sheet" | "website";
         sheet_url: string;
         active: boolean;
         last_synced_at: string | null;
@@ -137,6 +138,7 @@ export default async function BrokerDashboardPage() {
 
   const sheetSyncs: SheetSync[] = (sheetSyncRows ?? []).map((s) => ({
     id: s.id,
+    source: s.source ?? "google_sheet",
     sheetUrl: s.sheet_url,
     active: s.active,
     lastSyncedAt: s.last_synced_at,

@@ -9,9 +9,12 @@
 // private, loopback and link-local addresses are refused, redirects are
 // re-checked, and responses are size- and time-limited.
 // SERVER-ONLY.
+import { createHash } from "node:crypto";
 import { lookup } from "dns/promises";
 import { isIP } from "net";
 import type { SheetTab } from "@/lib/google-sheet";
+import { parseTabs, type ParsedDeal, type RowParseCache, type SkippedRow, type TabRowCache } from "@/lib/parse-inventory";
+import { mapLimit } from "@/lib/concurrency";
 
 const FETCH_TIMEOUT_MS = 15000;
 const MAX_PAGE_BYTES = 5 * 1024 * 1024;
@@ -332,3 +335,60 @@ export function textChunks(text: string, size = 10000): string[] {
   if (current.trim()) chunks.push(current);
   return chunks;
 }
+
+// The cache "tab" a website's cars are kept under: a feed is read row by
+// row, a page without one in chunks of its text. A synced site that had a
+// feed and suddenly doesn't is a bad read, not a site with no cars.
+export const WEBSITE_FEED_TAB = "Website";
+export const WEBSITE_TEXT_TAB = "Website page";
+
+export type WebsiteDeals =
+  | {
+      ok: true;
+      tab: typeof WEBSITE_FEED_TAB | typeof WEBSITE_TEXT_TAB;
+      parsed: ParsedDeal[];
+      skipped: SkippedRow[];
+      cache: TabRowCache;
+      rowsRead: number;
+    }
+  | { ok: false; error: string };
+
+// Reads every car on a seller's deals page (the upload and the recurring
+// sync both use this). Cars from a feed carry the seller's photos
+// (photoUrls). `cache` is the last read's, so only new or changed rows (or
+// text chunks) go to the AI.
+export async function readWebsiteDeals(url: string, brokerState: string, cache: TabRowCache = {}): Promise<WebsiteDeals> {
+  const site = await readWebsiteInventory(url);
+  if (!site.ok) return site;
+
+  if (site.kind === "feed") {
+    const result = await parseTabs([site.tab], brokerState, cache, FEED_CONTEXT);
+    return {
+      ok: true,
+      tab: WEBSITE_FEED_TAB,
+      // Row ids are positions (first row = 2), like a sheet's.
+      parsed: result.parsed.map((d) => ({ ...d, photoUrls: site.photos[(d.sourceRow ?? 0) - 2] ?? [] })),
+      skipped: result.skipped,
+      cache: result.cache,
+      rowsRead: result.rowsRead,
+    };
+  }
+
+  const { parseFreeTextWithAI } = await import("@/lib/ai-parse-inventory");
+  const chunks = textChunks(site.text);
+  const before = cache[WEBSITE_TEXT_TAB] ?? {};
+  const after: RowParseCache = {};
+  const parsed: ParsedDeal[] = [];
+  const skipped: SkippedRow[] = [];
+  const results = await mapLimit(chunks, 3, async (chunk) => {
+    const key = createHash("sha1").update(`${brokerState}\n${chunk}`).digest("base64url");
+    return { key, result: before[key] ?? (await parseFreeTextWithAI(chunk, brokerState).then((r) => ({ p: r.parsed, s: r.skipped }))) };
+  });
+  results.forEach(({ key, result }, i) => {
+    after[key] = result;
+    parsed.push(...result.p.map((d) => ({ ...d, sheetTab: WEBSITE_TEXT_TAB })));
+    skipped.push(...result.s.map((r) => ({ ...r, row: i + 1, tab: WEBSITE_TEXT_TAB })));
+  });
+  return { ok: true, tab: WEBSITE_TEXT_TAB, parsed, skipped, cache: { [WEBSITE_TEXT_TAB]: after }, rowsRead: chunks.length };
+}
+
