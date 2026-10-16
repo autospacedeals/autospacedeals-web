@@ -135,12 +135,7 @@ export async function saveSellerPhoto(brokerId: string, sourceUrl: string): Prom
   const image = await fetchPublicImage(sourceUrl);
   if (!image) return null;
   try {
-    const webp = await sharp(image)
-      .rotate()
-      .resize({ width: 1280, withoutEnlargement: true })
-      .flatten({ background: "#ffffff" })
-      .webp({ quality: 82 })
-      .toBuffer();
+    const webp = await (await frameSellerPhoto(image)).webp({ quality: 82 }).toBuffer();
     const id = createHash("sha1").update(sourceUrl).digest("hex").slice(0, 20);
     const path = `sellers/${brokerId}/${id}.webp`;
     const { error } = await createAdminClient()
@@ -156,3 +151,82 @@ export async function saveSellerPhoto(brokerId: string, sourceUrl: string): Prom
     return null;
   }
 }
+
+// Seller photos framed like our stock photos, so their cars don't look small
+// next to them: many sellers' studio shots are squares with the car small in
+// the middle of a plain background, and cards show photos whole in a 4:3
+// frame. A car on a plain background is trimmed and re-centered on a 4:3
+// canvas of that background with stock-photo margins; a full photo padded
+// with a plain border (an interior shot) just loses the border; anything
+// else is left as it is. Returns the pipeline, not yet encoded.
+const FRAME_W = 1280;
+const FRAME_H = 960;
+const CAR_MAX_W = 0.9; // of the frame: about how much of a stock photo the car fills
+const CAR_MAX_H = 0.72;
+
+export async function frameSellerPhoto(image: Buffer): Promise<sharp.Sharp> {
+  const plain = () =>
+    sharp(image).rotate().resize({ width: FRAME_W, withoutEnlargement: true }).flatten({ background: "#ffffff" });
+  try {
+    const upright = await sharp(image).rotate().flatten({ background: "#ffffff" }).toBuffer();
+    const { data, info } = await sharp(upright).raw().toBuffer({ resolveWithObject: true });
+    const px = (x: number, y: number) => {
+      const i = (y * info.width + x) * info.channels;
+      return [data[i], data[i + 1], data[i + 2]];
+    };
+    const near = (a: number[], b: number[], tol = 14) => a.every((v, k) => Math.abs(v - b[k]) <= tol);
+    // The background: all four corners the same light color.
+    const bg = px(0, 0);
+    const corners = [px(info.width - 1, 0), px(0, info.height - 1), px(info.width - 1, info.height - 1)];
+    if (Math.min(...bg) < 200 || !corners.every((c) => near(c, bg))) return plain();
+
+    const trimmed = await sharp(upright)
+      .trim({ background: { r: bg[0], g: bg[1], b: bg[2] }, threshold: 12 })
+      .toBuffer({ resolveWithObject: true });
+    const box = trimmed.info;
+    if (box.width < info.width * 0.2 || box.height < info.height * 0.1) return plain();
+
+    // A padded photo fills its box to the corners; a car on a plain
+    // background leaves them empty.
+    const inner = await sharp(trimmed.data).raw().toBuffer({ resolveWithObject: true });
+    const at = (x: number, y: number) => {
+      const i = (y * inner.info.width + x) * inner.info.channels;
+      return [inner.data[i], inner.data[i + 1], inner.data[i + 2]];
+    };
+    const inset = 4;
+    const boxCorners = [
+      at(inset, inset),
+      at(inner.info.width - 1 - inset, inset),
+      at(inset, inner.info.height - 1 - inset),
+      at(inner.info.width - 1 - inset, inner.info.height - 1 - inset),
+    ];
+    const emptyCorners = boxCorners.filter((c) => near(c, bg, 24)).length;
+    if (emptyCorners < 3) {
+      return sharp(trimmed.data).resize({ width: FRAME_W, withoutEnlargement: true });
+    }
+
+    const scale = Math.min((FRAME_W * CAR_MAX_W) / box.width, (FRAME_H * CAR_MAX_H) / box.height);
+    const w = Math.round(box.width * scale);
+    const h = Math.round(box.height * scale);
+    // Edges faded into the new background, so there's no seam where the
+    // photo's own background was slightly off from the corner color.
+    const feather = Math.max(2, Math.round(Math.min(w, h) * 0.02));
+    const mask = await sharp(
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="black"/>` +
+          `<rect x="${feather}" y="${feather}" width="${w - 2 * feather}" height="${h - 2 * feather}" fill="white"/></svg>`
+      )
+    )
+      .blur(feather / 2)
+      .extractChannel(0)
+      .toBuffer();
+    const car = await sharp(trimmed.data).resize(w, h).removeAlpha().joinChannel(mask).png().toBuffer();
+    const background = { r: bg[0], g: bg[1], b: bg[2] };
+    return sharp({ create: { width: FRAME_W, height: FRAME_H, channels: 3, background } }).composite([
+      { input: car, left: Math.round((FRAME_W - w) / 2), top: Math.round((FRAME_H - h) / 2) },
+    ]);
+  } catch {
+    return plain();
+  }
+}
+
