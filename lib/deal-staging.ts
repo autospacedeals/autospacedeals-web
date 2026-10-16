@@ -7,7 +7,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyVehicles } from "@/lib/vehicle-classify";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
-import { saveSellerPhoto } from "@/lib/photo-library";
+import { downloadImage, saveSellerPhoto } from "@/lib/photo-library";
+import { frontDirection, type FrontDirection } from "@/lib/photo-view";
 import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
 import { mapLimit } from "@/lib/concurrency";
 import { applyDealExtras, getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
@@ -82,11 +83,31 @@ export async function stageParsedDeals(
     return saved;
   };
 
+  // Their photo at our stock photos' angle (front three-quarter, nose to
+  // the left) leads, so their cards match the rest of the site. Checked in
+  // order, stopping at the first match; each photo is checked once.
+  const views = new Map<string, Promise<FrontDirection>>();
+  const viewOf = (url: string) => {
+    let view = views.get(url);
+    if (!view) {
+      view = downloadImage(url).then((image) => (image ? frontDirection(image) : "unknown"));
+      views.set(url, view);
+    }
+    return view;
+  };
+  const stockAngleFirst = async (urls: string[]): Promise<string[]> => {
+    if (urls.length < 2 || (await viewOf(urls[0])) === "left") return urls;
+    for (let i = 1; i < urls.length; i++) {
+      if ((await viewOf(urls[i])) === "left") return [urls[i], ...urls.slice(0, i), ...urls.slice(i + 1)];
+    }
+    return urls;
+  };
+
   await mapLimit(deals, 4, async (d, i) => {
     let images: string[] = [];
     if (d.photoUrls?.length) {
       const saved = await mapLimit(d.photoUrls.slice(0, MAX_SELLER_PHOTOS), 4, sellerPhoto);
-      images = saved.filter((u): u is string => !!u);
+      images = await stockAngleFirst(saved.filter((u): u is string => !!u));
     }
     const ownPhotos = images.length > 0;
     if (!ownPhotos) {

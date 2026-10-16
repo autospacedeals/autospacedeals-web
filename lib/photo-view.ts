@@ -120,3 +120,31 @@ export async function inspectCarPhoto(
   const [view, { matches, clean }] = await Promise.all([classifyCarView(image), photoMatchesCar(image, car)]);
   return { view, matches, clean };
 }
+
+// Which way the front of the car points in the image — "left" is the angle
+// of our stock photos (front three-quarter, nose to the left). Used to put a
+// seller's matching photo first. classifyCarView's wording mixes up the
+// car's left and the image's left on some studio shots; this one doesn't.
+export type FrontDirection = "left" | "right" | "center" | "rear" | "side" | "other" | "unknown";
+
+export async function frontDirection(image: Buffer): Promise<FrontDirection> {
+  if (!process.env.ANTHROPIC_API_KEY) return "unknown";
+  try {
+    const word = await ask(
+      MATCH_MODEL,
+      await smallJpeg(image),
+      "Where is the front of the car (grille and headlights) in this image? Answer with exactly one word: " +
+        "left (the front of the car is toward the left edge of the image and the car's side is visible), " +
+        "right (the front is toward the right edge of the image and the side is visible), center " +
+        "(straight-on front view), rear (only the back is shown), side (pure profile), or other " +
+        "(interior, close-up, no car).",
+      { thinking: { type: "disabled" } }
+    );
+    for (const d of ["left", "right", "center", "rear", "side"] as const) if (word.startsWith(d)) return d;
+    return "other";
+  } catch (err) {
+    console.error("frontDirection failed:", err instanceof Error ? err.message : err);
+    return "unknown";
+  }
+}
+
