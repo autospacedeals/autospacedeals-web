@@ -20,6 +20,8 @@ import {
   type SupportedImageType,
 } from "@/lib/ai-parse-inventory";
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
+import { FEED_CONTEXT, readWebsiteInventory, textChunks } from "@/lib/website-inventory";
+import { mapLimit } from "@/lib/concurrency";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { applyDealExtras, getDealExtras } from "@/lib/deal-disclaimers";
 import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
@@ -203,11 +205,11 @@ export async function createSubmissionAction(
     .single<BrokerProfile>();
 
   const sourceType = String(formData.get("sourceType") || "google_sheet");
-  // Forum/website links are no longer accepted — only sources we can read
-  // the cars out of directly. (Older "link" submissions stay viewable in
-  // the admin queue.)
-  if (!["google_sheet", "excel_file", "free_text", "screenshot"].includes(sourceType)) {
-    return { error: "Choose a Google Sheet, an Excel file, pasted text, or a screenshot." };
+  // Forum links aren't accepted — only sources we can read the cars out of
+  // directly. A seller's own website is ("website", saved as a "link"
+  // submission).
+  if (!["google_sheet", "excel_file", "free_text", "screenshot", "website"].includes(sourceType)) {
+    return { error: "Choose a Google Sheet, an Excel file, pasted text, a screenshot, or your website." };
   }
   const notes = String(formData.get("notes") || "").trim() || null;
   let sourceUrl = "";
@@ -336,6 +338,56 @@ export async function createSubmissionAction(
     }
 
     sourceUrl = dealText.slice(0, 2000);
+  } else if (sourceType === "website") {
+    sourceUrl = String(formData.get("websiteUrl") || "").trim();
+    if (!sourceUrl) return { error: "Please enter your deals page's address." };
+    if (!/^https?:\/\//i.test(sourceUrl)) sourceUrl = `https://${sourceUrl}`;
+    try {
+      new URL(sourceUrl);
+    } catch {
+      return { error: "That doesn't look like a valid web address." };
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return { error: "AI reading isn't configured yet — please use \"Add a car manually\" instead." };
+    }
+
+    if (broker) {
+      const site = await readWebsiteInventory(sourceUrl);
+      if (!site.ok) {
+        return { error: `Couldn't read that page: ${site.error} Try a Google Sheet or Excel file, or add cars manually below.` };
+      }
+      try {
+        if (site.kind === "feed") {
+          // The site's own deal data, read like a spreadsheet; each car keeps
+          // the seller's photos from the site (they linked it, so they're
+          // theirs to use).
+          const result = await parseTabs([site.tab], broker.state, {}, FEED_CONTEXT);
+          parsedDeals = result.parsed.map((d) => ({ ...d, photoUrls: site.photos[(d.sourceRow ?? 0) - 2] ?? [] }));
+          skippedCount = result.skipped.length;
+          skipReasons = result.skipped.map((s) => s.reason);
+          skippedDeals = result.skipped.map((s) => s.partial);
+          logSkippedRows("website", result.skipped);
+        } else {
+          // No data feed: the page's text, read in pieces like pasted text.
+          const results = await mapLimit(textChunks(site.text), 3, (chunk) => parseFreeTextWithAI(chunk, broker.state));
+          for (const result of results) {
+            parsedDeals.push(...result.parsed);
+            skippedCount += result.skipped.length;
+            skipReasons.push(...result.skipped.map((s) => s.reason));
+            skippedDeals.push(...result.skipped.map((s) => s.partial));
+          }
+        }
+        if (parsedDeals.length === 0 && skippedCount === 0) {
+          return {
+            error:
+              "We read that page but didn't find any cars on it. Check it's the page that lists your deals, or try a Google Sheet or Excel file.",
+          };
+        }
+      } catch (err) {
+        console.error("Failed to read website inventory:", err);
+        return { error: "Couldn't read that page — please try again, or add cars manually below." };
+      }
+    }
   } else if (sourceType === "screenshot") {
     const file = formData.get("file") as File | null;
     if (!file || file.size === 0) {
@@ -386,7 +438,7 @@ export async function createSubmissionAction(
     .from("submissions")
     .insert({
       broker_id: user.id,
-      source_type: sourceType,
+      source_type: sourceType === "website" ? "link" : sourceType,
       source_url: sourceUrl,
       notes,
     })

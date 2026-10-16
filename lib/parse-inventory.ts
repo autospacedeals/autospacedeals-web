@@ -46,6 +46,10 @@ export interface ParsedDeal {
   // The lower payment with the MSDs, when the source also gives a payment
   // without them (that one is `payment`).
   msdPayment?: number | null;
+  // The seller's own photos for this car (absolute or data: URLs), when
+  // they came with the source (a website feed). Copied into Drive's storage
+  // and used instead of a stock photo.
+  photoUrls?: string[];
   state: string | null;
   // Where the car is, as the source names it ("SoCal", "Phoenix"), and
   // whether it ships — optional; staging falls back to the broker's city.
@@ -326,7 +330,9 @@ function hash(value: unknown): string {
 export async function parseTabs(
   tabs: SheetTab[],
   brokerState: string,
-  cache: TabRowCache = {}
+  cache: TabRowCache = {},
+  // Told to the AI with every batch (e.g. how a website feed's fields work).
+  sharedContext = ""
 ): Promise<TabsParseResult> {
   const nextCache: TabRowCache = {};
   const parsed: ParsedDeal[] = [];
@@ -339,7 +345,12 @@ export async function parseTabs(
     rowsRead += tab.rows.length;
     const headers = Object.keys(tab.rows[0]);
     const notes = tab.rows.filter(isNoteRow);
-    const context = notes.map((r) => `row ${rowNumber(r)}: ${cellValues(r).filter(Boolean).join(" | ")}`).join("\n");
+    const context = [
+      sharedContext,
+      notes.map((r) => `row ${rowNumber(r)}: ${cellValues(r).filter(Boolean).join(" | ")}`).join("\n"),
+    ]
+      .filter(Boolean)
+      .join("\n");
     const notesKey = hash(notes.map(cellValues));
 
     let pending: { row: Record<string, unknown>; id: number; key: string }[] = [];

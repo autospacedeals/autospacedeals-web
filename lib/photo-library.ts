@@ -7,6 +7,7 @@
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/server";
+import { fetchPublicImage } from "@/lib/website-inventory";
 
 export const PHOTO_BUCKET = "car-photos";
 
@@ -124,4 +125,34 @@ export async function saveFallbackImage(
 export async function saveToLibrary(k: LibraryKey, sourceUrl: string): Promise<string | null> {
   const image = await downloadImage(sourceUrl);
   return image ? saveImageToLibrary(k, image) : null;
+}
+
+// One of a seller's own photos (from their website, which they linked and so
+// gave us to use), copied into our storage so it can't break if their site
+// changes. The same photo is stored once per seller. Returns its URL here,
+// or null on failure.
+export async function saveSellerPhoto(brokerId: string, sourceUrl: string): Promise<string | null> {
+  const image = await fetchPublicImage(sourceUrl);
+  if (!image) return null;
+  try {
+    const webp = await sharp(image)
+      .rotate()
+      .resize({ width: 1280, withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .webp({ quality: 82 })
+      .toBuffer();
+    const id = createHash("sha1").update(sourceUrl).digest("hex").slice(0, 20);
+    const path = `sellers/${brokerId}/${id}.webp`;
+    const { error } = await createAdminClient()
+      .storage.from(PHOTO_BUCKET)
+      .upload(path, webp, { contentType: "image/webp", upsert: true, cacheControl: "3600" });
+    if (error) {
+      console.error("saveSellerPhoto upload failed:", error.message);
+      return null;
+    }
+    return publicUrl(path);
+  } catch (err) {
+    console.error("saveSellerPhoto failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
 }

@@ -32,8 +32,8 @@ interface Submission {
 }
 
 const SOURCE_TYPE_LABELS: Record<Submission["source_type"], string> = {
-  // No longer accepted from brokers; older rows still show here.
-  link: "Forum post / website",
+  // A seller's own website (older rows: forum posts too).
+  link: "Website",
   google_sheet: "Google Sheet",
   excel_file: "Excel file",
   free_text: "Typed up",

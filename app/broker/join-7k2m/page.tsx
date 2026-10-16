@@ -39,7 +39,7 @@ export default async function BrokerSignupPage() {
           <h1 className="type-page mt-1 text-3xl sm:text-3xl">Create your account</h1>
           <p className="mt-2 text-sm text-fg-muted">
             Get a dashboard to list your inventory — add cars directly, or bring them in from a
-            Google Sheet, a spreadsheet, pasted text, or a screenshot.
+            Google Sheet, a spreadsheet, pasted text, a screenshot, or your website.
           </p>
           <div className="mt-8">
             <SignupForm />

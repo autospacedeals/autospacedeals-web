@@ -7,9 +7,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyVehicles } from "@/lib/vehicle-classify";
 import { slugify } from "@/lib/deal-utils";
 import { fetchCarsxePhoto } from "@/lib/carsxe";
+import { saveSellerPhoto } from "@/lib/photo-library";
 import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
 import { mapLimit } from "@/lib/concurrency";
 import { applyDealExtras, getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
+
+const MAX_SELLER_PHOTOS = 8;
 
 export interface BrokerProfile {
   business_name: string;
@@ -67,10 +70,29 @@ export async function stageParsedDeals(
     return photo;
   };
 
+  // The seller's own photos (from their website) are used instead of a
+  // stock photo; each is copied once even if several listings share it.
+  const sellerPhotos = new Map<string, Promise<string | null>>();
+  const sellerPhoto = (url: string) => {
+    let saved = sellerPhotos.get(url);
+    if (!saved) {
+      saved = saveSellerPhoto(userId, url);
+      sellerPhotos.set(url, saved);
+    }
+    return saved;
+  };
+
   await mapLimit(deals, 4, async (d, i) => {
     let images: string[] = [];
-    const photo = await photoFor(d, classes[i]?.bodyStyle ?? null);
-    if (photo) images = [photo];
+    if (d.photoUrls?.length) {
+      const saved = await mapLimit(d.photoUrls.slice(0, MAX_SELLER_PHOTOS), 4, sellerPhoto);
+      images = saved.filter((u): u is string => !!u);
+    }
+    const ownPhotos = images.length > 0;
+    if (!ownPhotos) {
+      const photo = await photoFor(d, classes[i]?.bodyStyle ?? null);
+      if (photo) images = [photo];
+    }
 
     const slug = slugify([d.year, d.make, d.model, d.trim ?? "", broker.state]);
 
@@ -112,7 +134,7 @@ export async function stageParsedDeals(
       condition: d.condition ?? "New",
       mileage_options: d.mileageOptions ?? [],
       lease_options: d.leaseOptions ?? [],
-      photo_auto_sourced: true,
+      photo_auto_sourced: !ownPhotos,
       in_stock: true,
       popularity: 50,
       // notes + incentives, and any fee/condition/delivery the broker's

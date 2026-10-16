@@ -11,6 +11,7 @@ import {
   Link2,
   PenLine,
   ImageUp,
+  Globe,
 } from "lucide-react";
 import {
   createSubmissionAction,
@@ -44,7 +45,7 @@ const CATEGORIES = [
   {
     value: "link",
     label: "Import your inventory",
-    description: "A Google Sheet, a file, pasted text, or a screenshot — we'll pull the cars for you to review and confirm before they go live",
+    description: "A Google Sheet, a file, pasted text, a screenshot, or your website — we'll pull the cars for you to review and confirm before they go live",
     icon: Link2,
   },
 ] as const;
@@ -54,6 +55,7 @@ const LINK_TYPES = [
   { value: "excel_file", label: "Upload Excel file", icon: FileSpreadsheet },
   { value: "free_text", label: "Type it up", icon: PenLine },
   { value: "screenshot", label: "Upload a screenshot", icon: ImageUp },
+  { value: "website", label: "Your website", icon: Globe },
 ] as const;
 
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
@@ -125,7 +127,7 @@ function LinkForm({
 }) {
   const [state, formAction, pending] = useActionState(createSubmissionAction, initialState);
   const [sourceType, setSourceType] = useState<
-    "google_sheet" | "excel_file" | "free_text" | "screenshot"
+    "google_sheet" | "excel_file" | "free_text" | "screenshot" | "website"
   >("google_sheet");
   const [keepSynced, setKeepSynced] = useState(false);
   // Google Sheet step one: the sheet's tabs, and which ones to import.
@@ -241,7 +243,7 @@ function LinkForm({
     <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-4">
       <div>
         <label className={labelClass}>Source type</label>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {LINK_TYPES.map(({ value, label, icon: Icon }) => (
             <label key={value} className="choice gap-2 px-3">
               <input
@@ -288,6 +290,23 @@ function LinkForm({
           <p className="field-hint">
             Paste in as much as you&apos;ve got — pricing, terms, colors, whatever you have. Our AI
             reads it and pulls out each car as a draft for you to review before it publishes.
+          </p>
+        </div>
+      ) : sourceType === "website" ? (
+        <div>
+          <label htmlFor={`${uid}-websiteUrl`} className={labelClass}>Your deals page</label>
+          <input
+            required
+            type="text"
+            inputMode="url"
+            id={`${uid}-websiteUrl`}
+            name="websiteUrl"
+            placeholder="https://yoursite.com/deals"
+            className={inputClass}
+          />
+          <p className="field-hint">
+            The page on your own website that lists your deals. Our AI reads every car on it, with your
+            photos, as drafts for you to review before they publish. Can take a minute or two.
           </p>
         </div>
       ) : sourceType === "screenshot" ? (
