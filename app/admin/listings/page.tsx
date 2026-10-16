@@ -7,6 +7,7 @@ import type { Deal } from "@/lib/deals-data";
 import { dealTitle } from "@/lib/deal-utils";
 import MyListings from "@/app/broker/dashboard/MyListings";
 import RemovedListings from "@/app/broker/dashboard/RemovedListings";
+import BrokerSelect from "./BrokerSelect";
 
 export const metadata: Metadata = { title: "Listings", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -19,7 +20,8 @@ function hasPhoto(d: Deal): boolean {
 
 // Every broker's listings, editable by admins with the same editor brokers
 // use (fix a field, re-pull a photo, take a car down or bring it back).
-// Filter by broker, by "no photo", or search by car.
+// Cars show once a seller is picked (or a search / "no photo" filter is
+// on); otherwise it's just the list of sellers to pick from.
 export default async function AdminListingsPage({
   searchParams,
 }: {
@@ -57,6 +59,25 @@ export default async function AdminListingsPage({
   const sections = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
   const live = all.filter((d) => d.status === "published").length;
   const noPhoto = all.filter((d) => d.status !== "removed" && !hasPhoto(d)).length;
+  const filtering = Boolean(broker || query || photo === "missing");
+
+  // Every seller with listings, biggest first, for the picker and the list.
+  const byBroker = new Map<string, Deal[]>();
+  for (const d of all) byBroker.set(d.brokerId ?? "", [...(byBroker.get(d.brokerId ?? "") ?? []), d]);
+  const sellers = [...byBroker.entries()]
+    .map(([id, deals]) => {
+      const active = deals.filter((d) => d.status !== "removed");
+      return {
+        id,
+        name: brokerName.get(id) ?? deals[0]?.sellerName ?? "Unknown broker",
+        live: active.filter((d) => d.status === "published").length,
+        drafts: active.filter((d) => d.status === "draft").length,
+        removed: deals.length - active.length,
+        noPhoto: active.filter((d) => !hasPhoto(d)).length,
+        count: active.length,
+      };
+    })
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
   return (
     <main className="container-page py-8 sm:py-10">
@@ -68,14 +89,7 @@ export default async function AdminListingsPage({
       <form className="mt-5 flex flex-wrap items-end gap-3" action="/admin/listings">
         <label className="text-xs text-fg-muted">
           Broker
-          <select name="broker" defaultValue={broker} className="select select-sm mt-1 block">
-            <option value="">All brokers</option>
-            {[...brokerName.entries()].map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
+          <BrokerSelect value={broker} brokers={sellers} />
         </label>
         <label className="text-xs text-fg-muted">
           Search
@@ -95,28 +109,51 @@ export default async function AdminListingsPage({
         )}
       </form>
 
-      {sections.length === 0 && <p className="mt-8 text-sm text-fg-muted">No listings match.</p>}
-      <div className="mt-8 space-y-12">
-        {sections.map(([id, deals]) => {
-          const active = deals.filter((d) => d.status !== "removed");
-          const removed = deals.filter((d) => d.status === "removed");
-          const drafts = active.filter((d) => d.status === "draft").length;
-          return (
-            <section key={id}>
-              <h2 className="type-title">
-                {brokerName.get(id) ?? deals[0]?.sellerName ?? "Unknown broker"}{" "}
-                <span className="text-sm font-normal text-fg-muted">
-                  {active.length - drafts} live{drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}
+      {!filtering && (
+        <ul className="mt-8 divide-y divide-line overflow-hidden rounded-xl border border-line">
+          {sellers.map((s) => (
+            <li key={s.id}>
+              <Link
+                href={`/admin/listings?broker=${encodeURIComponent(s.id)}`}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 hover:bg-hover"
+              >
+                <span className="font-medium text-fg">{s.name}</span>
+                <span className="text-sm text-fg-muted">
+                  {s.live} live
+                  {s.drafts ? ` · ${s.drafts} draft${s.drafts === 1 ? "" : "s"}` : ""}
+                  {s.removed ? ` · ${s.removed} removed` : ""}
+                  {s.noPhoto ? ` · ${s.noPhoto} without a photo` : ""}
                 </span>
-              </h2>
-              <div className="mt-3">
-                <MyListings deals={active} asAdmin emptyMessage="No active listings match." />
-              </div>
-              <RemovedListings deals={removed} asAdmin />
-            </section>
-          );
-        })}
-      </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {filtering && sections.length === 0 && <p className="mt-8 text-sm text-fg-muted">No listings match.</p>}
+      {filtering && (
+        <div className="mt-8 space-y-12">
+          {sections.map(([id, deals]) => {
+            const active = deals.filter((d) => d.status !== "removed");
+            const removed = deals.filter((d) => d.status === "removed");
+            const drafts = active.filter((d) => d.status === "draft").length;
+            return (
+              <section key={id}>
+                <h2 className="type-title">
+                  {brokerName.get(id) ?? deals[0]?.sellerName ?? "Unknown broker"}{" "}
+                  <span className="text-sm font-normal text-fg-muted">
+                    {active.length - drafts} live{drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}
+                  </span>
+                </h2>
+                <div className="mt-3">
+                  <MyListings deals={active} asAdmin emptyMessage="No active listings match." />
+                </div>
+                <RemovedListings deals={removed} asAdmin />
+              </section>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }
