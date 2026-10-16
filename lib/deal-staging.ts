@@ -12,6 +12,7 @@ import { frontDirection, type FrontDirection } from "@/lib/photo-view";
 import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
 import { mapLimit } from "@/lib/concurrency";
 import { applyDealExtras, getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
+import { normalizeModelTrim } from "@/lib/vehicle-names";
 
 const MAX_SELLER_PHOTOS = 8;
 
@@ -115,7 +116,10 @@ export async function stageParsedDeals(
       if (photo) images = [photo];
     }
 
-    const slug = slugify([d.year, d.make, d.model, d.trim ?? "", broker.state]);
+    // One spelling per model (a row read before a spelling rule existed can
+    // come back from the parse cache as written).
+    const car = normalizeModelTrim({ make: d.make, model: d.model, trim: d.trim });
+    const slug = slugify([d.year, car.make, car.model, car.trim ?? "", broker.state]);
 
     const { error } = await supabase.from("deals").insert({
       slug,
@@ -125,9 +129,9 @@ export async function stageParsedDeals(
       sheet_tab: sheetSyncId ? (d.sheetTab ?? null) : null,
       match_signature: sheetSyncId ? computeMatchSignature(d) : null,
       year: d.year,
-      make: d.make,
-      model: d.model,
-      trim: d.trim,
+      make: car.make,
+      model: car.model,
+      trim: car.trim,
       body_style: classes[i]?.bodyStyle ?? null,
       fuel: classes[i]?.fuel ?? null,
       exterior: d.exterior,

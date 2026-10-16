@@ -31,8 +31,49 @@ export function canonicalMake(make: string): string {
   return MAKE_BY_KEY.get(makeKey(trimmed)) ?? trimmed;
 }
 
+// Names brands write in capitals ("IONIQ 9", "LYRIQ", "Tucson PHEV") — kept
+// that way, and fixed when written otherwise ("Ioniq 5" -> "IONIQ 5").
+const CAPITALIZED = new Set(["IONIQ", "LYRIQ", "OPTIQ", "VISTIQ", "CELESTIQ", "PHEV", "AMG", "XM"]);
+
+// One spelling per model, so the filters don't list a car twice:
+// - a model typed in capitals ("PALISADE", "SANTA FE Hybrid") gets normal
+//   case ("Palisade", "Santa Fe Hybrid"), except the names above;
+// - Lexus and Mercedes model numbers get their space and suffix
+//   ("NX350" -> "NX 350", "NX450H" -> "NX 450h+", "C300" -> "C 300");
+// - "X5M" -> "X5 M".
+export function canonicalModel(make: string, model: string): string {
+  let m = model.trim().replace(/\s+/g, " ");
+  if (!m) return m;
+
+  const words = m.split(" ");
+  const shouting = words.some((w) => /^[A-Z]{4,}$/.test(w) && !CAPITALIZED.has(w));
+  m = words
+    .map((w) => {
+      if (CAPITALIZED.has(w.toUpperCase())) return w.toUpperCase();
+      if (shouting && /^[A-Z]{2,}$/.test(w)) return w.charAt(0) + w.slice(1).toLowerCase();
+      return w;
+    })
+    .join(" ");
+
+  if (make === "Lexus") {
+    const lex = m.match(/^(ES|IS|LS|LC|NX|RX|TX|GX|LX|UX|RZ|RC)\s*(\d{3})\s*([a-zA-Z])?\s*(\+)?(?=\s|$)(.*)$/i);
+    if (lex) {
+      const [, series, num, suffix = "", plus = "", rest] = lex;
+      // The NX 450h+ only comes as the plug-in.
+      const plug = plus || (series.toUpperCase() === "NX" && num === "450" && suffix.toLowerCase() === "h") ? "+" : "";
+      m = `${series.toUpperCase()} ${num}${suffix.toLowerCase()}${plug}${rest}`;
+    }
+  } else if (make === "Mercedes-Benz") {
+    m = m.replace(/^(A|C|E|S|G|CLA|CLE|CLS|GLA|GLB|GLC|GLE|GLS|EQB|EQE|EQS|SL)\s*(\d{2,3})(?=\b|\+)/i, (_, series: string, num: string) => `${series.toUpperCase()} ${num}`);
+  } else if (make === "BMW") {
+    m = m.replace(/^X([3-6])\s*M(?=\s|$)/i, "X$1 M");
+  }
+  return m;
+}
+
 export function normalizeModelTrim<T extends { make: string; model: string; trim: string | null }>(input: T): T {
   const car = { ...input, make: canonicalMake(input.make) };
+  car.model = canonicalModel(car.make, car.model);
   const make = car.make.trim();
   const model = car.model.trim().replace(/\s+/g, " ");
   const trim = car.trim?.trim().replace(/\s+/g, " ") || null;
