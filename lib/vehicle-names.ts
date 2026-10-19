@@ -71,9 +71,22 @@ export function canonicalModel(make: string, model: string): string {
   return m;
 }
 
+// BMW trims written into the model ("X5 sDrive40i", "X3 30 xDrive", "i5
+// eDrive40"): the drivetrain part is the trim, so the car files under "X5".
+const BMW_TRIM_IN_MODEL = /^(\S+)\s+((?:\d{2}\s*)?[sxe]Drive\S*.*)$/i;
+
 export function normalizeModelTrim<T extends { make: string; model: string; trim: string | null }>(input: T): T {
   const car = { ...input, make: canonicalMake(input.make) };
   car.model = canonicalModel(car.make, car.model);
+  if (car.make === "BMW") {
+    const split = car.model.match(BMW_TRIM_IN_MODEL);
+    if (split) {
+      const rest = split[2].trim();
+      const trim = car.trim?.trim() ?? "";
+      car.model = split[1];
+      car.trim = trim.toLowerCase().startsWith(rest.toLowerCase()) ? trim : [rest, trim].filter(Boolean).join(" ");
+    }
+  }
   const make = car.make.trim();
   const model = car.model.trim().replace(/\s+/g, " ");
   const trim = car.trim?.trim().replace(/\s+/g, " ") || null;
