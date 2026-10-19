@@ -34,7 +34,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — Compare Dealer & Broker Lease Deals`,
+    default: `${SITE_NAME} — Compare Car Lease Deals in Southern California`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,

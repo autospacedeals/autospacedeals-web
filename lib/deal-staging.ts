@@ -13,6 +13,7 @@ import { computeMatchSignature, type ParsedDeal } from "@/lib/parse-inventory";
 import { mapLimit } from "@/lib/concurrency";
 import { applyDealExtras, getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
 import { normalizeModelTrim } from "@/lib/vehicle-names";
+import { listingPaths, notifyIndexNow } from "@/lib/indexnow";
 
 const MAX_SELLER_PHOTOS = 8;
 
@@ -54,6 +55,7 @@ export async function stageParsedDeals(
   let staged = 0;
   let failed = 0;
   let lastError: string | null = null;
+  const livePaths: string[] = [];
 
   // Uploads only carry year/make/model/trim — look up fuel type and body
   // style for the whole batch in one go so they're searchable/filterable.
@@ -121,6 +123,9 @@ export async function stageParsedDeals(
     const car = normalizeModelTrim({ make: d.make, model: d.model, trim: d.trim });
     const slug = slugify([d.year, car.make, car.model, car.trim ?? "", broker.state]);
 
+    // A dealership listing can't go live without its total price
+    // (California's CARS Act) — it waits as a draft for the price instead.
+    const finalStatus = status === "published" && needsTotalPrice(broker.seller_type) && !d.sellingPrice ? "draft" : status;
     const { error } = await supabase.from("deals").insert({
       slug,
       broker_id: userId,
@@ -168,9 +173,7 @@ export async function stageParsedDeals(
       ...ruleColumns(d, extras),
       images,
       one_pay: d.onePay,
-      // A dealership listing can't go live without its total price
-      // (California's CARS Act) — it waits as a draft for the price instead.
-      status: status === "published" && needsTotalPrice(broker.seller_type) && !d.sellingPrice ? "draft" : status,
+      status: finalStatus,
     });
 
     if (error) {
@@ -183,8 +186,11 @@ export async function stageParsedDeals(
       });
     } else {
       staged++;
+      if (finalStatus === "published") livePaths.push(...listingPaths({ slug, make: car.make, model: car.model }));
     }
   });
+  // Search engines hear about cars that went live (lib/indexnow.ts).
+  await notifyIndexNow(livePaths);
 
   return { staged, failed, lastError };
 }

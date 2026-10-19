@@ -22,6 +22,7 @@ import {
 import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { readWebsiteDeals } from "@/lib/website-inventory";
 import { LOGO_TYPES, MAX_LOGO_BYTES, removeBrokerLogo, saveBrokerLogo } from "@/lib/broker-logos";
+import { listingPaths, notifyIndexNow, notifyIndexNowForDeals } from "@/lib/indexnow";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { applyDealExtras, getDealExtras } from "@/lib/deal-disclaimers";
 import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
@@ -824,6 +825,7 @@ export async function createManualDealAction(
   });
   if (error) return { error: carsActError(error.message) };
   after(() => alertAdminsFirstListing(user.id));
+  after(() => notifyIndexNow(listingPaths({ slug, make, model })));
 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
@@ -1079,6 +1081,7 @@ export async function restoreDealAction(id: string, asAdmin = false): Promise<{ 
   if (brokerId) query = query.eq("broker_id", brokerId);
   const { error } = await query;
   if (error) return { error: carsActError(error.message) };
+  after(() => notifyIndexNowForDeals([id]));
 
   revalidateListings();
   return { error: null };
@@ -1288,6 +1291,7 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
         .eq("broker_id", user.id);
       if (error) return { error: carsActError(error.message) };
       after(() => alertAdminsFirstListing(user.id));
+      after(() => notifyIndexNowForDeals(ready));
     }
   }
 

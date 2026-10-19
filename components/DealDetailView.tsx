@@ -36,6 +36,7 @@ import DealBackLinks from "@/components/DealBackLinks";
 import { DealTaxBox } from "@/components/TaxRate";
 import type { BrokerRatingSummary } from "@/lib/supabase/reviews";
 import SellerAvatar from "@/components/SellerAvatar";
+import { modelPath } from "@/lib/lease-pages";
 
 
 export default function DealDetailView({
@@ -153,6 +154,11 @@ export default function DealDetailView({
               <MapPin size={15} className="text-fg-faint" /> {deal.city}, {deal.state}
               {deliveryLabel(deal.delivery) && <span className="text-fg-faint">· {deliveryLabel(deal.delivery)}</span>}
             </p>
+            {!isPreview && deal.make && deal.model && (
+              <Link href={modelPath(deal.make, deal.model)} className="link-arrow mt-2 inline-flex text-sm">
+                More {deal.make} {deal.model} lease deals <ArrowRight />
+              </Link>
+            )}
           </div>
 
           <section className="panel mt-8">

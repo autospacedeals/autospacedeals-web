@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getPublishedDeals } from "@/lib/supabase/deals";
 import { SITE_URL } from "@/lib/site";
+import { catalog, makePath, modelPath } from "@/lib/lease-pages";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const deals = await getPublishedDeals();
@@ -39,5 +40,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.4,
   }));
 
-  return [...staticRoutes, ...dealRoutes, ...brokerRoutes];
+  // Browse-by-car pages (app/leases): every make and model with live deals.
+  const makes = catalog(deals);
+  const leaseRoutes: MetadataRoute.Sitemap = [
+    { url: `${SITE_URL}/leases`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+    ...makes.flatMap((m) => [
+      { url: `${SITE_URL}${makePath(m.make)}`, lastModified: new Date(), changeFrequency: "daily" as const, priority: 0.8 },
+      ...m.models.map((mo) => ({
+        url: `${SITE_URL}${modelPath(m.make, mo.model)}`,
+        lastModified: new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+      })),
+    ]),
+  ];
+
+  return [...staticRoutes, ...leaseRoutes, ...dealRoutes, ...brokerRoutes];
 }
