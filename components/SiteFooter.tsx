@@ -87,6 +87,9 @@ export default function SiteFooter() {
             <Link href="/terms" className="link-quiet">
               Terms of Service
             </Link>
+            <Link href="/privacy/choices" className="link-quiet">
+              Do Not Sell or Share My Personal Information
+            </Link>
           </p>
         </div>
       </div>

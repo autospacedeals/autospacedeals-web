@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "October 11, 2026";
+const LAST_UPDATED = "October 19, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -108,12 +108,22 @@ export default function PrivacyPolicyPage() {
               website sent you). We use them, along with your approximate city and state (looked up
               from your IP address by our hosting provider; we don&apos;t store the address
               itself), to count visits and listing views, see which areas they come from, and
-              learn which ads lead to conversations with sellers. That information stays with {SITE_NAME}; it isn&apos;t
-              shared with ad platforms. We don&apos;t use advertising or cross-site tracking cookies,
-              and we don&apos;t run third-party analytics on the site today. If we ever add advertising or measurement tools (for example, an ad
-              platform&apos;s tracking pixel), we&apos;ll update this policy first and give you a
-              way to opt out of any &quot;sale&quot; or &quot;sharing&quot; of your information
-              before they&apos;re used.
+              learn which ads lead to conversations with sellers. That information stays with {SITE_NAME}.
+            </p>
+            <p>
+              <strong>Advertising.</strong> On our public pages we use Google Ads&apos; tag
+              (gtag.js), which sets Google cookies and sends Google information about your visit
+              (the pages you view, an online identifier, and your browser and device details) so we
+              can measure which of our ads lead to visits and sign-ups, and so Google can show our
+              ads to people likely to be interested. Google handles that information under its own
+              privacy policy. California law counts this as &quot;sharing&quot; personal information
+              for cross-context behavioral advertising. You can opt out at{" "}
+              <a href="/privacy/choices" className="link">
+                Do Not Sell or Share My Personal Information
+              </a>
+              , and the tag never loads if your browser sends a Global Privacy Control signal. We
+              don&apos;t share your name, email, phone number, messages or uploaded documents with ad
+              platforms.
             </p>
           </Section>
 
@@ -161,6 +171,14 @@ export default function PrivacyPolicyPage() {
                 CarsXE)
               </li>
               <li>
+                <strong>With Google, for advertising</strong> — information about your visits to
+                our public pages, through the Google Ads tag described above (opt out at{" "}
+                <a href="/privacy/choices" className="link">
+                  Do Not Sell or Share My Personal Information
+                </a>
+                )
+              </li>
+              <li>
                 <strong>With the other person in a conversation</strong> — when
                 you message about a listing, the other side sees your messages and your display name
                 (a shopper&apos;s first name and last initial, or a dealer/broker&apos;s business
@@ -193,9 +211,10 @@ export default function PrivacyPolicyPage() {
               dealers/brokers, <strong>professional information</strong> (business name, role,
               dealership). We get this information from you, from Google if you sign in with it,
               and from dealers/brokers&apos; own listings. We use it only for the purposes above
-              and share it only as described above. We have not sold or shared personal
-              information for cross-context behavioral advertising, and we don&apos;t knowingly
-              collect information from anyone under 18.
+              and share it only as described above. We don&apos;t sell personal information. We
+              share internet activity and online identifiers with Google for cross-context
+              behavioral advertising (see Advertising above), which you can opt out of. We
+              don&apos;t knowingly collect information from anyone under 18.
             </p>
           </Section>
 
@@ -222,10 +241,13 @@ export default function PrivacyPolicyPage() {
               If you&apos;re a California resident, state privacy law (the CCPA/CPRA) gives you
               the right to know what personal information we&apos;ve collected about you, request
               a copy of it, ask us to correct or delete it, and opt out of the sale or sharing of
-              it for cross-context advertising. We don&apos;t sell personal information or share
-              it for cross-context behavioral advertising, so there&apos;s nothing to opt out of
-              on that front today. If your browser sends a Global Privacy Control signal, we treat
-              it as a request to opt out of any future sale or sharing. California residents may
+              it for cross-context advertising. We don&apos;t sell personal information. To opt
+              out of sharing for advertising, use{" "}
+              <a href="/privacy/choices" className="link">
+                Do Not Sell or Share My Personal Information
+              </a>
+              . If your browser sends a Global Privacy Control signal, we treat it as that opt-out
+              automatically. California residents may
               also ask what personal information we&apos;ve disclosed to others for their direct
               marketing purposes (we don&apos;t do this).
             </p>
