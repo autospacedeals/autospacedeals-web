@@ -5,6 +5,10 @@ import { type HeaderAccount } from "@/components/SiteHeader";
 import SiteChrome from "@/components/SiteChrome";
 import VisitTracker from "@/components/VisitTracker";
 import GoogleAdsTag from "@/components/GoogleAdsTag";
+
+// Applies the visitor's saved theme (components/ThemeToggle.tsx) before the
+// first paint. Dark is the default, so nothing is set unless they chose light.
+const THEME_SCRIPT = `try{if(localStorage.getItem("drive-theme")==="light"){document.documentElement.dataset.theme="light";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#f4f6fb")}}catch(e){}`;
 import SeenPing from "@/components/SeenPing";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
@@ -28,8 +32,8 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#07080a",
-  colorScheme: "dark",
+  themeColor: "#060a14",
+  colorScheme: "dark light",
 };
 
 export const metadata: Metadata = {
@@ -111,7 +115,16 @@ export default async function RootLayout({
   const account = await getHeaderAccount();
 
   return (
-    <html lang="en" className={`${monaSans.variable} ${geistMono.variable} h-full antialiased`}>
+    // suppressHydrationWarning: THEME_SCRIPT sets data-theme on <html> before
+    // React loads.
+    <html
+      lang="en"
+      className={`${monaSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col bg-canvas font-sans text-fg">
         <SiteChrome account={account}>{children}</SiteChrome>
         <VisitTracker />

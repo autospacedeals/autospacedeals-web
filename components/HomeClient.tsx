@@ -289,7 +289,9 @@ export default function HomeClient({
           }`}
         >
           <div className="min-w-0">
-            <h1 className="type-hero max-w-[12ch] animate-fade-up">Find your next lease deal.</h1>
+            <h1 className="type-hero max-w-[12ch] animate-fade-up">
+              Find your next <span className="text-gradient">lease deal.</span>
+            </h1>
             <p className="lede mt-5 max-w-xl animate-fade-up [animation-delay:80ms]">
               Real offers from dealers and brokers. Compare them side by side, then contact the
               seller directly.

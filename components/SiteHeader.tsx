@@ -7,6 +7,7 @@ import { Menu, X, LogOut, ChevronRight, MessageSquare } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
 import { UnreadBadge, useUnreadMessages } from "@/components/messages/UnreadMessages";
 import { LogoWordmark } from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // Shopper destinations only — the broker portal (/broker/login,
 // /broker/join-7k2m) is deliberately not linked anywhere on the consumer
@@ -80,6 +81,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
         </div>
 
         <div className="flex min-w-0 items-center gap-2">
+          <ThemeToggle />
           {account ? (
             <>
               {messagesHref && (
