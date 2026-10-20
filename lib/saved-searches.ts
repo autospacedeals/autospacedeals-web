@@ -102,6 +102,7 @@ export function parseSavedSearchFilters(raw: unknown): DealFilters | null {
     query: boundedText(pick("query"), SAVED_SEARCH_QUERY_MAX),
     make: boundedText(pick("make"), OPTION_MAX),
     model: boundedText(pick("model"), OPTION_MAX),
+    trim: boundedText(pick("trim"), OPTION_MAX),
     bodyStyle: oneOf(pick("bodyStyle"), BODY_STYLES),
     fuel: oneOf(pick("fuel"), FUEL_TYPES),
     seller: boundedText(pick("seller"), OPTION_MAX),
@@ -118,7 +119,7 @@ export function parseSavedSearchFilters(raw: unknown): DealFilters | null {
   }
   const valid = filters as DealFilters;
   // An empty dropdown value means nothing, and would never match a deal.
-  for (const key of ["make", "model", "seller", "state"] as const) {
+  for (const key of ["make", "model", "trim", "seller", "state"] as const) {
     if (!valid[key].trim()) return null;
   }
   return valid;
@@ -132,6 +133,7 @@ export function hasActiveFilters(filters: DealFilters): boolean {
     filters.query.trim() !== "" ||
     filters.make !== DEFAULT_FILTERS.make ||
     filters.model !== DEFAULT_FILTERS.model ||
+    filters.trim !== DEFAULT_FILTERS.trim ||
     filters.bodyStyle !== DEFAULT_FILTERS.bodyStyle ||
     filters.fuel !== DEFAULT_FILTERS.fuel ||
     filters.seller !== DEFAULT_FILTERS.seller ||
@@ -171,6 +173,7 @@ export function describeFilters(filters: DealFilters): FilterSummaryItem[] {
   if (query) items.push({ name: "Search", value: `“${query}”` });
   if (filters.make !== "All") items.push({ name: "Make", value: filters.make });
   if (filters.model !== "All") items.push({ name: "Model", value: filters.model });
+  if (filters.trim !== "All") items.push({ name: "Trim", value: filters.trim });
   if (filters.bodyStyle !== "All") items.push({ name: "Body style", value: filters.bodyStyle });
   if (filters.seller !== "All") items.push({ name: "Broker/dealer", value: filters.seller });
   if (filters.state !== "All") items.push({ name: "Location", value: filters.state });
@@ -196,7 +199,7 @@ export function savedSearchLabel(filters: DealFilters): string {
   const parts: string[] = [];
   const query = filters.query.trim();
   if (query) parts.push(`“${query}”`);
-  const vehicle = [filters.make, filters.model].filter((v) => v !== "All").join(" ");
+  const vehicle = [filters.make, filters.model, filters.trim].filter((v) => v !== "All").join(" ");
   if (vehicle) parts.push(vehicle);
   if (filters.bodyStyle !== "All") parts.push(filters.bodyStyle);
   if (filters.fuel !== "All") parts.push(filters.fuel);

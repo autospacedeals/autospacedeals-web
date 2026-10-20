@@ -5,6 +5,8 @@ import {
   Search,
   ArrowRight,
   SlidersHorizontal,
+  RotateCcw,
+  X,
 } from "lucide-react";
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
 import {
@@ -16,6 +18,7 @@ import {
   groupSameDeals,
   pickFeatured,
   sortDeals,
+  trimKey,
   type DealFilters,
   type SortOption,
 } from "@/lib/deal-utils";
@@ -264,6 +267,39 @@ export default function HomeClient({
     return Array.from(new Set(pool.map((d) => d.model))).sort();
   }, [filters.make, deals]);
 
+  // The chosen model's trims, one per spelling ("SEL Sport FWD" / "SEL SPORT
+  // FWD" are one), named as most listings write it.
+  const trims = useMemo(() => {
+    if (filters.model === "All") return [];
+    const byKey = new Map<string, Map<string, number>>();
+    for (const d of deals) {
+      if (d.model !== filters.model || (filters.make !== "All" && d.make !== filters.make) || !d.trim?.trim()) continue;
+      const key = trimKey(d.trim);
+      const names = byKey.get(key) ?? new Map<string, number>();
+      names.set(d.trim.trim(), (names.get(d.trim.trim()) ?? 0) + 1);
+      byKey.set(key, names);
+    }
+    return [...byKey.values()]
+      .map((names) => [...names.entries()].sort((a, b) => b[1] - a[1])[0][0])
+      .sort((a, b) => a.localeCompare(b));
+  }, [filters.make, filters.model, deals]);
+
+  // How many filters are set, for the phone's Filters button.
+  const activeFilters = (Object.keys(DEFAULT_FILTERS) as (keyof DealFilters)[]).filter(
+    (k) => k !== "query" && filters[k] !== DEFAULT_FILTERS[k]
+  ).length;
+
+  // On phones the filters open as a full-screen sheet: keep the page behind
+  // it from scrolling.
+  useEffect(() => {
+    if (!showFilters || !window.matchMedia("(max-width: 1023.98px)").matches) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [showFilters]);
+
   const results = useMemo(() => {
     const filtered = filterDeals(deals, filters);
     // The manual "Location" filter still wins if the shopper set one —
@@ -357,19 +393,30 @@ export default function HomeClient({
       {/* Deals + filters */}
       {/* ---------------------------------------------------------------- */}
       <section id="deals" className="container-page pt-16 pb-24 sm:pt-20">
-        <div className="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <p className="eyebrow">Marketplace</p>
-            <h2 className="type-section mt-3">Featured lease deals</h2>
-          </div>
+        <div className="mb-6 lg:mb-8">
+          <p className="eyebrow">Marketplace</p>
+          <h2 className="type-section mt-3">Featured lease deals</h2>
+        </div>
 
+        {/* Phones: the Filters button stays pinned top right while scrolling
+            the deals, for shoppers who know what they want. */}
+        <div className="sticky top-16 z-30 -mx-4 mb-4 flex items-center justify-between gap-3 border-b border-line bg-canvas/85 px-4 py-2.5 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:hidden">
+          <p className="text-sm text-fg-secondary">
+            <strong className="font-semibold text-fg">{grouped.length}</strong> {grouped.length === 1 ? "deal" : "deals"}
+          </p>
           <button
             type="button"
-            onClick={() => setShowFilters((v) => !v)}
+            onClick={() => setShowFilters(true)}
             aria-expanded={showFilters}
-            className="btn btn-secondary btn-sm lg:hidden"
+            aria-controls="deal-filters"
+            className="btn btn-primary btn-sm"
           >
-            <SlidersHorizontal /> {showFilters ? "Hide filters" : "Show filters"}
+            <SlidersHorizontal /> Filters
+            {activeFilters > 0 && (
+              <span className="grid min-w-5 place-items-center rounded-full bg-on-accent px-1 text-[11px] leading-5 font-semibold text-accent">
+                {activeFilters}
+              </span>
+            )}
           </button>
         </div>
 
@@ -377,21 +424,50 @@ export default function HomeClient({
           {/* On desktop the sticky panel scrolls on its own when it's taller
               than the window, so its footer (Save this search) stays reachable. */}
           <aside
-            className={`${showFilters ? "block" : "hidden"} lg:sticky lg:top-24 lg:block lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto lg:pb-1`}
+            id="deal-filters"
+            aria-label="Filters"
+            className={`${showFilters ? "fixed inset-0 z-50 flex flex-col bg-canvas" : "hidden"} lg:sticky lg:inset-auto lg:top-24 lg:z-auto lg:block lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto lg:bg-transparent lg:pb-1`}
           >
-            <FilterPanel
-              filters={filters}
-              onChange={updateFilters}
-              makes={MAKES}
-              models={models}
-              bodyStyles={ALL_BODY_STYLES}
-              fuels={ALL_FUEL_TYPES}
-              sellers={SELLERS}
-              states={STATES}
-              terms={TERMS}
-              mileageOptions={MILEAGE_OPTIONS}
-              footer={<SaveSearchButton filters={filters} available={savedSearchesAvailable} />}
-            />
+            {/* Phone sheet header */}
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-4 lg:hidden">
+              <p className="type-title">Filters</p>
+              <div className="-mr-2 flex items-center gap-1">
+                <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="btn btn-ghost btn-sm">
+                  <RotateCcw /> Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(false)}
+                  aria-label="Close filters"
+                  className="btn btn-ghost btn-icon btn-sm"
+                >
+                  <X />
+                </button>
+              </div>
+            </div>
+            {/* The panel's own title row is the sheet header on phones. */}
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 max-lg:[&_[data-filter-head]]:hidden lg:contents">
+              <FilterPanel
+                filters={filters}
+                onChange={updateFilters}
+                makes={MAKES}
+                models={models}
+                trims={trims}
+                bodyStyles={ALL_BODY_STYLES}
+                fuels={ALL_FUEL_TYPES}
+                sellers={SELLERS}
+                states={STATES}
+                terms={TERMS}
+                mileageOptions={MILEAGE_OPTIONS}
+                footer={<SaveSearchButton filters={filters} available={savedSearchesAvailable} />}
+              />
+            </div>
+            {/* Phone sheet footer */}
+            <div className="shrink-0 border-t border-line p-4 lg:hidden">
+              <button type="button" onClick={() => setShowFilters(false)} className="btn btn-primary w-full">
+                Show {grouped.length} {grouped.length === 1 ? "deal" : "deals"}
+              </button>
+            </div>
           </aside>
 
           <div className="min-h-[70vh] min-w-0">

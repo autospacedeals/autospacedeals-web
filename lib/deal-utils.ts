@@ -237,6 +237,7 @@ export interface DealFilters {
   query: string;
   make: string; // "All" or a make
   model: string; // "All" or a model
+  trim: string; // "All" or a trim of that model (compared ignoring case/spacing)
   bodyStyle: string; // "All" or a BodyStyle
   fuel: string; // "All" or a FuelType
   seller: string; // "All" or an exact sellerName
@@ -255,6 +256,7 @@ export const DEFAULT_FILTERS: DealFilters = {
   query: "",
   make: "All",
   model: "All",
+  trim: "All",
   bodyStyle: "All",
   fuel: "All",
   seller: "All",
@@ -359,11 +361,45 @@ export function lowestPriceFirst(deal: Deal): Deal {
   return withHeadline(deal, cheapest);
 }
 
+// A trim compared ignoring case and spacing ("SEL Sport FWD" = "sel sport fwd").
+export function trimKey(trim: string | null | undefined): string {
+  return (trim ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+// Search words that mean a fuel type ("Kona EV", "electric SUV", "hybrid"):
+// they filter by the listing's fuel instead of matching text, so "EV" doesn't
+// also pull in gas cars whose notes or trim happen to contain the letters.
+const FUEL_WORDS: Record<string, string[]> = {
+  ev: ["EV"],
+  evs: ["EV"],
+  bev: ["EV"],
+  electric: ["EV"],
+  hybrid: ["Hybrid", "PHEV"],
+  hybrids: ["Hybrid", "PHEV"],
+  phev: ["PHEV"],
+  "plug-in": ["PHEV"],
+  plugin: ["PHEV"],
+  gas: ["Gas"],
+  gasoline: ["Gas"],
+};
+
+// Search text as words; each must start a word in the listing ("x5" finds
+// the X5, "sel" finds SEL trims but not "Diesel").
+export function parseSearch(query: string): { words: string[]; fuels: string[][] } {
+  const words: string[] = [];
+  const fuels: string[][] = [];
+  for (const w of query.toLowerCase().split(/[\s,]+/).filter(Boolean)) {
+    if (FUEL_WORDS[w]) fuels.push(FUEL_WORDS[w]);
+    else words.push(w);
+  }
+  return { words, fuels };
+}
+
 // Listings matching the filters. A listing offered at several terms or
 // mileages matches when any of its prices fits the term / mileage filters,
 // and comes back showing the cheapest price that fits.
 export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
-  const search = filters.query.trim().toLowerCase();
+  const search = parseSearch(filters.query.trim());
 
   return deals.flatMap((original) => {
     const fits = leaseCombos(original).filter(
@@ -377,6 +413,7 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
 
     const matchesMake = filters.make === "All" || deal.make === filters.make;
     const matchesModel = filters.model === "All" || deal.model === filters.model;
+    const matchesTrim = filters.trim === "All" || trimKey(deal.trim) === trimKey(filters.trim);
     const matchesBodyStyle = filters.bodyStyle === "All" || deal.bodyStyle === filters.bodyStyle;
     const matchesFuel = filters.fuel === "All" || deal.fuel === filters.fuel;
     const matchesSeller = filters.seller === "All" || deal.sellerName === filters.seller;
@@ -418,10 +455,17 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
     ]
       .join(" ")
       .toLowerCase();
-    const matchesQuery = search === "" || searchableText.includes(search);
+    // Words, plus each pair run together, so "nx350" finds "NX 350" and
+    // "x5m" finds "X5 M".
+    const parts = searchableText.split(/[^a-z0-9+]+/).filter(Boolean);
+    const textWords = [...parts, ...parts.slice(1).map((p, i) => parts[i] + p)];
+    const matchesQuery =
+      search.words.every((w) => textWords.some((t) => t.startsWith(w))) &&
+      search.fuels.every((fuels) => deal.fuel != null && fuels.includes(deal.fuel));
 
     return matchesMake &&
       matchesModel &&
+      matchesTrim &&
       matchesBodyStyle &&
       matchesFuel &&
       matchesSeller &&

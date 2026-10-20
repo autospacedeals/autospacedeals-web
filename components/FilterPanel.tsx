@@ -18,6 +18,8 @@ interface FilterPanelProps {
   onChange: (patch: Partial<DealFilters>) => void;
   makes: string[];
   models: string[];
+  // Trims of the chosen model (shown once a model is picked).
+  trims?: string[];
   bodyStyles: BodyStyle[];
   fuels: FuelType[];
   sellers: string[];
@@ -33,6 +35,7 @@ export default function FilterPanel({
   onChange,
   makes,
   models,
+  trims = [],
   bodyStyles,
   fuels,
   sellers,
@@ -48,7 +51,7 @@ export default function FilterPanel({
 
   return (
     <div className="panel">
-      <div className="mb-5 flex items-center justify-between">
+      <div data-filter-head className="mb-5 flex items-center justify-between">
         <p className="panel-title">
           <SlidersHorizontal /> Filters
         </p>
@@ -61,15 +64,23 @@ export default function FilterPanel({
         <Select
           label="Make"
           value={filters.make}
-          onChange={(v) => onChange({ make: v, model: "All" })}
+          onChange={(v) => onChange({ make: v, model: "All", trim: "All" })}
           options={makes}
         />
         <Select
           label="Model"
           value={filters.model}
-          onChange={(v) => onChange({ model: v })}
+          onChange={(v) => onChange({ model: v, trim: "All" })}
           options={["All", ...models]}
         />
+        {filters.model !== "All" && trims.length > 0 && (
+          <Select
+            label="Trim"
+            value={filters.trim}
+            onChange={(v) => onChange({ trim: v })}
+            options={["All", ...trims]}
+          />
+        )}
         <Select
           label="Body style"
           value={filters.bodyStyle}
