@@ -3,6 +3,8 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { getLeadStats, type LocationStats } from "@/lib/lead-stats";
 import { OUTCOMES_ENABLED, OUTCOME_LABELS, isLeadOutcome } from "@/lib/leads";
+import { getSavedStats } from "@/lib/saved-stats";
+import { formatCurrency } from "@/lib/deal-utils";
 
 export const metadata: Metadata = { title: "Leads", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -87,13 +89,15 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
   await requireAdmin("/admin/leads");
   const { days: raw } = await searchParams;
   const days = PERIODS.some((p) => p.value === raw) ? raw! : "30";
-  const stats = await getLeadStats(days === "all" ? null : Number(days));
+  const period = days === "all" ? null : Number(days);
+  const [stats, saved] = await Promise.all([getLeadStats(period), getSavedStats(period)]);
   const t = stats.totals;
 
   const tiles = [
     { label: "Visitors", value: t.visitors },
     { label: "Listing views", value: t.listingViews },
     { label: "Shopper sign-ups", value: t.signups },
+    { label: "Cars saved", value: saved.total, note: saved.shoppers ? `by ${saved.shoppers}` : undefined },
     { label: "Conversations", value: t.conversations },
     { label: "Broker replied", value: t.replied, note: pct(t.replied, t.conversations) },
     ...(OUTCOMES_ENABLED ? [{ label: "Sold", value: t.sold, note: pct(t.sold, t.conversations) }] : []),
@@ -132,7 +136,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
         {tiles.map((s) => (
           <div key={s.label} className="card p-4">
             <p className="label">{s.label}</p>
@@ -288,6 +292,100 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
                   <td className={`${TD} text-fg`}>{l.title}</td>
                   <td className={TD}>{l.views}</td>
                   <td className={TD}>{l.conversations}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="type-title mb-1">Most saved cars</h2>
+        <p className="mb-3 text-sm text-fg-muted">The listings shoppers save to come back to: a sign of what they want before they message.</p>
+        <div className="overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="bg-surface text-xs text-fg-muted">
+              <tr>
+                <th className={TH}>Car</th>
+                <th className={TH}>Seller</th>
+                <th className={TH}>Payment</th>
+                <th className={TH}>Saves</th>
+                <th className={TH}>Last saved</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {saved.topCars.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-fg-muted">
+                    No saves yet.
+                  </td>
+                </tr>
+              )}
+              {saved.topCars.map((c) => (
+                <tr key={c.dealId}>
+                  <td className={`${TD} text-fg`}>
+                    {c.live ? (
+                      <Link href={`/deals/${c.slug}`} className="link-quiet">
+                        {c.title}
+                      </Link>
+                    ) : (
+                      <>
+                        {c.title} <span className="text-xs text-fg-faint">(no longer live)</span>
+                      </>
+                    )}
+                  </td>
+                  <td className={TD}>{c.seller}</td>
+                  <td className={TD}>
+                    {c.onePay ? `${formatCurrency(c.dueAtSigning)} one-pay` : `${formatCurrency(c.payment)}/mo`}
+                  </td>
+                  <td className={TD}>{c.saves}</td>
+                  <td className={TD}>{day(c.lastSaved)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="type-title mb-3">Latest saves</h2>
+        <div className="overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="bg-surface text-xs text-fg-muted">
+              <tr>
+                <th className={TH}>When</th>
+                <th className={TH}>Shopper</th>
+                <th className={TH}>Car</th>
+                <th className={TH}>Seller</th>
+                <th className={TH}>Found Drive via</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {saved.recent.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-fg-muted">
+                    No saves yet.
+                  </td>
+                </tr>
+              )}
+              {saved.recent.map((r) => (
+                <tr key={`${r.dealId}-${r.at}`}>
+                  <td className={TD}>{day(r.at)}</td>
+                  <td className={TD}>
+                    {r.shopper}
+                    {r.zip && <span className="ml-1.5 text-xs text-fg-faint">{r.zip}</span>}
+                  </td>
+                  <td className={`${TD} text-fg`}>
+                    {r.live ? (
+                      <Link href={`/deals/${r.slug}`} className="link-quiet">
+                        {r.title}
+                      </Link>
+                    ) : (
+                      r.title
+                    )}
+                  </td>
+                  <td className={TD}>{r.seller}</td>
+                  <td className={TD}>{r.source}</td>
                 </tr>
               ))}
             </tbody>
