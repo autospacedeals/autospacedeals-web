@@ -285,7 +285,7 @@ export const SORT_LABELS: Record<SortOption, string> = {
   paymentHigh: "Highest monthly payment",
   msrpHigh: "Highest MSRP",
   dueLow: "Lowest due at signing",
-  effectiveLow: "Best Effective Payment",
+  effectiveLow: "Lowest total cost per month",
   newest: "Just listed",
   discountHigh: "Highest MSRP discount",
   closest: "Closest to my location",
@@ -385,14 +385,20 @@ const FUEL_WORDS: Record<string, string[]> = {
 
 // Search text as words; each must start a word in the listing ("x5" finds
 // the X5, "sel" finds SEL trims but not "Diesel").
-export function parseSearch(query: string): { words: string[]; fuels: string[][] } {
+// `text` is the search without its fuel words, as typed.
+export function parseSearch(query: string): { words: string[]; fuels: string[][]; text: string } {
   const words: string[] = [];
+  const kept: string[] = [];
   const fuels: string[][] = [];
-  for (const w of query.toLowerCase().split(/[\s,]+/).filter(Boolean)) {
+  for (const typed of query.split(/[\s,]+/).filter(Boolean)) {
+    const w = typed.toLowerCase();
     if (FUEL_WORDS[w]) fuels.push(FUEL_WORDS[w]);
-    else words.push(w);
+    else {
+      words.push(w);
+      kept.push(typed);
+    }
   }
-  return { words, fuels };
+  return { words, fuels, text: kept.join(" ") };
 }
 
 // Listings matching the filters. A listing offered at several terms or

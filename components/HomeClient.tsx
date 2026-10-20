@@ -18,6 +18,7 @@ import {
   groupSameDeals,
   pickFeatured,
   sortDeals,
+  parseSearch,
   trimKey,
   type DealFilters,
   type SortOption,
@@ -310,6 +311,19 @@ export default function HomeClient({
   // The same deal from several sellers shows as one card (lowest broker fee).
   const grouped = useMemo(() => groupSameDeals(results), [results]);
 
+  // No results for a search with a fuel word ("Hyundai Kona EV"): what the
+  // same search finds in other fuels, so the empty list explains itself.
+  const otherFuels = useMemo(() => {
+    if (grouped.length > 0) return null;
+    const { fuels, text: query } = parseSearch(filters.query);
+    if (fuels.length === 0) return null;
+    const found = filterDeals(deals, { ...filters, query });
+    if (found.length === 0) return null;
+    const kinds = [...new Set(found.map((d) => (d.fuel === "EV" ? "electric" : (d.fuel ?? "").toLowerCase())).filter(Boolean))];
+    const wanted = [...new Set(fuels.flat().map((f) => (f === "EV" ? "electric" : f.toLowerCase())))];
+    return { query, count: found.length, kinds, wanted, what: query || "these filters" };
+  }, [grouped.length, filters, deals]);
+
   return (
     <main>
       {/* ---------------------------------------------------------------- */}
@@ -525,13 +539,32 @@ export default function HomeClient({
                 <div className="grid size-12 place-items-center rounded-full border border-line-strong bg-raised text-fg-muted">
                   <Search size={20} />
                 </div>
-                <p className="type-title mt-5">No deals found</p>
-                <p className="mt-2 text-sm text-fg-muted">
-                  Try widening your filters or resetting the search.
-                </p>
-                <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="btn btn-secondary mt-6">
-                  Reset filters
-                </button>
+                {otherFuels ? (
+                  <>
+                    <p className="type-title mt-5">No {otherFuels.wanted.join(" or ")} matches right now</p>
+                    <p className="mt-2 max-w-md text-sm text-fg-muted">
+                      There {otherFuels.count === 1 ? "is" : "are"} {otherFuels.count} {otherFuels.kinds.join(" / ")}{" "}
+                      {otherFuels.count === 1 ? "deal" : "deals"} for &ldquo;{otherFuels.what}&rdquo;.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => updateFilters({ query: otherFuels.query })}
+                      className="btn btn-secondary mt-6"
+                    >
+                      Show {otherFuels.count === 1 ? "it" : "them"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="type-title mt-5">No deals found</p>
+                    <p className="mt-2 text-sm text-fg-muted">
+                      Try widening your filters or resetting the search.
+                    </p>
+                    <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="btn btn-secondary mt-6">
+                      Reset filters
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
