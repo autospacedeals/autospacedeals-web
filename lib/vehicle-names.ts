@@ -75,16 +75,32 @@ export function canonicalModel(make: string, model: string): string {
 // eDrive40"): the drivetrain part is the trim, so the car files under "X5".
 const BMW_TRIM_IN_MODEL = /^(\S+)\s+((?:\d{2}\s*)?[sxe]Drive\S*.*)$/i;
 
+// BMW's numbered cars are a series with the engine as the trim: "740i" and
+// "750e" are both the 7 Series, "M340i" the 3 Series, "M850i Gran Coupe" the
+// 8 Series. (M3/M4, the X models and i4/i5/i7 are models of their own.)
+const BMW_SERIES_MODEL = /^(M?([2-8])\d{2}[a-z]{0,2})\b\s*(.*)$/i;
+
+// The trim with `lead` in front, unless the trim already starts with it.
+function prefixTrim(lead: string, trim: string | null): string {
+  const t = trim?.trim() ?? "";
+  return t.toLowerCase().startsWith(lead.toLowerCase()) ? t : [lead, t].filter(Boolean).join(" ");
+}
+
 export function normalizeModelTrim<T extends { make: string; model: string; trim: string | null }>(input: T): T {
   const car = { ...input, make: canonicalMake(input.make) };
   car.model = canonicalModel(car.make, car.model);
   if (car.make === "BMW") {
-    const split = car.model.match(BMW_TRIM_IN_MODEL);
-    if (split) {
-      const rest = split[2].trim();
-      const trim = car.trim?.trim() ?? "";
-      car.model = split[1];
-      car.trim = trim.toLowerCase().startsWith(rest.toLowerCase()) ? trim : [rest, trim].filter(Boolean).join(" ");
+    const series = car.model.match(BMW_SERIES_MODEL);
+    if (series) {
+      const [, engine, digit, rest] = series;
+      car.model = `${digit} Series`;
+      car.trim = prefixTrim([engine, rest.trim()].filter(Boolean).join(" "), car.trim);
+    } else {
+      const split = car.model.match(BMW_TRIM_IN_MODEL);
+      if (split) {
+        car.model = split[1];
+        car.trim = prefixTrim(split[2].trim(), car.trim);
+      }
     }
   }
   const make = car.make.trim();

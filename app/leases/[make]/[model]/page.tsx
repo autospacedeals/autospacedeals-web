@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getPublishedDeals } from "@/lib/supabase/deals";
 import { formatCurrency } from "@/lib/deal-utils";
 import { pageMetadata } from "@/lib/site";
-import { REGION, catalog, makePath, modelPath, monthYear, plural, summarySentence } from "@/lib/lease-pages";
+import { REGION, catalog, makePath, modelPath, monthYear, plural, summarySentence, toSlug } from "@/lib/lease-pages";
 import LeaseListing from "../../LeaseListing";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,14 @@ async function findModel(makeSlug: string, modelSlug: string) {
   const m = catalog(await getPublishedDeals()).find((x) => x.slug === makeSlug);
   const mo = m?.models.find((x) => x.slug === modelSlug);
   return m && mo ? { m, mo } : null;
+}
+
+// An old address whose "model" is now a trim (BMW's /leases/bmw/740i is the
+// 7 Series): where that trim lives now, or null.
+async function movedModelPath(makeSlug: string, modelSlug: string): Promise<string | null> {
+  const m = catalog(await getPublishedDeals()).find((x) => x.slug === makeSlug);
+  const mo = m?.models.find((x) => x.deals.some((d) => toSlug(d.trim ?? "").startsWith(modelSlug)));
+  return m && mo ? modelPath(m.make, mo.model) : null;
 }
 
 export async function generateMetadata({
@@ -33,7 +41,11 @@ export async function generateMetadata({
 export default async function ModelLeasesPage({ params }: { params: Promise<{ make: string; model: string }> }) {
   const { make, model } = await params;
   const found = await findModel(make, model);
-  if (!found) notFound();
+  if (!found) {
+    const moved = await movedModelPath(make, model);
+    if (moved) permanentRedirect(moved);
+    notFound();
+  }
   const { m, mo } = found;
   const name = `${m.make} ${mo.model}`;
 

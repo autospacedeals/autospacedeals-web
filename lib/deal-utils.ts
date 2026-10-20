@@ -413,7 +413,12 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
 
     const matchesMake = filters.make === "All" || deal.make === filters.make;
     const matchesModel = filters.model === "All" || deal.model === filters.model;
-    const matchesTrim = filters.trim === "All" || trimKey(deal.trim) === trimKey(filters.trim);
+    // A trim also matches its fuller spellings ("740i" -> "740i xDrive",
+    // "SE" -> "SE FWD", but not "SEL").
+    const matchesTrim =
+      filters.trim === "All" ||
+      trimKey(deal.trim) === trimKey(filters.trim) ||
+      trimKey(deal.trim).startsWith(`${trimKey(filters.trim)} `);
     const matchesBodyStyle = filters.bodyStyle === "All" || deal.bodyStyle === filters.bodyStyle;
     const matchesFuel = filters.fuel === "All" || deal.fuel === filters.fuel;
     const matchesSeller = filters.seller === "All" || deal.sellerName === filters.seller;
