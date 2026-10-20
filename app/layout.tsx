@@ -6,9 +6,10 @@ import SiteChrome from "@/components/SiteChrome";
 import VisitTracker from "@/components/VisitTracker";
 import GoogleAdsTag from "@/components/GoogleAdsTag";
 
-// Applies the visitor's saved theme (components/ThemeToggle.tsx) before the
-// first paint. Dark is the default, so nothing is set unless they chose light.
-const THEME_SCRIPT = `try{if(localStorage.getItem("drive-theme")==="light"){document.documentElement.dataset.theme="light";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#f4f6fb")}}catch(e){}`;
+// Applies the theme before the first paint: the visitor's own choice from
+// the toggle (components/ThemeToggle.tsx) if they made one, otherwise their
+// device's light/dark setting, followed live if they change it.
+const THEME_SCRIPT = `try{var d=document.documentElement,q=matchMedia("(prefers-color-scheme: light)"),s=function(){var t=localStorage.getItem("drive-theme");var l=t?t==="light":q.matches;if(l)d.dataset.theme="light";else delete d.dataset.theme;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",l?"#f4f6fb":"#060a14");dispatchEvent(new Event("drive-theme-change"))};s();q.addEventListener("change",function(){if(!localStorage.getItem("drive-theme"))s()})}catch(e){}`;
 import SeenPing from "@/components/SeenPing";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";

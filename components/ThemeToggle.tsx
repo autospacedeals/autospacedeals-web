@@ -1,9 +1,10 @@
 "use client";
 
-// Light / dark switch for the header. The choice is saved in this browser
-// (localStorage "drive-theme") and applied before the page draws by the
-// script in app/layout.tsx (THEME_SCRIPT), so there's no flash of the other
-// theme. Dark is the default.
+// Light / dark switch for the header. Until a visitor picks one, the site
+// follows their device's light/dark setting; a pick is saved in this browser
+// (localStorage "drive-theme"). Both are applied before the page draws by
+// the script in app/layout.tsx (THEME_SCRIPT), so there's no flash of the
+// other theme.
 import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
