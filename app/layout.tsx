@@ -47,9 +47,12 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
-  // Google Search Console ownership (https://www.idriveus.com/ property).
-  // Keep it: removing it un-verifies the site.
-  verification: { google: "fG-ytbKFzicfWYizBzrr1OnqRrAOv6yKuKQ4bu_hkbw" },
+  // Google Search Console and Bing Webmaster Tools ownership
+  // (https://www.idriveus.com/). Keep both: removing one un-verifies the site.
+  verification: {
+    google: "fG-ytbKFzicfWYizBzrr1OnqRrAOv6yKuKQ4bu_hkbw",
+    other: { "msvalidate.01": "F410CC2E8F2BEADB2F666669D5CD37AA" },
+  },
 };
 
 // Runs on every page load (root layout), so a hang here would freeze the
