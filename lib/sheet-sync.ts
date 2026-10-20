@@ -284,6 +284,7 @@ export async function runSheetSync(
       .update({
         payment: d.payment,
         due_at_signing: d.dueAtSigning,
+        ...(d.dueAtSigningTaxRate ? { due_at_signing_tax_rate: d.dueAtSigningTaxRate } : {}),
         msrp: d.msrp,
         term: d.term,
         miles_per_year: d.milesPerYear,

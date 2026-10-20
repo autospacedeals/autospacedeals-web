@@ -146,6 +146,7 @@ export async function stageParsedDeals(
       selling_price: d.sellingPrice ?? null,
       payment: d.payment,
       due_at_signing: d.dueAtSigning,
+      due_at_signing_tax_rate: d.dueAtSigningTaxRate ?? null,
       broker_fee: d.brokerFee,
       msd_count: d.msdCount ?? null,
       msd_total: d.msdTotal ?? null,

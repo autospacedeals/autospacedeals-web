@@ -46,6 +46,8 @@ export interface ParsedDeal {
   // The lower payment with the MSDs, when the source also gives a payment
   // without them (that one is `payment`).
   msdPayment?: number | null;
+  // The sales tax % the due-at-signing amount assumes, when the source says.
+  dueAtSigningTaxRate?: number | null;
   // The seller's own photos for this car (absolute or data: URLs), when
   // they came with the source (a website feed). Copied into Drive's storage
   // and used instead of a stock photo.

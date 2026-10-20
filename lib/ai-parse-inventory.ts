@@ -96,6 +96,27 @@ const EXTRACT_TOOL = {
                 "fee\" -> 699. null if none is mentioned. This is a separate field from " +
                 "dueAtSigning — don't fold it into that number, and don't just leave it in notes.",
             },
+            dueAtSigningIncludesBrokerFee: {
+              type: "boolean",
+              description:
+                "true when the ad says its due-at-signing / drive-off / upfront amount already " +
+                "includes the broker fee (\"Est. DAS includes $599 broker fee\", \"$2,715 upfront incl. " +
+                "$599 broker fee\"). Still put the ad's own due-at-signing number in dueAtSigning and the " +
+                "fee in brokerFee; the fee is taken out automatically. false otherwise.",
+            },
+            dueAtSigningTaxRate: {
+              type: ["number", "null"],
+              description:
+                "The sales tax rate, in percent, that the ad says its due-at-signing amount assumes " +
+                "(\"upfront estimates include California taxes at an assumed 10.25%\" -> 10.25). null if " +
+                "the ad doesn't state a rate; never assume one.",
+            },
+            soldOut: {
+              type: "boolean",
+              description:
+                "true when the ad marks this car sold out, no longer available or expired (\"Sold Out\", " +
+                "\"SOLD\", \"No longer available\"). Those cars are left off. false otherwise.",
+            },
             msdCount: {
               type: ["number", "null"],
               description:
@@ -254,7 +275,10 @@ const COMBINED_CELL_GUIDANCE =
   `"Fees" column or a note like "$699 broker fee" or "$999 doc fee" belongs in the brokerFee field, ` +
   `not just left in notes. When the ad states an incentive's value — a dollar amount like "$500 ` +
   `Loyalty", or what the payment becomes without it like "no Loyalty +$15" (monthly 15) — put it in ` +
-  `incentives with exactly those numbers. Price modifiers like "10k $23 · 12k $45 · 15k $90" next to ` +
+  `incentives with exactly those numbers. A second, lower payment shown with a program's name next to ` +
+  `the main one ("$365/mo" then "$321 ALLEGIANCE LOYALTY") means the payment is $365 and that program ` +
+  `takes it to $321: an incentive named for the program with monthly 44 (the difference), not part of ` +
+  `the price. Price modifiers like "10k $23 · 12k $45 · 15k $90" next to ` +
   `a 7,500-mile deal are mileage tiers (mileageOptions), not incentives. Banner text such as "rebates ` +
   `already included in these prices: Loyalty & A-Plan" applies to every vehicle under it. When the ` +
   `price depends on a program the ad gives no value for ("$330 plus tax (with MyFirstEV)"), list it ` +
@@ -333,6 +357,23 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const exterior = typeof c.exterior === "string" && c.exterior.trim() ? c.exterior.trim() : null;
     const interior = typeof c.interior === "string" && c.interior.trim() ? c.interior.trim() : null;
     const brokerFee = typeof c.brokerFee === "number" ? c.brokerFee : null;
+    // A car the ad marks sold out isn't listed.
+    if (c.soldOut === true) return;
+    // Drive shows the broker fee apart from due at signing, so an upfront
+    // amount that includes it ("$2,715 incl. $599 broker fee") is stored
+    // without it ($2,116 + the $599 fee).
+    const feeIncluded =
+      c.dueAtSigningIncludesBrokerFee === true &&
+      !onePay &&
+      brokerFee != null &&
+      brokerFee > 0 &&
+      dueAtSigning != null &&
+      dueAtSigning > brokerFee;
+    const dueAtSigningTaxRate =
+      typeof c.dueAtSigningTaxRate === "number" && c.dueAtSigningTaxRate > 0 && c.dueAtSigningTaxRate < 15
+        ? Math.round(c.dueAtSigningTaxRate * 1000) / 1000
+        : null;
+    const dueWithoutFee = oneTimeTotal != null && feeIncluded ? oneTimeTotal - brokerFee! : oneTimeTotal;
     // The model's MSD fields, falling back to anything it left in the notes.
     const msdFromNotes = parseMsdText(typeof c.notes === "string" ? c.notes : "");
     const msdCountRaw = typeof c.msdCount === "number" ? c.msdCount : msdFromNotes.msdCount;
@@ -380,7 +421,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (!onePay && payment) partial.payment = payment;
       if (term) partial.term = term;
       if (milesPerYear) partial.milesPerYear = milesPerYear;
-      if (oneTimeTotal) partial.dueAtSigning = oneTimeTotal;
+      if (dueWithoutFee) partial.dueAtSigning = dueWithoutFee;
       if (exterior) partial.exterior = exterior;
       if (interior) partial.interior = interior;
       if (brokerFee) partial.brokerFee = brokerFee;
@@ -407,7 +448,8 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       payment: onePay ? 0 : payment!,
       term: term!,
       milesPerYear,
-      dueAtSigning: oneTimeTotal!,
+      dueAtSigning: dueWithoutFee!,
+      dueAtSigningTaxRate,
       exterior,
       interior,
       brokerFee,
