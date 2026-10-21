@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin";
 import { getLeadStats, type LocationStats } from "@/lib/lead-stats";
 import { OUTCOMES_ENABLED, OUTCOME_LABELS, isLeadOutcome } from "@/lib/leads";
 import { getSavedStats } from "@/lib/saved-stats";
+import { getThemeStats } from "@/lib/theme-stats";
 import { formatCurrency } from "@/lib/deal-utils";
 
 export const metadata: Metadata = { title: "Leads", robots: { index: false } };
@@ -90,7 +91,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
   const { days: raw } = await searchParams;
   const days = PERIODS.some((p) => p.value === raw) ? raw! : "30";
   const period = days === "all" ? null : Number(days);
-  const [stats, saved] = await Promise.all([getLeadStats(period), getSavedStats(period)]);
+  const [stats, saved, themes] = await Promise.all([getLeadStats(period), getSavedStats(period), getThemeStats(period)]);
   const t = stats.totals;
 
   const tiles = [
@@ -98,6 +99,11 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
     { label: "Listing views", value: t.listingViews },
     { label: "Shopper sign-ups", value: t.signups },
     { label: "Cars saved", value: saved.total, note: saved.shoppers ? `by ${saved.shoppers}` : undefined },
+    {
+      label: "Switched to light",
+      value: themes.triedLight,
+      note: themes.triedLight ? `${pct(themes.triedLight, t.visitors)} · ${themes.stayedLight} kept it` : undefined,
+    },
     { label: "Conversations", value: t.conversations },
     { label: "Broker replied", value: t.replied, note: pct(t.replied, t.conversations) },
     ...(OUTCOMES_ENABLED ? [{ label: "Sold", value: t.sold, note: pct(t.sold, t.conversations) }] : []),
@@ -136,7 +142,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         {tiles.map((s) => (
           <div key={s.label} className="card p-4">
             <p className="label">{s.label}</p>

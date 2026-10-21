@@ -33,6 +33,13 @@ function apply(theme: Theme) {
     // private mode: the choice just isn't remembered
   }
   window.dispatchEvent(new Event(EVENT));
+  // Counted for the admin Leads page (app/api/theme); best-effort.
+  const body = JSON.stringify({ theme, path: location.pathname });
+  if (!navigator.sendBeacon?.("/api/theme", new Blob([body], { type: "application/json" }))) {
+    fetch("/api/theme", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(
+      () => {}
+    );
+  }
 }
 
 export default function ThemeToggle({ className = "" }: { className?: string }) {
