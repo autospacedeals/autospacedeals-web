@@ -56,6 +56,8 @@ export function canonicalModel(make: string, model: string): string {
     .join(" ");
 
   if (make === "Lexus") {
+    // "ES 350 Electric" is the ES 350e.
+    m = m.replace(/^([A-Z]{2})\s*(\d{3})\s+Electric\b/i, "$1 $2e");
     const lex = m.match(/^(ES|IS|LS|LC|NX|RX|TX|GX|LX|UX|RZ|RC)\s*(\d{3})\s*([a-zA-Z])?\s*(\+)?(?=\s|$)(.*)$/i);
     if (lex) {
       const [, series, num, suffix = "", plus = "", rest] = lex;
@@ -80,6 +82,44 @@ const BMW_TRIM_IN_MODEL = /^(\S+)\s+((?:\d{2}\s*)?[sxe]Drive\S*.*)$/i;
 // 8 Series. (M3/M4, the X models and i4/i5/i7 are models of their own.)
 const BMW_SERIES_MODEL = /^(M?([2-8])\d{2}[a-z]{0,2})\b\s*(.*)$/i;
 
+// An engine written into the model ("G70 2.5T", "GV70 2.5T Sport", "CX-5
+// 2.5 Turbo"): the engine and what follows are the trim, so the car files
+// under "G70".
+const ENGINE_IN_MODEL = /^(.+?)\s+(\d\.\d\s?[TL]?\b.*)$/i;
+
+// Versions of a model written as their own model: the version is the start
+// of the trim, so every Elantra files under "Elantra" ("Elantra N Line" /
+// "Base" -> "Elantra" / "N Line"). Longest version first.
+const VERSIONS_IN_MODEL: { make: string; model: string; versions: string[] }[] = [
+  { make: "Hyundai", model: "Elantra", versions: ["N Line", "Hybrid", "N"] },
+];
+
+// Mercedes models are the class, with the number as the trim: "GLC 300" is
+// the GLC with a "300" trim, "C 300" the C-Class with a "C 300" trim (so it
+// reads "C-Class C 300", like BMW's "7 Series 740i"), "GLC 43 AMG" the GLC
+// with "43 AMG". AMG or Maybach in front of the model leads the trim.
+const MERCEDES_CLASS = /^(?:(AMG|Maybach)\s+)?(CLA|CLE|CLS|GLA|GLB|GLC|GLE|GLS|EQB|EQE|EQS|SL|A|C|E|S|G)(?:-Class)?(?=[\s]|$)(?:\s+(\d{2,3}\+?)(?=\s|$))?\s*(.*)$/i;
+
+function mercedesClass(car: { model: string; trim: string | null }) {
+  const m = car.model.match(MERCEDES_CLASS);
+  if (!m) return;
+  const [, prefix, cls, num, rest] = m;
+  const series = cls.toUpperCase();
+  const single = series.length === 1;
+  // "GLC" alone, "C-Class" already: nothing to move.
+  if (!num && !prefix && !rest.trim()) {
+    car.model = single ? `${series}-Class` : series;
+    return;
+  }
+  if (!num) return;
+  car.model = single ? `${series}-Class` : series;
+  const badge = single ? `${series} ${num}` : num;
+  car.trim = prefixTrim([prefix, badge, rest.trim()].filter(Boolean).join(" "), withoutBase(car.trim));
+}
+
+// "Base" says nothing once a version or engine leads the trim.
+const withoutBase = (trim: string | null) => (/^base$/i.test(trim?.trim() ?? "") ? null : trim);
+
 // The trim with `lead` in front, unless the trim already starts with it.
 function prefixTrim(lead: string, trim: string | null): string {
   const t = trim?.trim() ?? "";
@@ -102,6 +142,20 @@ export function normalizeModelTrim<T extends { make: string; model: string; trim
         car.trim = prefixTrim(split[2].trim(), car.trim);
       }
     }
+  }
+  if (car.make === "Mercedes-Benz") mercedesClass(car);
+  for (const v of VERSIONS_IN_MODEL) {
+    if (car.make !== v.make) continue;
+    const version = v.versions.find((x) => new RegExp(`^${v.model}\\s+${x}(?=\\s|$)`, "i").test(car.model));
+    if (!version) continue;
+    const rest = car.model.slice(v.model.length + 1 + version.length).trim();
+    car.model = v.model;
+    car.trim = prefixTrim([version, rest].filter(Boolean).join(" "), withoutBase(car.trim));
+  }
+  const engine = car.model.match(ENGINE_IN_MODEL);
+  if (engine) {
+    car.model = engine[1];
+    car.trim = prefixTrim(engine[2].trim(), withoutBase(car.trim));
   }
   const make = car.make.trim();
   const model = car.model.trim().replace(/\s+/g, " ");

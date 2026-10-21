@@ -15,10 +15,13 @@ async function findModel(makeSlug: string, modelSlug: string) {
 }
 
 // An old address whose "model" is now a trim (BMW's /leases/bmw/740i is the
-// 7 Series): where that trim lives now, or null.
+// 7 Series, /leases/mercedes-benz/gle-350 the GLE): where that trim lives
+// now, or null.
 async function movedModelPath(makeSlug: string, modelSlug: string): Promise<string | null> {
   const m = catalog(await getPublishedDeals()).find((x) => x.slug === makeSlug);
-  const mo = m?.models.find((x) => x.deals.some((d) => toSlug(d.trim ?? "").startsWith(modelSlug)));
+  const mo = m?.models.find((x) =>
+    x.deals.some((d) => [d.trim ?? "", `${d.model} ${d.trim ?? ""}`].some((s) => toSlug(s).startsWith(modelSlug)))
+  );
   return m && mo ? modelPath(m.make, mo.model) : null;
 }
 
