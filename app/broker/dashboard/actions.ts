@@ -23,6 +23,7 @@ import { fetchGoogleSheetTabs } from "@/lib/google-sheet";
 import { readWebsiteDeals } from "@/lib/website-inventory";
 import { LOGO_TYPES, MAX_LOGO_BYTES, removeBrokerLogo, saveBrokerLogo } from "@/lib/broker-logos";
 import { listingPaths, notifyIndexNow, notifyIndexNowForDeals } from "@/lib/indexnow";
+import { paymentProblem } from "@/lib/deal-checks";
 import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { applyDealExtras, getDealExtras } from "@/lib/deal-disclaimers";
 import { runSheetSync, SHEET_SYNC_COLUMNS, type SheetSyncRow } from "@/lib/sheet-sync";
@@ -78,6 +79,9 @@ export type SubmissionState = {
   // pre-filled with everything except the one thing it couldn't determine,
   // instead of asking the broker to retype a row that was mostly readable.
   skippedDeals?: Partial<ParsedDeal>[];
+  // Cars from a synced source kept as drafts because their payment looks
+  // like a typo for the MSRP (lib/deal-checks.ts).
+  heldCount?: number;
   // Whether this Google Sheet was set up for recurring auto-sync.
   sheetSynced?: boolean;
 };
@@ -505,6 +509,7 @@ export async function createSubmissionAction(
 
   let stageFailed = 0;
   let stageLastError: string | null = null;
+  let heldCount = 0;
   if (broker && parsedDeals.length > 0 && inserted) {
     const staging = await stageParsedDeals(supabase, user.id, broker, inserted.id, parsedDeals, {
       sheetSyncId,
@@ -512,6 +517,7 @@ export async function createSubmissionAction(
     });
     stageFailed = staging.failed;
     stageLastError = staging.lastError;
+    heldCount = staging.held.length;
     if (sheetSyncId && staging.staged > 0) after(() => alertAdminsFirstListing(user.id));
   }
 
@@ -537,6 +543,7 @@ export async function createSubmissionAction(
     skipReasons,
     skippedDeals,
     sheetSynced: sheetSyncId !== null,
+    heldCount,
   };
 }
 
@@ -754,6 +761,8 @@ export async function createManualDealAction(
   if (!onePay && !payment) {
     return { error: "Please enter a monthly payment, or mark this as a one-pay lease." };
   }
+  const paymentIssue = paymentProblem({ payment, msrp, onePay });
+  if (paymentIssue) return { error: `${paymentIssue} Please double-check the payment and MSRP.` };
   if (dealType === "Lease" && !milesPerYear) {
     return { error: "Please enter the miles per year for this lease." };
   }
@@ -901,6 +910,8 @@ export async function updateDealAction(formData: FormData): Promise<{ error: str
   if (!onePay && !payment) {
     return { error: "Please enter a monthly payment, or mark this as a one-pay lease." };
   }
+  const paymentIssue = paymentProblem({ payment, msrp, onePay });
+  if (paymentIssue) return { error: `${paymentIssue} Please double-check the payment and MSRP.` };
   if (dealType === "Lease" && !milesPerYear) {
     return { error: "Please enter the miles per year for this lease." };
   }
@@ -1160,6 +1171,8 @@ export async function updateDraftDealAction(formData: FormData): Promise<{ error
   if (!onePay && !payment) {
     return { error: "Please enter a monthly payment, or mark this as a one-pay lease." };
   }
+  const paymentIssue = paymentProblem({ payment, msrp, onePay });
+  if (paymentIssue) return { error: `${paymentIssue} Please double-check the payment and MSRP.` };
   if (dealType === "Lease" && !milesPerYear) {
     return { error: "Please enter the miles per year for this lease." };
   }
@@ -1272,15 +1285,24 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
   // Dealership drafts without a total price can't go live yet (California's
   // CARS Act) — they stay in the queue and the broker is told why.
   let blocked = 0;
+  // Drafts whose payment looks like a typo for its MSRP (lib/deal-checks.ts)
+  // stay in the queue too.
+  let mistyped = 0;
   if (keepIds.length > 0) {
     const { data: kept } = await supabase
       .from("deals")
-      .select("id, seller_type, selling_price")
+      .select("id, seller_type, selling_price, payment, msrp, one_pay")
       .in("id", keepIds)
       .eq("broker_id", user.id)
-      .returns<{ id: string; seller_type: string; selling_price: number | null }[]>();
-    const ready = (kept ?? []).filter((d) => !needsTotalPrice(d.seller_type) || d.selling_price != null).map((d) => d.id);
-    blocked = (kept ?? []).length - ready.length;
+      .returns<
+        { id: string; seller_type: string; selling_price: number | null; payment: number; msrp: number; one_pay: boolean }[]
+      >();
+    const priced = (kept ?? []).filter((d) => !needsTotalPrice(d.seller_type) || d.selling_price != null);
+    blocked = (kept ?? []).length - priced.length;
+    const ready = priced
+      .filter((d) => !paymentProblem({ payment: d.payment, msrp: d.msrp, onePay: d.one_pay }))
+      .map((d) => d.id);
+    mistyped = priced.length - ready.length;
     if (ready.length > 0) {
       const { error } = await supabase
         .from("deals")
@@ -1306,11 +1328,18 @@ export async function confirmDraftsAction(formData: FormData): Promise<{ error: 
 
   revalidatePath("/broker/dashboard");
   revalidatePath("/");
+  const problems: string[] = [];
   if (blocked > 0) {
-    return {
-      error: `${blocked} car${blocked === 1 ? " needs" : "s need"} a total price before going live — California's CARS Act requires it on dealership listings. Use Edit to add it, then confirm again.`,
-    };
+    problems.push(
+      `${blocked} car${blocked === 1 ? " needs" : "s need"} a total price before going live — California's CARS Act requires it on dealership listings. Use Edit to add it, then confirm again.`
+    );
   }
+  if (mistyped > 0) {
+    problems.push(
+      `${mistyped} car${mistyped === 1 ? " has a monthly payment that looks" : "s have monthly payments that look"} like a typo for the MSRP. Use Edit to check the payment and MSRP, then confirm again.`
+    );
+  }
+  if (problems.length > 0) return { error: problems.join(" ") };
   return { error: null };
 }
 

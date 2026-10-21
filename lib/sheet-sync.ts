@@ -26,6 +26,7 @@ import { stageParsedDeals, type BrokerProfile } from "@/lib/deal-staging";
 import { normalizeModelTrim, splitProgramsFromTrim } from "@/lib/vehicle-names";
 import { alertAdminsFirstListing, alertAdminsSheetIssues } from "@/lib/admin-alerts";
 import { getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
+import { paymentProblem } from "@/lib/deal-checks";
 
 export interface SheetSyncRow {
   id: string;
@@ -279,6 +280,13 @@ export async function runSheetSync(
   let updatedCount = 0;
   const extras = toUpdate.length > 0 ? await getDealExtras(sync.broker_id) : null;
   for (const { id, deal: d } of toUpdate) {
+    // A new payment that looks like a typo for the MSRP isn't applied: the
+    // listing keeps its last good numbers and the admins hear about it.
+    const problem = paymentProblem({ payment: d.payment, msrp: d.msrp, onePay: d.onePay });
+    if (problem) {
+      skippedRows.push({ row: d.sourceRow ?? 0, tab: d.sheetTab ?? undefined, reason: `${problem} Kept the listing's previous numbers.`, partial: {} });
+      continue;
+    }
     const { error: updateError } = await supabase
       .from("deals")
       .update({
@@ -355,6 +363,14 @@ export async function runSheetSync(
     });
     addedCount = staging.staged;
     if (addedCount > 0) await alertAdminsFirstListing(sync.broker_id);
+    for (const h of staging.held) {
+      skippedRows.push({
+        row: h.deal.sourceRow ?? 0,
+        tab: h.deal.sheetTab ?? undefined,
+        reason: `${h.reason} Saved as a draft for the seller to check.`,
+        partial: {},
+      });
+    }
   }
 
   const lastSyncError = removalsSkipped

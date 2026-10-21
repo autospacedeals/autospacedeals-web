@@ -189,6 +189,13 @@ function LinkForm({
           {skippedCount > 0 &&
             ` ${skippedCount} row${skippedCount === 1 ? "" : "s"} couldn't be read automatically — add ${skippedCount === 1 ? "it" : "those"} below.`}
         </p>
+        {(state.heldCount ?? 0) > 0 && (
+          <p className="mt-2 text-sm text-warning">
+            {state.heldCount === 1 ? "1 car was" : `${state.heldCount} cars were`} kept as{" "}
+            {state.heldCount === 1 ? "a draft" : "drafts"} instead: the monthly payment looks like a typo for the
+            MSRP. Check {state.heldCount === 1 ? "it" : "them"} under &quot;Cars ready for your confirmation.&quot;
+          </p>
+        )}
         {state.sheetSynced && (
           <p className="mt-2 text-sm text-success">
             {sourceType === "website"

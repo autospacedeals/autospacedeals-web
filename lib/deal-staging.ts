@@ -14,6 +14,7 @@ import { mapLimit } from "@/lib/concurrency";
 import { applyDealExtras, getDealExtras, ruleColumns } from "@/lib/deal-disclaimers";
 import { normalizeModelTrim } from "@/lib/vehicle-names";
 import { listingPaths, notifyIndexNow } from "@/lib/indexnow";
+import { paymentProblem } from "@/lib/deal-checks";
 
 const MAX_SELLER_PHOTOS = 8;
 
@@ -48,7 +49,7 @@ export async function stageParsedDeals(
   submissionId: string | null,
   deals: ParsedDeal[],
   options: StageOptions = {}
-): Promise<{ staged: number; failed: number; lastError: string | null }> {
+): Promise<{ staged: number; failed: number; lastError: string | null; held: { deal: ParsedDeal; reason: string }[] }> {
   const status = options.status ?? "draft";
   const sheetSyncId = options.sheetSyncId ?? null;
 
@@ -56,6 +57,9 @@ export async function stageParsedDeals(
   let failed = 0;
   let lastError: string | null = null;
   const livePaths: string[] = [];
+  // Cars that would have gone live but whose payment looks mistyped: kept
+  // as drafts for the seller to check (and reported to the caller).
+  const held: { deal: ParsedDeal; reason: string }[] = [];
 
   // Uploads only carry year/make/model/trim — look up fuel type and body
   // style for the whole batch in one go so they're searchable/filterable.
@@ -124,8 +128,12 @@ export async function stageParsedDeals(
     const slug = slugify([d.year, car.make, car.model, car.trim ?? "", broker.state]);
 
     // A dealership listing can't go live without its total price
-    // (California's CARS Act) — it waits as a draft for the price instead.
-    const finalStatus = status === "published" && needsTotalPrice(broker.seller_type) && !d.sellingPrice ? "draft" : status;
+    // (California's CARS Act), nor any listing whose payment looks like a
+    // typo for its MSRP — those wait as drafts instead.
+    const problem = status === "published" ? paymentProblem({ payment: d.payment, msrp: d.msrp, onePay: d.onePay }) : null;
+    if (problem) held.push({ deal: d, reason: problem });
+    const finalStatus =
+      status === "published" && ((needsTotalPrice(broker.seller_type) && !d.sellingPrice) || problem) ? "draft" : status;
     const { error } = await supabase.from("deals").insert({
       slug,
       broker_id: userId,
@@ -193,5 +201,5 @@ export async function stageParsedDeals(
   // Search engines hear about cars that went live (lib/indexnow.ts).
   await notifyIndexNow(livePaths);
 
-  return { staged, failed, lastError };
+  return { staged, failed, lastError, held };
 }
