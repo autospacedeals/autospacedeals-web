@@ -3,7 +3,7 @@ import { getPublishedDeals } from "@/lib/supabase/deals";
 import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
 import HomeClient from "@/components/HomeClient";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
-import { jsonLdScript } from "@/lib/lease-pages";
+import { REGION, byPayment, itemListJsonLd, jsonLdScript } from "@/lib/lease-pages";
 
 // Who Drive is, for search engines and AI answers: "Drive" alone is a
 // common word, so the name is tied to the domain.
@@ -16,7 +16,10 @@ const ORGANIZATION_JSON_LD = [
     url: SITE_URL,
     logo: `${SITE_URL}/apple-icon.png`,
     description: SITE_DESCRIPTION,
+    email: "rob@idriveus.com",
     areaServed: { "@type": "AdministrativeArea", name: "Southern California" },
+    // The page that describes Drive in full (app/about).
+    subjectOf: { "@type": "AboutPage", url: `${SITE_URL}/about` },
   },
   {
     "@context": "https://schema.org",
@@ -57,7 +60,19 @@ export default async function HomePage() {
   ]);
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(ORGANIZATION_JSON_LD) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript([
+            ...ORGANIZATION_JSON_LD,
+            // The deals in the page's HTML, readable without running its script.
+            itemListJsonLd(
+              `Lowest lease payments in ${REGION}`,
+              deals.filter((d) => !d.onePay && d.payment > 0).sort(byPayment).slice(0, 20)
+            ),
+          ]),
+        }}
+      />
       <HomeClient initialDeals={deals} savedSearchesAvailable={savedSearchesAvailable} />
     </>
   );

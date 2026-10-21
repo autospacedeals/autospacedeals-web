@@ -7,6 +7,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
     heading: "Shop",
     links: [
       { href: "/#deals", label: "Browse deals" },
+      { href: "/best-lease-deals", label: "This month's best deals" },
       { href: "/leases", label: "Deals by make & model" },
       { href: "/leasing-guide", label: "Leasing guide" },
       { href: "/customer/signup", label: "Create an account" },
@@ -23,6 +24,8 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
   {
     heading: "Help",
     links: [
+      { href: "/about", label: "About Drive" },
+      { href: "/faq", label: "How Drive works" },
       { href: "/contact", label: "Contact support" },
       { href: "/contact?topic=listing", label: "Report a listing" },
       // The broker portal itself stays off the consumer site; sellers ask here.

@@ -7,7 +7,8 @@ import { getPublishedDealsByBroker } from "@/lib/supabase/deals";
 import { getMyReview, getReviewsForBroker, type ReviewViewer } from "@/lib/supabase/reviews";
 import { formatAverageRating, reviewCountLabel, reviewDateLabel, reviewFullDate } from "@/lib/reviews";
 import BrokerListings from "@/components/BrokerListings";
-import { pageMetadata } from "@/lib/site";
+import { SITE_URL, pageMetadata } from "@/lib/site";
+import { itemListJsonLd, jsonLdScript } from "@/lib/lease-pages";
 import StarRating, { RatingBadge } from "@/components/StarRating";
 import SellerAvatar from "@/components/SellerAvatar";
 import ReviewForm from "./ReviewForm";
@@ -24,7 +25,7 @@ export async function generateMetadata({
   if (!broker) return { title: "Broker not found" };
   return pageMetadata({
     title: broker.businessName,
-    description: `${broker.businessName} — ${broker.sellerType} in ${broker.city}, ${broker.state} on Drive.`,
+    description: `${broker.businessName}: car lease deals from a ${broker.sellerType.toLowerCase()} in ${broker.city}, ${broker.state}. Compare their current deals and message them on Drive.`,
     path: `/brokers/${id}`,
   });
 }
@@ -69,8 +70,27 @@ export default async function BrokerProfilePage({
   // Only invite a first review from someone who could actually leave one.
   const canReview = viewer.status === "customer" || viewer.status === "signed-out";
 
+  // schema.org: the seller as a business, with its rating and current deals.
+  const dealership = broker.sellerType === "Salesperson" || Boolean(broker.dealershipName);
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": dealership ? "AutoDealer" : "Organization",
+      name: broker.dealershipName && broker.sellerType === "Salesperson" ? broker.dealershipName : broker.businessName,
+      url: `${SITE_URL}/brokers/${id}`,
+      ...(broker.logoUrl ? { logo: broker.logoUrl } : {}),
+      ...(broker.about ? { description: broker.about.slice(0, 500) } : {}),
+      address: { "@type": "PostalAddress", addressLocality: broker.city, addressRegion: broker.state, addressCountry: "US" },
+      ...(average != null
+        ? { aggregateRating: { "@type": "AggregateRating", ratingValue: Number(average.toFixed(1)), reviewCount: reviews.count, bestRating: 5 } }
+        : {}),
+    },
+    ...(listings.length > 0 ? [itemListJsonLd(`${broker.businessName} lease deals`, listings)] : []),
+  ];
+
   return (
     <main className="container-page max-w-6xl py-8 sm:py-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <Link href="/#deals" className="link-arrow mb-6 min-h-9">
         <ArrowLeft /> Back to all deals
       </Link>

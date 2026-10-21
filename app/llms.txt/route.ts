@@ -6,6 +6,7 @@ import { getPublishedDeals } from "@/lib/supabase/deals";
 import { formatCurrency } from "@/lib/deal-utils";
 import { SITE_URL } from "@/lib/site";
 import { REGION, catalog, makePath, modelPath, plural } from "@/lib/lease-pages";
+import { driveFaq, driveStats } from "@/lib/drive-facts";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,17 @@ export async function GET() {
     "## Main pages",
     "",
     `- [All lease deals, searchable](${SITE_URL}/): filter by make, model, body style, payment, term and seller`,
+    `- [Best lease deals this month](${SITE_URL}/best-lease-deals): lowest payments, lowest total cost, best EV, hybrid, SUV and luxury leases`,
+    `- [About Drive](${SITE_URL}/about): who Drive is, where the deals come from, contact`,
+    `- [How Drive works](${SITE_URL}/faq): questions and answers`,
     `- [Lease deals by make and model](${SITE_URL}/leases): the lowest payment for every car, updated live`,
     `- [Leasing guide](${SITE_URL}/leasing-guide): money factor, residual value, due at signing, MSDs explained`,
     `- [Lease calculator](${SITE_URL}/calculator): work out a payment from a quote`,
     `- [Lease-end options](${SITE_URL}/lease-end): return, buy out or trade in`,
     "",
+    "## Questions and answers",
+    "",
+    ...driveFaq(driveStats(deals)).flatMap((f) => [`### ${f.q}`, "", f.a, ""]),
     "## Lease deals by car",
     "",
   ];
