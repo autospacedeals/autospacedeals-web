@@ -8,7 +8,7 @@ import GoogleAdsTag from "@/components/GoogleAdsTag";
 
 // Applies the visitor's saved theme (components/ThemeToggle.tsx) before the
 // first paint. Everyone starts in dark; light only once they pick it.
-const THEME_SCRIPT = `try{if(localStorage.getItem("drive-theme")==="light"){document.documentElement.dataset.theme="light";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#f4f6fb")}}catch(e){}`;
+const THEME_SCRIPT = `try{if(localStorage.getItem("drive-theme")==="light"){document.documentElement.dataset.theme="light";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#eef5ff")}}catch(e){}`;
 import SeenPing from "@/components/SeenPing";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";

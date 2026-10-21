@@ -88,37 +88,38 @@
   --scrim: rgb(3 5 10 / 0.72);
 }
 
-/* Light theme: soft off-white page, white cards, slate text, the same blue. */
+/* Light theme ("Sky"): pale blue page, white cards, navy text, bright blue
+   with a cyan second accent. */
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --canvas: #f4f6fb;
+  --canvas: #eef5ff;
   --surface: #ffffff;
-  --raised: #eef2f8;
+  --raised: #e3eefc;
   --overlay: #ffffff;
 
-  --line: rgb(15 30 60 / 0.09);
-  --line-strong: rgb(15 30 60 / 0.15);
-  --line-hover: rgb(15 30 60 / 0.26);
-  --hover: rgb(15 30 60 / 0.035);
-  --hover-strong: rgb(15 30 60 / 0.07);
+  --line: rgb(20 60 120 / 0.1);
+  --line-strong: rgb(20 60 120 / 0.16);
+  --line-hover: rgb(20 60 120 / 0.28);
+  --hover: rgb(20 60 120 / 0.04);
+  --hover-strong: rgb(20 60 120 / 0.08);
 
-  --fg: #0e1626; /* 16:1 on canvas */
-  --fg-secondary: #3b4659; /* 9:1 */
-  --fg-muted: #5b6678; /* 5.6:1 */
-  --fg-faint: #98a2b3; /* icons, dividers, disabled. NEVER text */
+  --fg: #0b1a33; /* 16:1 on canvas */
+  --fg-secondary: #33445f; /* 9:1 */
+  --fg-muted: #56677f; /* 5.3:1 */
+  --fg-faint: #93a3b8; /* icons, dividers, disabled. NEVER text */
 
-  --brand: #2f7bff;
-  --accent: #2563eb; /* white text 5.2:1 */
-  --accent-hover: #1d55d6;
-  --accent-fg: #1f5fd6; /* accent TEXT on light — 5.6:1 */
-  --accent-soft: rgb(37 99 235 / 0.09);
-  --accent-soft-hover: rgb(37 99 235 / 0.15);
-  --accent-line: rgb(37 99 235 / 0.35);
+  --brand: #1f7aff;
+  --accent: #1a6ef0; /* white text 4.6:1 */
+  --accent-hover: #155fd4;
+  --accent-fg: #1462d6; /* accent TEXT on light — 5.1:1 */
+  --accent-soft: rgb(31 122 255 / 0.1);
+  --accent-soft-hover: rgb(31 122 255 / 0.16);
+  --accent-line: rgb(31 122 255 / 0.35);
   --on-accent: #ffffff;
-  --accent-2: #7c5cf5;
-  --accent-2-fg: #6240e0;
-  --accent-2-soft: rgb(124 92 245 / 0.1);
+  --accent-2: #06b6d4;
+  --accent-2-fg: #0891b2;
+  --accent-2-soft: rgb(6 182 212 / 0.12);
 
   --success: #0f8a54;
   --success-soft: rgb(15 138 84 / 0.09);
@@ -127,14 +128,14 @@
   --danger: #c93636;
   --danger-soft: rgb(201 54 54 / 0.08);
 
-  --ring: #2563eb;
+  --ring: #1a6ef0;
 
-  --contrast: #0e1626;
-  --glow: #2f7bff;
+  --contrast: #0b1a33;
+  --glow: #38bdf8;
   --shadow-ink: #1a2a4a;
 
   --stage-top: #ffffff;
-  --stage-bottom: #eef2f8;
+  --stage-bottom: #e8f1fd;
   --tag-bg: rgb(255 255 255 / 0.82);
   --note-fade: rgb(255 255 255 / 0.92);
   --vignette: rgb(26 42 74 / 0.04);
@@ -145,7 +146,7 @@
   --shadow-card: 0 1px 2px 0 rgb(26 42 74 / 0.06), 0 1px 3px 0 rgb(26 42 74 / 0.05);
   --shadow-lift: 0 18px 40px -18px rgb(26 42 74 / 0.28);
   --shadow-pop: 0 0 0 1px rgb(26 42 74 / 0.05), 0 24px 56px -24px rgb(26 42 74 / 0.22);
-  --shadow-glow: 0 10px 28px -12px rgb(47 123 255 / 0.55);
+  --shadow-glow: 0 10px 28px -12px rgb(31 122 255 / 0.55);
 }
 
 /* 2. UTILITY MAPPING ======================================================= */

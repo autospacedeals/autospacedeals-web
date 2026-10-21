@@ -9,7 +9,7 @@ import { Moon, Sun } from "lucide-react";
 
 export const THEME_KEY = "drive-theme";
 const EVENT = "drive-theme-change";
-const THEME_COLORS = { dark: "#060a14", light: "#f4f6fb" };
+const THEME_COLORS = { dark: "#060a14", light: "#eef5ff" };
 
 type Theme = "dark" | "light";
 
