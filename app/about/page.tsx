@@ -73,8 +73,8 @@ export default async function AboutPage() {
         <div className="mt-6">
           <Section title="Why Drive exists">
             <p>
-              {`The best lease deals in ${REGION} are scattered`} across broker Instagram posts, forum
-              threads, spreadsheets and dealer websites, each written a different way. Comparing them
+              The best lease deals in {REGION}{" "}
+              are scattered across broker Instagram posts, forum threads, spreadsheets and dealer websites, each written a different way. Comparing them
               means copying numbers into your own notes and guessing what&apos;s included.
             </p>
             <p>
