@@ -3,6 +3,7 @@
 // import, so broker self-service edits (price changes, new listings,
 // removals) show up on the live site immediately.
 import type { Deal } from "@/lib/deals-data";
+import { tradeName } from "@/lib/seller-name";
 import { sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from "@/lib/deal-options";
 import { parseDelivery } from "@/lib/deal-location";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
@@ -105,7 +106,7 @@ export function mapRowToDeal(row: DealRow): Deal {
     milesPerYear: row.miles_per_year,
     apr: row.apr,
     sellerType: row.seller_type as Deal["sellerType"],
-    sellerName: row.seller_name,
+    sellerName: tradeName(row.seller_name),
     sellerDealership: row.seller_dealership,
     city: row.city,
     state: row.state,

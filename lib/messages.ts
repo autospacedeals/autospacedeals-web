@@ -6,6 +6,7 @@
 // one with a brokers row. Conversations are always shopper ↔ broker about
 // one listing; Drive's admin can read every conversation but never posts.
 import type { MessageAttachment } from "@/lib/message-attachments";
+import { tradeName } from "@/lib/seller-name";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
@@ -98,7 +99,7 @@ export async function participantNames(
     // First name + last initial: enough for a broker to know who it is.
     customers.set(c.id, `${c.first_name} ${c.last_name ? `${c.last_name[0]}.` : ""}`.trim());
   }
-  for (const b of (bs.data ?? []) as { id: string; business_name: string }[]) brokers.set(b.id, b.business_name);
+  for (const b of (bs.data ?? []) as { id: string; business_name: string }[]) brokers.set(b.id, tradeName(b.business_name));
   return { customers, brokers };
 }
 
