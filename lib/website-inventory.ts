@@ -321,8 +321,8 @@ export async function readWebsiteInventory(rawUrl: string): Promise<WebsiteInven
 }
 
 // A page with no feed: its text, read in chunks so a long deals page fits
-// (one AI call per ~10,000 characters, split at line breaks).
-export function textChunks(text: string, size = 10000): string[] {
+// (one AI call per ~6,000 characters, about 15 cars, split at line breaks).
+export function textChunks(text: string, size = 6000): string[] {
   const chunks: string[] = [];
   let current = "";
   for (const line of text.split("\n")) {

@@ -529,7 +529,9 @@ export async function parseFreeTextWithAI(text: string, brokerState: string): Pr
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    // Room for a website page's worth of cars (lib/website-inventory.ts
+    // reads long pages in chunks).
+    max_tokens: 16000,
     tools: [EXTRACT_TOOL],
     tool_choice: { type: "tool", name: "extract_deals" },
     messages: [
@@ -544,6 +546,9 @@ export async function parseFreeTextWithAI(text: string, brokerState: string): Pr
       },
     ],
   });
+  // A cut-off answer has lost cars without saying so; a website sync would
+  // then take them down as sold. Fail instead (callers show a retry).
+  if (response.stop_reason === "max_tokens") throw new Error("Deal text too long to read in one pass");
 
   return toolResponseToResult(response, brokerState);
 }
