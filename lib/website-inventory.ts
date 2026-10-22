@@ -21,8 +21,12 @@ const MAX_PAGE_BYTES = 5 * 1024 * 1024;
 const MAX_FEED_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_FEED_CANDIDATES = 8;
-const MAX_TEXT_CHARS = 60000;
+// Room for a big broker's whole deals page (CMG's 316 cars are ~70,000).
+const MAX_TEXT_CHARS = 150000;
 const MAX_FIELD_CHARS = 400;
+// Text chunks read by the AI at once: enough that a 150,000-character page
+// (~25 chunks) still finishes inside the 300-second function limit.
+const TEXT_CHUNK_CONCURRENCY = 6;
 const USER_AGENT = "Mozilla/5.0 (compatible; DriveInventoryReader/1.0; +https://www.idriveus.com)";
 
 export type WebsiteInventory =
@@ -380,7 +384,7 @@ export async function readWebsiteDeals(url: string, brokerState: string, cache: 
   const after: RowParseCache = {};
   const parsed: ParsedDeal[] = [];
   const skipped: SkippedRow[] = [];
-  const results = await mapLimit(chunks, 3, async (chunk) => {
+  const results = await mapLimit(chunks, TEXT_CHUNK_CONCURRENCY, async (chunk) => {
     const key = createHash("sha1").update(`${brokerState}\n${chunk}`).digest("base64url");
     return { key, result: before[key] ?? (await parseFreeTextWithAI(chunk, brokerState).then((r) => ({ p: r.parsed, s: r.skipped }))) };
   });
