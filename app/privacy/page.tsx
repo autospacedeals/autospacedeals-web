@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "October 19, 2026";
+const LAST_UPDATED = "October 22, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -107,7 +107,8 @@ export default function PrivacyPolicyPage() {
               own: a random visitor ID and a note of how you found us (for example, which ad or
               website sent you). We use them, along with your approximate city and state (looked up
               from your IP address by our hosting provider; we don&apos;t store the address
-              itself), to count visits and listing views, see which areas they come from, and
+              itself) and whether you&apos;re on a phone, tablet or computer, to count visits and
+              listing views, see which areas and devices they come from, and
               learn which ads lead to conversations with sellers. That information stays with {SITE_NAME}.
             </p>
             <p>

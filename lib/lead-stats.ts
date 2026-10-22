@@ -17,6 +17,7 @@ interface VisitRow {
   country: string | null;
   region: string | null;
   city: string | null;
+  device?: string | null;
 }
 
 interface LeadRow {
@@ -86,6 +87,7 @@ export interface LeadStats {
     sold: number;
   };
   sources: SourceStats[];
+  devices: LocationStats[];
   states: LocationStats[];
   cities: LocationStats[];
   brokers: BrokerStats[];
@@ -106,7 +108,8 @@ function median(values: number[]): number | null {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-// Visitors (distinct, from their landings) and listing views per place.
+// Visitors (distinct, from their landings) and listing views per place or
+// device.
 function byLocation(visits: VisitRow[], keyOf: (v: VisitRow) => string | null): LocationStats[] {
   const map = new Map<string, { visitors: Set<string>; listingViews: number }>();
   for (const v of visits) {
@@ -132,10 +135,11 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
   const sinceIso = days ? new Date(Date.now() - days * 24 * HOUR).toISOString() : null;
   const since = <T extends { gte: (col: string, v: string) => T }>(q: T) => (sinceIso ? q.gte("created_at", sinceIso) : q);
 
-  const [visits, signups, convs, brokersRes] = await Promise.all([
-    since(admin.from("site_visits").select("visitor, kind, deal_id, broker_id, source, campaign, country, region, city"))
-      .limit(ROW_LIMIT)
-      .returns<VisitRow[]>(),
+  const VISIT_COLS = "visitor, kind, deal_id, broker_id, source, campaign, country, region, city";
+  const visitQuery = (cols: string) =>
+    since(admin.from("site_visits").select(cols)).limit(ROW_LIMIT).returns<VisitRow[]>();
+  const [visitsWithDevice, signups, convs, brokersRes] = await Promise.all([
+    visitQuery(`${VISIT_COLS}, device`),
     since(admin.from("customers").select("id, signup_source, signup_campaign"))
       .limit(ROW_LIMIT)
       .returns<{ id: string; signup_source: string | null; signup_campaign: string | null }[]>(),
@@ -152,6 +156,8 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
       .returns<LeadRow[]>(),
     admin.from("brokers").select("id, business_name").returns<{ id: string; business_name: string | null }[]>(),
   ]);
+  // Before migration 0053 there's no device column; read the visits without it.
+  const visits = visitsWithDevice.error ? await visitQuery(VISIT_COLS) : visitsWithDevice;
   const ready = !visits.error && !convs.error && !signups.error;
   for (const r of [visits, signups, convs, brokersRes]) if (r.error) console.error("getLeadStats:", r.error.message);
 
@@ -189,6 +195,10 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
 
   // By location (Vercel's IP lookup: approximate, and missing for some visits).
   // US visits by state; other countries by full name ("IN" -> "India").
+  // By device (recorded since migration 0053; older visits have none).
+  const DEVICE_LABELS: Record<string, string> = { mobile: "Phone", tablet: "Tablet", desktop: "Computer" };
+  const devices = byLocation(visitRows, (v) => (v.device ? (DEVICE_LABELS[v.device] ?? v.device) : "Not recorded"));
+
   const states = byLocation(visitRows, (v) =>
     !v.country ? null : v.country === "US" ? (v.region ? `${v.region}` : "US (state unknown)") : countryName(v.country)
   );
@@ -301,6 +311,7 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
       sold: leadRows.filter((l) => l.outcome === "sold").length,
     },
     sources,
+    devices,
     states,
     cities,
     brokers,

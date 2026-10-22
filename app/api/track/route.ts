@@ -3,11 +3,14 @@
 // Best-effort and always answers 204 — a counting problem must never show
 // up for the visitor. Bots, and signed-in brokers and admins browsing their
 // own site, aren't counted. The visitor's approximate city comes from
-// Vercel's IP lookup; the IP address itself isn't stored.
+// Vercel's IP lookup; the IP address itself isn't stored. The device
+// (mobile, tablet or desktop) comes from the user agent, which isn't stored
+// either.
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { SOURCE_COOKIE, decodeSource } from "@/lib/visit-source";
 import { countedVisitor } from "@/lib/counted-visitor";
+import { deviceType } from "@/lib/device-type";
 
 export const dynamic = "force-dynamic";
 // The same visitor opening the same listing (or landing again) within this
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
     if ((count ?? 0) > 0) return done();
 
     const src = decodeSource(request.cookies.get(SOURCE_COOKIE)?.value);
-    const { error } = await admin.from("site_visits").insert({
+    const row = {
       visitor,
       kind,
       path,
@@ -78,7 +81,11 @@ export async function POST(request: NextRequest) {
       country: header(request, "x-vercel-ip-country", 8),
       region: header(request, "x-vercel-ip-country-region", 16),
       city: header(request, "x-vercel-ip-city", 80),
-    });
+    };
+    const device = deviceType(request.headers.get("user-agent") ?? "", request.headers.get("sec-ch-ua-mobile"));
+    let { error } = await admin.from("site_visits").insert({ ...row, device });
+    // Before migration 0053 there's no device column; count the visit anyway.
+    if (error && /device/i.test(error.message)) ({ error } = await admin.from("site_visits").insert(row));
     if (error) console.error("track: insert failed:", error.message);
   } catch (err) {
     console.error("track threw:", err);

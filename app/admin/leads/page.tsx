@@ -44,8 +44,10 @@ const TH = "px-4 py-2.5 font-medium";
 const TD = "px-4 py-3 whitespace-nowrap";
 const LOCATION_ROWS = 15;
 
-function LocationTable({ title, rows }: { title: string; rows: LocationStats[] }) {
+// `share` adds each row's part of the visitors, leaving out the "Not recorded" row.
+function LocationTable({ title, rows, share }: { title: string; rows: LocationStats[]; share?: boolean }) {
   const shown = rows.slice(0, LOCATION_ROWS);
+  const recorded = rows.filter((r) => r.key !== "Not recorded").reduce((n, r) => n + r.visitors, 0);
   return (
     <div className="overflow-x-auto rounded-2xl border border-line">
       <table className="w-full text-left text-sm">
@@ -67,7 +69,12 @@ function LocationTable({ title, rows }: { title: string; rows: LocationStats[] }
           {shown.map((r) => (
             <tr key={r.key}>
               <td className={`${TD} font-medium text-fg`}>{r.key}</td>
-              <td className={TD}>{r.visitors}</td>
+              <td className={TD}>
+                {r.visitors}
+                {share && r.key !== "Not recorded" && recorded > 0 && (
+                  <span className="ml-1.5 text-xs text-fg-muted">{pct(r.visitors, recorded)}</span>
+                )}
+              </td>
               <td className={TD}>{r.listingViews}</td>
             </tr>
           ))}
@@ -196,6 +203,17 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="type-title mb-1">By device</h2>
+        <p className="mb-3 text-sm text-fg-muted">
+          From each visitor&apos;s browser, recorded since October 22, 2026. Most iPads report themselves as a
+          computer.
+        </p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <LocationTable title="Device" rows={stats.devices} share />
         </div>
       </section>
 
