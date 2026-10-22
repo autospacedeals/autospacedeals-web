@@ -118,12 +118,14 @@ export default function LeasingGuidePage() {
               amounts.
             </p>
             <p className="formula">
-              Effective Payment = (Total Monthly Payments + Due at Signing) ÷
+              Effective Payment = (Due at Signing + Remaining Monthly Payments) ÷
               Lease Term
             </p>
             <p>
-              Example: $399/month for 36 months with $3,000 due at signing has
-              an Effective Payment of about $482 (($399 × 36 + $3,000) ÷ 36).
+              Due at signing already includes your first month’s payment, so
+              only the payments after it are added. Example: $399/month for 36
+              months with $3,000 due at signing has an Effective Payment of
+              about $471 (($3,000 + $399 × 35) ÷ 36).
             </p>
           </Section>
 

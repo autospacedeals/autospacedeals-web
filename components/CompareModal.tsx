@@ -69,7 +69,7 @@ export default function CompareModal({
     { label: "Due at signing", render: (d) => formatCurrency(d.dueAtSigning) },
     {
       label: "Effective Payment",
-      note: "(total monthly payments + due at signing) / lease term",
+      note: "(due at signing + remaining payments) / lease term",
       render: (d) => formatCurrency(effectiveMonthly(d)),
     },
     { label: "Term", render: (d) => formatTerm(d.term) },

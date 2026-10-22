@@ -113,14 +113,19 @@ export function msrpEditValue(deal: Deal): string {
 }
 
 // Effective monthly cost = spreads due-at-signing across the term so deals
-// with different upfront amounts can be compared fairly. Guards against a
-// zero/missing term (would otherwise divide by zero) and any non-finite
-// inputs, same reasoning as formatCurrency above.
+// with different upfront amounts can be compared fairly. Due at signing
+// (drive-off) already includes the first month's payment, so the lease
+// costs due at signing plus the remaining term − 1 payments; counting all
+// `term` payments on top would charge the first month twice. A due at
+// signing smaller than one payment can't contain it, so it's added on top.
+// Guards against a zero/missing term (would otherwise divide by zero) and
+// any non-finite inputs, same reasoning as formatCurrency above.
 export function effectiveMonthly(deal: Deal): number {
   const payment = Number.isFinite(deal.payment) ? deal.payment : 0;
   const dueAtSigning = Number.isFinite(deal.dueAtSigning) ? deal.dueAtSigning : 0;
   const term = Number.isFinite(deal.term) && deal.term > 0 ? deal.term : 1;
-  return (payment * term + dueAtSigning) / term;
+  const laterPayments = dueAtSigning >= payment ? term - 1 : term;
+  return (dueAtSigning + payment * laterPayments) / term;
 }
 
 export function msrpDiscountPercent(deal: Deal): number {

@@ -104,8 +104,9 @@ export function driveFaq(s: DriveStats): Faq[] {
     {
       q: "What does \"total cost per month\" mean?",
       a:
-        "It spreads the money due at signing across the lease: (monthly payment × term + due at signing) ÷ term. " +
-        "A $299/mo deal with $4,000 due is really more expensive than a $349/mo deal with $0 due, and this " +
+        "It spreads the money due at signing across the lease: (due at signing + payment × (term − 1)) ÷ term. " +
+        "Due at signing already includes the first month's payment, so it isn't counted twice. Over 36 months, " +
+        "a $299/mo deal with $4,000 due is really more expensive than a $349/mo deal with $349 due, and this " +
         "number shows that. Drive can sort every deal by it.",
     },
     {

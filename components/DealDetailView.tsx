@@ -245,8 +245,9 @@ export default function DealDetailView({
               <div className="max-w-sm">
                 <p className="text-sm font-semibold text-fg">Effective Payment</p>
                 <p className="mt-1 text-[13px] leading-5 text-fg-secondary">
-                  (total monthly payments + due at signing) / lease term — a fair way to compare
-                  deals with different upfront amounts.
+                  (due at signing + the remaining monthly payments) / lease term. Due at signing
+                  already includes the first payment. A fair way to compare deals with different
+                  upfront amounts.
                 </p>
               </div>
               <p className="flex items-baseline gap-1.5">

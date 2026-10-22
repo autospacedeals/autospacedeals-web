@@ -62,7 +62,7 @@ export default async function BestLeaseDealsPage() {
     {
       id: "lowest-total-cost",
       title: "Lowest total cost per month",
-      blurb: "Due at signing spread across the lease: (payment × term + due at signing) ÷ term. The fairest way to compare.",
+      blurb: "Due at signing spread across the lease: (due at signing + payment × (term − 1)) ÷ term, since due at signing includes the first payment. The fairest way to compare.",
       deals: top(deals, byEffective, 10),
     },
     {
