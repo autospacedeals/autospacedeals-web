@@ -4,12 +4,14 @@
 // measured. Only on the live site's public pages, and never for a visitor
 // who opted out or whose browser sends Global Privacy Control
 // (lib/ad-privacy.ts; disclosed on /privacy).
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { adsAllowed } from "@/lib/ad-privacy";
 
 const GOOGLE_ADS_ID = "AW-18526303759";
+// The "Page view" conversion action set up in Google Ads (its event snippet).
+const PAGE_VIEW_CONVERSION = { send_to: `${GOOGLE_ADS_ID}/4tpXCJDt-aIdEI_sg4JF`, value: 1.0, currency: "USD" };
 const LIVE_HOSTS = ["www.idriveus.com", "idriveus.com"];
 const PRIVATE_PATHS = /^\/(admin|broker)(\/|$)/;
 
@@ -24,8 +26,22 @@ export default function GoogleAdsTag() {
     () => LIVE_HOSTS.includes(location.hostname) && adsAllowed(),
     () => false
   );
+  const active = allowed && !PRIVATE_PATHS.test(pathname ?? "");
 
-  if (!allowed || PRIVATE_PATHS.test(pathname ?? "")) return null;
+  // The first page view is sent by the config script below; client-side
+  // navigations don't reload it, so each later page sends its own.
+  const firstPage = useRef(true);
+  useEffect(() => {
+    if (!active) return;
+    if (firstPage.current) {
+      firstPage.current = false;
+      return;
+    }
+    const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
+    gtag?.("event", "conversion", PAGE_VIEW_CONVERSION);
+  }, [active, pathname]);
+
+  if (!active) return null;
   return (
     <>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`} strategy="afterInteractive" />
@@ -33,7 +49,8 @@ export default function GoogleAdsTag() {
         {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${GOOGLE_ADS_ID}');`}
+gtag('config', '${GOOGLE_ADS_ID}');
+gtag('event', 'conversion', ${JSON.stringify(PAGE_VIEW_CONVERSION)});`}
       </Script>
     </>
   );
