@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin";
 import { READER_EMAIL, isReaderConfigured, readerStatus } from "@/lib/google-reader";
 import CheckSheet from "./CheckSheet";
+import LocalTime from "@/components/LocalTime";
 
 export const metadata: Metadata = { title: "Sheets reader", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -34,7 +35,7 @@ export default async function GoogleReaderPage({
         {status ? (
           <p className="text-sm text-fg">
             Connected as <span className="font-medium">{status.email}</span> on{" "}
-            {new Date(status.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+            <LocalTime iso={status.updatedAt} style="date-year" />.
           </p>
         ) : (
           <p className="text-sm text-fg-secondary">Not connected yet — brokers are shown the technical backup address until it is.</p>

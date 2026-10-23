@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { reviewSubmissionAction } from "./actions";
 import StageDealForm from "./StageDealForm";
 import RefreshSamplePhotosButton from "./RefreshSamplePhotosButton";
+import LocalTime from "@/components/LocalTime";
 
 export const metadata: Metadata = {
   title: "Admin — Submission Queue",
@@ -156,11 +157,7 @@ export default async function AdminSubmissionsPage() {
 
             <p className="mt-3 text-xs text-fg-muted">
               Submitted{" "}
-              {new Date(s.created_at).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              <LocalTime iso={s.created_at} style="date-year" />
             </p>
 
             {s.status === "pending" ? (

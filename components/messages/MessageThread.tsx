@@ -30,6 +30,7 @@ import {
   type MessageAttachment,
   type ShareableDoc,
 } from "@/lib/message-attachments";
+import LocalTime from "@/components/LocalTime";
 
 type ViewerRole = "customer" | "broker" | "admin";
 
@@ -163,14 +164,6 @@ function Attachments({
       })}
     </div>
   );
-}
-
-function timeLabel(iso: string): string {
-  const d = new Date(iso);
-  const sameDay = d.toDateString() === new Date().toDateString();
-  return sameDay
-    ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export default function MessageThread({
@@ -378,7 +371,7 @@ export default function MessageThread({
             <li key={m.id} className={`flex ${right ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] sm:max-w-[70%] ${right ? "text-right" : ""}`}>
                 <p className="mb-1 text-[11px] text-fg-muted">
-                  {mine ? "You" : names[m.sender_role]} · {timeLabel(m.created_at)}
+                  {mine ? "You" : names[m.sender_role]} · <LocalTime iso={m.created_at} style="time-or-datetime" />
                   {m.channel === "sms" && " · via text"}
                 </p>
                 {m.body && (

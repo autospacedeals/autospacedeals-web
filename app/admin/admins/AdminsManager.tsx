@@ -3,6 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { UserPlus, X } from "lucide-react";
 import { addAdminAction, removeAdminAction, type AdminChangeState } from "./actions";
+import LocalTime from "@/components/LocalTime";
 
 const initialState: AdminChangeState = { error: null };
 
@@ -29,7 +30,12 @@ export default function AdminsManager({
               {a.addedBy && (
                 <span className="block text-xs text-fg-muted">
                   Added by {a.addedBy}
-                  {a.addedAt ? ` · ${new Date(a.addedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
+                  {a.addedAt ? (
+                    <>
+                      {" · "}
+                      <LocalTime iso={a.addedAt} style="date" />
+                    </>
+                  ) : null}
                 </span>
               )}
             </span>

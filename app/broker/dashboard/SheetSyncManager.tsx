@@ -9,6 +9,7 @@ import {
 } from "./actions";
 import MyListings from "./MyListings";
 import type { Deal } from "@/lib/deals-data";
+import LocalTime from "@/components/LocalTime";
 
 export interface SheetSync {
   id: string;
@@ -25,7 +26,7 @@ export interface SheetSync {
   disabledTabs: string[];
 }
 
-function formatSyncedAt(iso: string | null): string {
+function formatSyncedAt(iso: string | null) {
   if (!iso) return "Not checked yet";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Not checked yet";
@@ -34,7 +35,7 @@ function formatSyncedAt(iso: string | null): string {
   if (minsAgo < 60) return `${minsAgo} min ago`;
   const hoursAgo = Math.round(minsAgo / 60);
   if (hoursAgo < 24) return `${hoursAgo} hr ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return <LocalTime iso={iso} style="date" />;
 }
 
 function shortUrl(url: string): string {

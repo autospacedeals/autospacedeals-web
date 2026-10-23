@@ -5,12 +5,11 @@ import { ChevronDown, ChevronRight, RotateCcw, Loader2 } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatDate } from "@/lib/deal-utils";
 import { restoreDealAction } from "./actions";
+import LocalTime from "@/components/LocalTime";
 
-function formatRemovedAt(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function formatRemovedAt(iso: string | null | undefined) {
+  if (!iso || Number.isNaN(new Date(iso).getTime())) return "—";
+  return <LocalTime iso={iso} style="date-year" />;
 }
 
 // History of listings the broker has taken down. Kept as real rows (soft-
