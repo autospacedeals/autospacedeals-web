@@ -149,9 +149,12 @@ const MAX_CHOICES = 5;
 type Admin = ReturnType<typeof createAdminClient>;
 
 // The conversations a text reply could be meant for: everyone waiting on an
-// answer (newest first) plus the one they were last texted about. Fewer
-// than two means there's no doubt. Each is labelled with the other person
-// and the car ("Dond, 2026 Hyundai Kona SE").
+// answer plus the one they were last texted about. Fewer than two means
+// there's no doubt. The one they were last texted about comes first (it's
+// who people are nearly always answering), then the rest newest first. Each
+// is labelled with the other person, the car and the start of their last
+// message, so similar listings can't be mixed up:
+// 'ADV AUTO Inc., 2026 Hyundai Palisade SEL: "Hi Dewey, I still have…"'.
 async function replyChoices(admin: Admin, userId: string, lastId: string | null): Promise<{ id: string; label: string }[]> {
   const { data: convs } = await admin
     .from("conversations")
@@ -161,29 +164,33 @@ async function replyChoices(admin: Admin, userId: string, lastId: string | null)
   if (!convs?.length) return [];
   const { data: recent } = await admin
     .from("messages")
-    .select("conversation_id, sender_id, created_at")
+    .select("conversation_id, sender_id, created_at, body")
     .in("conversation_id", convs.map((c) => c.id))
     .gte("created_at", new Date(Date.now() - ACTIVE_MS).toISOString())
     .order("created_at", { ascending: false })
     .limit(500)
-    .returns<{ conversation_id: string; sender_id: string; created_at: string }[]>();
+    .returns<{ conversation_id: string; sender_id: string; created_at: string; body: string }[]>();
   // Newest message per conversation decides whether it's waiting on them.
   const seen = new Set<string>();
   const waiting: string[] = [];
+  const lastSaid = new Map<string, string>();
   for (const m of recent ?? []) {
+    if (m.sender_id !== userId && !lastSaid.has(m.conversation_id)) lastSaid.set(m.conversation_id, m.body);
     if (seen.has(m.conversation_id)) continue;
     seen.add(m.conversation_id);
     if (m.sender_id !== userId) waiting.push(m.conversation_id);
   }
   const byId = new Map(convs.map((c) => [c.id, c]));
-  const ids = [...new Set([...waiting, ...(lastId && byId.has(lastId) ? [lastId] : [])])];
+  const ids = [...new Set([...(lastId && byId.has(lastId) ? [lastId] : []), ...waiting])];
   if (ids.length < 2) return ids.map((id) => ({ id, label: "" }));
   const names = await participantNames(ids.map((id) => byId.get(id)!));
+  const cut = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
   return ids.map((id) => {
     const c = byId.get(id)!;
     const who = c.broker_id === userId ? names.customers.get(c.customer_id) ?? "A shopper" : names.brokers.get(c.broker_id) ?? "The seller";
-    const car = c.deal_label ? (c.deal_label.length > 40 ? `${c.deal_label.slice(0, 39)}…` : c.deal_label) : "";
-    return { id, label: car ? `${who}, ${car}` : who };
+    const car = c.deal_label ? cut(c.deal_label, 40) : "";
+    const said = lastSaid.get(id)?.replace(/\s+/g, " ").trim();
+    return { id, label: `${car ? `${who}, ${car}` : who}${said ? `: "${cut(said, 45)}"` : ""}` };
   });
 }
 
