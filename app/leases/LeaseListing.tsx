@@ -24,6 +24,7 @@ export default function LeaseListing({
   summary,
   related,
   relatedLabel,
+  searchHref,
   maxDeals = 60,
 }: {
   // "BMW X5": what the deals are.
@@ -35,6 +36,9 @@ export default function LeaseListing({
   // Other models of the make, or this make's models.
   related: { label: string; href: string; note: string }[];
   relatedLabel: string;
+  // The homepage search already set to these deals (lib/filter-url.ts), so
+  // a shopper who lands here can change the make or add filters.
+  searchHref: string;
   maxDeals?: number;
 }) {
   const sorted = [...deals].sort(byPayment);
@@ -135,9 +139,14 @@ export default function LeaseListing({
       )}
 
       <section className="mt-10">
-        <h2 className="type-section mb-6">
-          {allGroups.length > groups.length ? `The ${groups.length} lowest payments` : `All ${plural(deals.length, "deal")}`}
-        </h2>
+        <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+          <h2 className="type-section">
+            {allGroups.length > groups.length ? `The ${groups.length} lowest payments` : `All ${plural(deals.length, "deal")}`}
+          </h2>
+          <Link href={searchHref} className="link-arrow">
+            Filter these or compare other makes <ArrowRight />
+          </Link>
+        </div>
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {groups.map((g) => (
             <DealCard key={g.deal.id} deal={g.deal} otherSellers={g.others} />

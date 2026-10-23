@@ -4,6 +4,7 @@ import { getPublishedDeals } from "@/lib/supabase/deals";
 import { formatCurrency } from "@/lib/deal-utils";
 import { pageMetadata } from "@/lib/site";
 import { REGION, catalog, makePath, modelPath, monthYear, plural, summarySentence } from "@/lib/lease-pages";
+import { urlValue as makeSlugParam } from "@/lib/filter-url";
 import LeaseListing from "../LeaseListing";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export default async function MakeLeasesPage({ params }: { params: Promise<{ mak
       deals={m.deals}
       summary={m.summary}
       relatedLabel={`${m.make} models`}
+      searchHref={`/?make=${makeSlugParam(m.make)}#deals`}
       related={m.models.map((mo) => ({
         label: mo.model,
         href: modelPath(m.make, mo.model),

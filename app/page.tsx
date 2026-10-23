@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getPublishedDeals } from "@/lib/supabase/deals";
 import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
 import HomeClient from "@/components/HomeClient";
+import { filtersFromParams } from "@/lib/filter-url";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import { REGION, byPayment, itemListJsonLd, jsonLdScript } from "@/lib/lease-pages";
 
@@ -51,13 +52,17 @@ export const metadata: Metadata = {
 // site immediately rather than waiting for a rebuild.
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // Neither throws: the availability check just says false (and logs) if
   // the saved-searches migration hasn't been run yet.
   const [deals, savedSearchesAvailable] = await Promise.all([
     getPublishedDeals(),
     getSavedSearchesAvailable(),
   ]);
+  // A linked search (/?make=bmw&body=suv, see lib/filter-url.ts) renders
+  // already filtered.
+  const raw = await searchParams;
+  const initial = filtersFromParams({ get: (key) => (typeof raw[key] === "string" ? raw[key] : null) }, deals);
   return (
     <>
       <script
@@ -73,7 +78,12 @@ export default async function HomePage() {
           ]),
         }}
       />
-      <HomeClient initialDeals={deals} savedSearchesAvailable={savedSearchesAvailable} />
+      <HomeClient
+        initialDeals={deals}
+        savedSearchesAvailable={savedSearchesAvailable}
+        initialFilters={initial.filters}
+        initialSort={initial.sortBy}
+      />
     </>
   );
 }

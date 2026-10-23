@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import type { Deal, BodyStyle, FuelType } from "@/lib/deals-data";
+import { FILTER_URL_KEYS, filtersToParams } from "@/lib/filter-url";
 import {
   DEFAULT_FILTERS,
   filterDeals,
@@ -74,15 +75,20 @@ const HERO_DEALS = 6;
 export default function HomeClient({
   initialDeals,
   savedSearchesAvailable = false,
+  initialFilters = DEFAULT_FILTERS,
+  initialSort = "featured",
 }: {
   initialDeals: Deal[];
+  // The search in the page's address (lib/filter-url.ts), read on the server.
+  initialFilters?: DealFilters;
+  initialSort?: SortOption;
   // Whether saved searches can be used yet (the 0017 migration has been
   // run) — "Save this search" is hidden until then.
   savedSearchesAvailable?: boolean;
 }) {
   const deals = initialDeals;
-  const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
-  const [sortBy, setSortBy] = useState<SortOption>("featured");
+  const [filters, setFilters] = useState<DealFilters>(initialFilters);
+  const [sortBy, setSortBy] = useState<SortOption>(initialSort);
   const [showFilters, setShowFilters] = useState(false);
   // The deal a shopper clicked into last visit (see markDealViewed) — used to
   // reopen on the same car instead of resetting to the top of the list.
@@ -139,7 +145,8 @@ export default function HomeClient({
     try {
       const params = new URLSearchParams(window.location.search);
       const last = sessionStorage.getItem(LAST_SEARCH_KEY);
-      if (params.get(RETURN_TO_SEARCH.param) === RETURN_TO_SEARCH.value && last) {
+      const linked = FILTER_URL_KEYS.some((key) => params.has(key));
+      if (!linked && params.get(RETURN_TO_SEARCH.param) === RETURN_TO_SEARCH.value && last) {
         const parsed = JSON.parse(last) as { filters?: unknown; sortBy?: unknown };
         const restored = parseSavedSearchFilters(parsed.filters);
         if (restored) setFilters(restored);
@@ -153,8 +160,9 @@ export default function HomeClient({
   }, []);
 
   // Remember the current search for the deal pages' "Back to your search",
-  // and keep the marker on this page's URL so the browser's back button
-  // returns to it too. Back on the defaults, both are cleared.
+  // and keep it in this page's address (lib/filter-url.ts) so it can be
+  // shared and the browser's back button returns to it. Other params (an
+  // ad's utm tags) are left alone. Back on the defaults, both are cleared.
   useEffect(() => {
     const searching = hasActiveFilters(filters) || sortBy !== "featured";
     try {
@@ -164,9 +172,10 @@ export default function HomeClient({
       // Ignore — the deal page just offers "Back to all deals".
     }
     const url = new URL(window.location.href);
-    if (searching) url.searchParams.set(RETURN_TO_SEARCH.param, RETURN_TO_SEARCH.value);
-    else url.searchParams.delete(RETURN_TO_SEARCH.param);
-    if (url.href !== window.location.href) window.history.replaceState(null, "", url);
+    url.searchParams.delete(RETURN_TO_SEARCH.param);
+    for (const key of FILTER_URL_KEYS) url.searchParams.delete(key);
+    for (const [key, value] of filtersToParams(filters, sortBy)) url.searchParams.set(key, value);
+    if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url);
   }, [filters, sortBy]);
 
   // Once there's a deal to restore (and any pending filters above have been
