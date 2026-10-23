@@ -12,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { emailLayoutHtml, emailLinkHtml, escapeHtml, isEmailConfigured, sendEmail, siteLink } from "@/lib/email";
 import { isSmsConfigured, sendSms } from "@/lib/twilio";
+import { inQuietHours, quietHoursOf } from "@/lib/quiet-hours";
 
 export type MessageRole = "customer" | "broker";
 
@@ -211,7 +212,9 @@ export async function notifyOtherSide(conversationId: string, senderRole: Messag
 // Texts a new message to the recipient if they've turned texts on (see
 // supabase/migrations/0025_sms.sql). Every message is texted — it's a
 // conversation — and the conversation is remembered so a text reply lands
-// in it.
+// in it. During the recipient's quiet hours (lib/quiet-hours.ts) the text is
+// held in sms_held instead, and app/api/cron/sms-catchup sends one catch-up
+// text when the window ends.
 const SMS_SNIPPET = 280;
 
 async function textRecipient(conversationId: string, recipientRole: MessageRole, senderName: string, body: string) {
@@ -234,6 +237,26 @@ async function textRecipient(conversationId: string, recipientRole: MessageRole,
 
     const snippet = body.replace(/\s+/g, " ").trim();
     const quoted = snippet.length > SMS_SNIPPET ? `${snippet.slice(0, SMS_SNIPPET - 1)}…` : snippet;
+
+    // Quiet hours: hold it. Read separately so texting keeps working if the
+    // 0056 migration hasn't run (the columns/table don't exist yet), and a
+    // failed hold falls through to texting now rather than losing it.
+    const { data: quiet } = await admin
+      .from("sms_settings")
+      .select("quiet_start, quiet_end, time_zone")
+      .eq("user_id", recipientId)
+      .maybeSingle<{ quiet_start: number | null; quiet_end: number | null; time_zone: string | null }>();
+    if (inQuietHours(quietHoursOf(quiet))) {
+      const { error: holdError } = await admin.from("sms_held").insert({
+        user_id: recipientId,
+        conversation_id: c.id,
+        sender_name: senderName,
+        deal_label: c.deal_label || null,
+        snippet: quoted,
+      });
+      if (!holdError) return;
+      console.error("Holding a quiet-hours text failed, texting now:", holdError.message);
+    }
     const about = c.deal_label ? ` about the ${c.deal_label}` : "";
     const text =
       `Drive · ${senderName}${about}: "${quoted}"\n\n` +

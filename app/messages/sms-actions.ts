@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { messagingRole } from "@/lib/messages";
 import { checkVerification, isSmsConfigured, sendSms, startVerification, toE164 } from "@/lib/twilio";
+import { validTimeZone } from "@/lib/quiet-hours";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -108,6 +109,34 @@ export async function disableSmsAction(): Promise<Result> {
     .eq("user_id", me.user.id);
   if (error) {
     console.error("disableSms failed:", error.message);
+    return { ok: false, error: "Couldn't save that — please try again." };
+  }
+  revalidate(me.role);
+  return { ok: true };
+}
+
+// Quiet hours (lib/quiet-hours.ts): a daily window when new-message texts
+// are held and sent as one text afterwards. null turns them off.
+export async function saveQuietHoursAction(
+  window: { start: number; end: number; timeZone: string } | null
+): Promise<Result> {
+  const me = await signedInMessagingUser();
+  if (!me) return { ok: false, error: "Log in again to change this." };
+  const minutes = (n: number) => Number.isInteger(n) && n >= 0 && n < 1440;
+  if (window && (!minutes(window.start) || !minutes(window.end) || window.start === window.end)) {
+    return { ok: false, error: "Pick a start and end time that aren't the same." };
+  }
+  const { error } = await createAdminClient()
+    .from("sms_settings")
+    .update({
+      quiet_start: window?.start ?? null,
+      quiet_end: window?.end ?? null,
+      time_zone: window ? validTimeZone(window.timeZone) : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", me.user.id);
+  if (error) {
+    console.error("saveQuietHours failed:", error.message);
     return { ok: false, error: "Couldn't save that — please try again." };
   }
   revalidate(me.role);

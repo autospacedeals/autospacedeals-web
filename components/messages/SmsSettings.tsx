@@ -11,15 +11,21 @@ import {
   disableSmsAction,
   startSmsVerificationAction,
 } from "@/app/messages/sms-actions";
+import QuietHoursSettings from "@/components/messages/QuietHoursSettings";
+import type { QuietHours } from "@/lib/quiet-hours";
 
 export default function SmsSettings({
   enabledPhone,
   defaultPhone,
+  quietHours,
 }: {
   // The confirmed number texts go to, formatted, when texts are on.
   enabledPhone: string | null;
   // Prefill for the number field (the phone on their profile).
   defaultPhone: string;
+  // Offers quiet hours once texts are on (brokers' dashboard): the saved
+  // window, or null when off. Left out, the option isn't shown.
+  quietHours?: QuietHours | null;
 }) {
   const [step, setStep] = useState<"off" | "code" | "on">(enabledPhone ? "on" : "off");
   const [phone, setPhone] = useState(defaultPhone);
@@ -78,6 +84,7 @@ export default function SmsSettings({
           </button>
         </div>
       )}
+      {step === "on" && quietHours !== undefined && <QuietHoursSettings initial={quietHours} />}
 
       {step === "off" && (
         <form

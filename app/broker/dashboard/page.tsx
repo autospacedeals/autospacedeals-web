@@ -6,6 +6,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
 import SmsSettings from "@/components/messages/SmsSettings";
+import { quietHoursOf } from "@/lib/quiet-hours";
 import SellerTextsNudge from "@/components/messages/SellerTextsNudge";
 import AccountSettings from "@/components/account/AccountSettings";
 import { hasPasswordLogin } from "@/lib/account";
@@ -154,7 +155,7 @@ export default async function BrokerDashboardPage() {
   // the public API (0024_messaging.sql), so the broker's own come from the
   // server side.
   const smsAvailable = isSmsConfigured();
-  const [{ data: privateProfile }, { data: conversations }, { data: sms }, assistant] = await Promise.all([
+  const [{ data: privateProfile }, { data: conversations }, { data: sms }, assistant, { data: quiet }] = await Promise.all([
     createAdminClient()
       .from("brokers")
       .select("contact_phone, message_emails, approved_at")
@@ -165,6 +166,15 @@ export default async function BrokerDashboardPage() {
       ? supabase.from("sms_settings").select("phone, enabled").eq("user_id", user.id).maybeSingle<{ phone: string | null; enabled: boolean }>()
       : Promise.resolve({ data: null }),
     loadAssistantState(user.id),
+    // Quiet hours (0056): read on its own, so a missing column just leaves
+    // the option off instead of hiding the text settings.
+    smsAvailable
+      ? supabase
+          .from("sms_settings")
+          .select("quiet_start, quiet_end, time_zone")
+          .eq("user_id", user.id)
+          .maybeSingle<{ quiet_start: number | null; quiet_end: number | null; time_zone: string | null }>()
+      : Promise.resolve({ data: null }),
   ]);
   const unreadMessages = (conversations ?? []).filter((c) => isUnreadFor("broker", c)).length;
   const unverifiedSeller = Boolean(privateProfile && !privateProfile.approved_at);
@@ -210,7 +220,11 @@ export default async function BrokerDashboardPage() {
         <MessageEmailsToggle initialEnabled={privateProfile?.message_emails ?? true} />
         {smsAvailable &&
           (sms?.enabled && sms.phone ? (
-            <SmsSettings enabledPhone={formatE164(sms.phone)} defaultPhone={privateProfile?.contact_phone ?? ""} />
+            <SmsSettings
+              enabledPhone={formatE164(sms.phone)}
+              defaultPhone={privateProfile?.contact_phone ?? ""}
+              quietHours={quietHoursOf(quiet)}
+            />
           ) : (
             <SellerTextsNudge
               defaultPhone={privateProfile?.contact_phone ?? ""}
