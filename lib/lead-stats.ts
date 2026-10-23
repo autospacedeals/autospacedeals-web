@@ -3,6 +3,7 @@
 // and by broker. SERVER-ONLY (service role).
 import { createAdminClient } from "@/lib/supabase/server";
 import { participantNames } from "@/lib/messages";
+import { isInternalSeller, testCustomerIds } from "@/lib/test-accounts";
 
 const HOUR = 60 * 60 * 1000;
 const ROW_LIMIT = 50000;
@@ -138,7 +139,7 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
   const VISIT_COLS = "visitor, kind, deal_id, broker_id, source, campaign, country, region, city";
   const visitQuery = (cols: string) =>
     since(admin.from("site_visits").select(cols)).limit(ROW_LIMIT).returns<VisitRow[]>();
-  const [visitsWithDevice, signups, convs, brokersRes] = await Promise.all([
+  const [visitsWithDevice, signups, convs, brokersRes, testIds] = await Promise.all([
     visitQuery(`${VISIT_COLS}, device`),
     since(admin.from("customers").select("id, signup_source, signup_campaign"))
       .limit(ROW_LIMIT)
@@ -155,14 +156,18 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
       .limit(ROW_LIMIT)
       .returns<LeadRow[]>(),
     admin.from("brokers").select("id, business_name").returns<{ id: string; business_name: string | null }[]>(),
+    testCustomerIds(admin),
   ]);
   // Before migration 0053 there's no device column; read the visits without it.
   const visits = visitsWithDevice.error ? await visitQuery(VISIT_COLS) : visitsWithDevice;
   const ready = !visits.error && !convs.error && !signups.error;
   for (const r of [visits, signups, convs, brokersRes]) if (r.error) console.error("getLeadStats:", r.error.message);
 
+  // Test shopper accounts and the internal test seller aren't real leads.
+  const internalBrokers = new Set((brokersRes.data ?? []).filter((b) => isInternalSeller(b.business_name)).map((b) => b.id));
   const visitRows = visits.data ?? [];
-  const leadRows = convs.data ?? [];
+  const leadRows = (convs.data ?? []).filter((l) => !testIds.has(l.customer_id) && !internalBrokers.has(l.broker_id));
+  const signupRows = (signups.data ?? []).filter((c) => !testIds.has(c.id));
   const now = Date.now();
 
   // By source
@@ -183,7 +188,7 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
       allVisitors.add(v.visitor);
     } else s.listingViews++;
   }
-  for (const c of signups.data ?? []) sourceRow(sourceKey(c.signup_source, c.signup_campaign)).signups++;
+  for (const c of signupRows) sourceRow(sourceKey(c.signup_source, c.signup_campaign)).signups++;
   for (const l of leadRows) {
     const s = sourceRow(sourceKey(l.source, l.campaign));
     s.conversations++;
@@ -305,7 +310,7 @@ export async function getLeadStats(days: number | null): Promise<LeadStats> {
     totals: {
       visitors: allVisitors.size,
       listingViews: visitRows.filter((v) => v.kind === "listing").length,
-      signups: (signups.data ?? []).length,
+      signups: signupRows.length,
       conversations: leadRows.length,
       replied: leadRows.filter((l) => l.first_broker_reply_at).length,
       sold: leadRows.filter((l) => l.outcome === "sold").length,

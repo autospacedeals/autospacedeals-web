@@ -3,6 +3,7 @@
 // Drive. The internal "test" seller and throwaway "(delete me)" sellers are
 // left out. SERVER-ONLY.
 import { createAdminClient } from "@/lib/supabase/server";
+import { isInternalSeller, testCustomerIds } from "@/lib/test-accounts";
 
 const HOUR = 60 * 60 * 1000;
 const ROW_LIMIT = 5000;
@@ -64,7 +65,6 @@ export interface SavedStats {
   recent: RecentSave[];
 }
 
-const isInternal = (seller: string | null) => !seller || seller.toLowerCase() === "test" || /\(delete me\)/i.test(seller);
 
 export async function getSavedStats(days: number | null): Promise<SavedStats> {
   const admin = createAdminClient();
@@ -76,10 +76,11 @@ export async function getSavedStats(days: number | null): Promise<SavedStats> {
     .order("created_at", { ascending: false })
     .limit(ROW_LIMIT);
   if (days) query = query.gte("created_at", new Date(Date.now() - days * 24 * HOUR).toISOString());
-  const { data, error } = await query.returns<SaveRow[]>();
+  const [{ data, error }, testIds] = await Promise.all([query.returns<SaveRow[]>(), testCustomerIds(admin)]);
   if (error) console.error("getSavedStats failed:", error.message);
 
-  const rows = (data ?? []).filter((r) => r.deals && !isInternal(r.deals.seller_name));
+  // Test shopper accounts and the internal test seller don't count.
+  const rows = (data ?? []).filter((r) => r.deals && !isInternalSeller(r.deals.seller_name) && !testIds.has(r.customer_id));
   const title = (d: NonNullable<SaveRow["deals"]>) => [d.year, d.make, d.model, d.trim].filter(Boolean).join(" ");
 
   const byDeal = new Map<string, SavedCar>();
