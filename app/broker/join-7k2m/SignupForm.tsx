@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { CircleAlert, MailCheck, UserPlus } from "lucide-react";
+import { CircleAlert, UserPlus } from "lucide-react";
 import { signUpAction, type AuthState } from "../actions";
 import EmailInput from "@/components/EmailInput";
 import LegalConsent from "@/components/LegalConsent";
@@ -18,22 +18,6 @@ export default function SignupForm() {
   const [state, formAction, pending] = useActionState(signUpAction, initialState);
   const [sellerType, setSellerType] = useState("Broker");
   const isSalesperson = sellerType === "Salesperson";
-
-  if (state.needsConfirmation) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-6 text-center">
-        <MailCheck size={32} className="text-success" />
-        <p className="type-title">Check your email</p>
-        <p className="max-w-sm text-sm text-fg-secondary">
-          We sent a confirmation link to finish setting up your account. Once confirmed, come back
-          and sign in.
-        </p>
-        <Link href="/broker/login" className="btn btn-primary mt-2">
-          Go to sign in
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-5">

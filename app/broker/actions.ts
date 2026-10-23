@@ -10,7 +10,6 @@ import { accountHome } from "@/lib/account-home";
 
 export type AuthState = {
   error: string | null;
-  needsConfirmation?: boolean;
 };
 
 export async function signInAction(
@@ -82,29 +81,24 @@ export async function signUpAction(
     return { error: `Check your email address — did you mean ${emailFix}?` };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
-
+  // No confirmation email for sellers: an admin checks every seller's
+  // license before anything goes public (0038_seller_verification.sql), so
+  // the login is made already confirmed and they go straight to their
+  // dashboard. (Confirmation emails were landing in junk on Outlook and
+  // locking sellers out.)
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error) {
+    if (error.code === "email_exists" || /already (been )?registered/i.test(error.message)) {
+      return { error: "An account with this email already exists. Try signing in instead." };
+    }
     return { error: error.message };
   }
   if (!data.user) {
     return { error: "Something went wrong creating your account. Please try again." };
   }
-  // Supabase deliberately avoids leaking whether an email is already
-  // registered: if one is, signUp() still returns success with a `user`
-  // object, but doesn't actually create a new auth row — that object's id
-  // has no matching row in auth.users. The tell is an empty `identities`
-  // array. Without this check we'd sail on to the brokers insert below and
-  // hit a raw foreign-key violation instead of a real error message.
-  if (data.user.identities && data.user.identities.length === 0) {
-    return { error: "An account with this email already exists. Try signing in instead." };
-  }
 
-  // Use the admin client for the profile insert so this works even if the
-  // Supabase project requires email confirmation (in which case there's no
-  // active browser session yet to satisfy the brokers RLS policy).
-  const admin = createAdminClient();
+  // The admin client writes the profile (no browser session exists yet).
   const { error: profileError } = await admin.from("brokers").insert({
     id: data.user.id,
     contact_name: contactName,
@@ -120,7 +114,7 @@ export async function signUpAction(
 
   if (profileError) {
     // The login was created but its broker profile wasn't. Undo the login
-    // (it's brand new — identities check above) so trying again works,
+    // (it's brand new) so trying again works,
     // instead of every retry failing with "an account with this email
     // already exists" while no profile exists to sign in to.
     console.error("Broker signup: profile insert failed:", profileError.message);
@@ -136,8 +130,12 @@ export async function signUpAction(
     alertAdminsNewBroker({ businessName, contactName, sellerType, dealershipName, email, phone, city, state, licenseNumber })
   );
 
-  if (!data.session) {
-    return { error: null, needsConfirmation: true };
+  // Sign them in on this browser.
+  const supabase = await createClient();
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+  if (signInError) {
+    console.error("Broker signup: sign-in after creating the account failed:", signInError.message);
+    return { error: "Your account is ready. Sign in with your email and password." };
   }
 
   redirect("/broker/dashboard");
