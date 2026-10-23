@@ -29,7 +29,10 @@ function writeCookie(name: string, value: string, maxAge: number) {
 }
 
 function send(kind: "landing" | "listing", path: string) {
-  const body = JSON.stringify({ kind, path });
+  // The color mode the page loaded in (app/layout.tsx sets data-theme="light"
+  // unless the visitor picked dark), for the Leads page's light/dark split.
+  const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+  const body = JSON.stringify({ kind, path, theme });
   try {
     if (navigator.sendBeacon?.("/api/track", new Blob([body], { type: "application/json" }))) return;
   } catch {

@@ -5,7 +5,7 @@
 // own site, aren't counted. The visitor's approximate city comes from
 // Vercel's IP lookup; the IP address itself isn't stored. The device
 // (mobile, tablet or desktop) comes from the user agent, which isn't stored
-// either.
+// either. The color mode the page loaded in is sent by the page.
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { SOURCE_COOKIE, decodeSource } from "@/lib/visit-source";
@@ -34,7 +34,7 @@ function header(request: NextRequest, name: string, max: number): string | null 
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json().catch(() => null)) as { kind?: unknown; path?: unknown } | null;
+    const body = (await request.json().catch(() => null)) as { kind?: unknown; path?: unknown; theme?: unknown } | null;
     const kind = body?.kind === "listing" ? "listing" : body?.kind === "landing" ? "landing" : null;
     const path = typeof body?.path === "string" ? body.path.slice(0, 300) : "";
     if (!kind || !path.startsWith("/")) return done();
@@ -83,8 +83,11 @@ export async function POST(request: NextRequest) {
       city: header(request, "x-vercel-ip-city", 80),
     };
     const device = deviceType(request.headers.get("user-agent") ?? "", request.headers.get("sec-ch-ua-mobile"));
-    let { error } = await admin.from("site_visits").insert({ ...row, device });
-    // Before migration 0053 there's no device column; count the visit anyway.
+    const theme = body?.theme === "light" || body?.theme === "dark" ? body.theme : null;
+    let { error } = await admin.from("site_visits").insert({ ...row, device, theme });
+    // Before migration 0058 there's no theme column (0053: no device either);
+    // count the visit anyway.
+    if (error && /theme/i.test(error.message)) ({ error } = await admin.from("site_visits").insert({ ...row, device }));
     if (error && /device/i.test(error.message)) ({ error } = await admin.from("site_visits").insert(row));
     if (error) console.error("track: insert failed:", error.message);
   } catch (err) {

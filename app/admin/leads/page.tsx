@@ -106,10 +106,11 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
     { label: "Listing views", value: t.listingViews },
     { label: "Shopper sign-ups", value: t.signups },
     { label: "Cars saved", value: saved.total, note: saved.shoppers ? `by ${saved.shoppers}` : undefined },
+    // Each visitor once, in the mode they were last seen in (lib/theme-stats.ts).
     {
-      label: "Switched to light",
-      value: themes.triedLight,
-      note: themes.triedLight ? `${pct(themes.triedLight, t.visitors)} · ${themes.stayedLight} kept it` : undefined,
+      label: "Light vs dark",
+      value: `${themes.light} / ${themes.dark}`,
+      note: themes.light + themes.dark ? `${pct(themes.light, themes.light + themes.dark)} light` : undefined,
     },
     { label: "Conversations", value: t.conversations },
     { label: "Broker replied", value: t.replied, note: pct(t.replied, t.conversations) },
