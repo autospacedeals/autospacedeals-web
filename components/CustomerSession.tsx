@@ -420,7 +420,7 @@ export function CustomerSessionProvider({
           className="pointer-events-none fixed inset-x-0 top-20 z-50 flex justify-center px-4"
         >
           {notice && (
-            <div className="pointer-events-auto w-full max-w-md rounded-xl bg-overlay shadow-pop">
+            <div className="pointer-events-auto w-full max-w-md rounded-[3px] bg-overlay shadow-pop">
               <div className="alert alert-danger items-center py-3 pr-2 [&>svg]:mt-0">
                 <CircleAlert />
                 <p className="min-w-0 flex-1">{notice}</p>

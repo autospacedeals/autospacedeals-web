@@ -5,25 +5,10 @@ import { listAccounts, type AdminAccount } from "@/lib/admin-data";
 import { DMV_LICENSE_LOOKUP_URL, verificationSteps } from "@/lib/seller-verification";
 import { approveSellerAction, decideAssistantRequestAction } from "./actions";
 import { listPendingAssistantRequests, type PendingAssistantRequest } from "@/lib/listing-assistant-store";
+import LocalTime from "@/components/LocalTime";
 
 export const metadata: Metadata = { title: "Users", robots: { index: false } };
 export const dynamic = "force-dynamic";
-
-function day(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "never";
-}
-
-// "Today, 3:42 PM" / "Yesterday" / "Oct 4, 2026" (Pacific time).
-function seen(iso: string | null): string {
-  if (!iso) return "never";
-  const d = new Date(iso);
-  const tz = "America/Los_Angeles";
-  const dayOf = (x: Date) => x.toLocaleDateString("en-US", { timeZone: tz });
-  const now = new Date();
-  if (dayOf(d) === dayOf(now)) return `Today, ${d.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" })}`;
-  if (dayOf(d) === dayOf(new Date(now.getTime() - 86400000))) return "Yesterday";
-  return d.toLocaleDateString("en-US", { timeZone: tz, month: "short", day: "numeric", year: "numeric" });
-}
 
 function Activity({ a }: { a: AdminAccount }) {
   const parts: string[] = [];
@@ -52,7 +37,7 @@ function Activity({ a }: { a: AdminAccount }) {
 function AccountTable({ accounts, kind }: { accounts: AdminAccount[]; kind: AdminAccount["kind"] }) {
   if (accounts.length === 0) return <p className="text-sm text-fg-muted">None yet.</p>;
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line">
+    <div className="overflow-x-auto rounded-[3px] border border-line">
       <table className="w-full min-w-[860px] text-left text-sm">
         <thead className="bg-surface text-xs text-fg-muted">
           <tr>
@@ -98,8 +83,8 @@ function AccountTable({ accounts, kind }: { accounts: AdminAccount[]; kind: Admi
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{a.location.replace(/^zip /, "")}</td>
-              <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{day(a.signedUpAt)}</td>
-              <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{seen(a.lastSeenAt)}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{a.signedUpAt ? <LocalTime iso={a.signedUpAt} style="date-year" /> : "never"}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-fg-secondary">{a.lastSeenAt ? <LocalTime iso={a.lastSeenAt} style="seen" /> : "never"}</td>
               <td className="px-4 py-3">
                 <Activity a={a} />
               </td>
@@ -132,7 +117,8 @@ function PendingSellers({ sellers }: { sellers: AdminAccount[] }) {
               {[a.contactName, a.email, a.phone, a.location].filter(Boolean).join(" · ")}
             </p>
             <p className="mt-1 text-fg-muted">
-              {`Signed up ${day(a.signedUpAt)} · ${a.liveListings} listing${a.liveListings === 1 ? "" : "s"} waiting`}
+              Signed up {a.signedUpAt ? <LocalTime iso={a.signedUpAt} style="date-year" /> : "never"} · {a.liveListings} listing
+              {a.liveListings === 1 ? "" : "s"} waiting
             </p>
             <p className="mt-2 max-w-2xl text-xs leading-5 text-fg-muted">{verificationSteps(a.sellerType ?? "Broker")}</p>
           </div>
@@ -162,7 +148,8 @@ function AssistantRequests({ requests }: { requests: PendingAssistantRequest[] }
           <div className="min-w-0 text-sm">
             <p className="font-medium text-fg">{r.businessName}</p>
             <p className="mt-1 text-fg-muted">
-              {`Asked ${seen(r.createdAt)} · ${r.usedToday} message${r.usedToday === 1 ? "" : "s"} in the last 24 hours`}
+              Asked {r.createdAt ? <LocalTime iso={r.createdAt} style="seen" /> : "never"} · {r.usedToday} message
+              {r.usedToday === 1 ? "" : "s"} in the last 24 hours
             </p>
           </div>
           <div className="flex shrink-0 gap-2">

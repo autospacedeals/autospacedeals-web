@@ -29,7 +29,7 @@ export default function LeasingGuidePage() {
           className="card-interactive group flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="flex items-center gap-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-fg">
+            <span className="grid size-10 shrink-0 place-items-center rounded-[3px] bg-accent-soft text-accent-fg">
               <Calculator size={18} />
             </span>
             <span>
@@ -112,7 +112,7 @@ export default function LeasingGuidePage() {
             </p>
           </Section>
 
-          <Section n={6} title="Effective Payment">
+          <Section n={6} title="Effective Payment (real monthly cost)">
             <p>
               Effective Payment helps compare deals with different upfront
               amounts.

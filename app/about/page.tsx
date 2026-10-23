@@ -60,7 +60,7 @@ export default async function AboutPage() {
       </header>
 
       <div className="container-prose pb-16">
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-line bg-line sm:grid-cols-4">
           {glance.map(([label, value]) => (
             <div key={label} className="bg-surface px-4 py-3">
               <dt className="text-xs text-fg-muted">{label}</dt>

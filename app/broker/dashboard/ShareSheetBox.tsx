@@ -77,13 +77,13 @@ export default function ShareSheetBox({
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-line bg-hover p-3.5">
+    <div className="mt-3 rounded-[3px] border border-line bg-hover p-3.5">
       <p className="text-sm font-medium text-fg">This sheet is private — share it with us to continue</p>
       <ol className="mt-2 space-y-2.5 text-sm text-fg-secondary">
         <li>
           <span className="font-medium text-fg">1.</span> Copy our address:
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <code className="rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-xs break-all text-fg select-all">
+            <code className="rounded-[2px] border border-line bg-canvas px-2.5 py-1.5 text-xs break-all text-fg select-all">
               {email}
             </code>
             <button type="button" onClick={copy} className="btn btn-secondary btn-sm">

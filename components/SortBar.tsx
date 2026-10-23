@@ -25,7 +25,7 @@ export default function SortBar({
 }) {
   return (
     <div className="flex flex-1 flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-fg-muted" aria-live="polite">
+      <p className="text-sm text-fg-muted max-lg:sr-only" aria-live="polite">
         Showing <span className="font-display text-base font-semibold text-fg">{resultCount}</span> deal
         {resultCount === 1 ? "" : "s"}
       </p>
@@ -36,7 +36,7 @@ export default function SortBar({
         <select
           value={sortBy}
           onChange={(e) => onSortChange(e.target.value as SortOption)}
-          className="select select-sm"
+          className="select select-sm rounded-[2px]"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option} value={option}>

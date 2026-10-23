@@ -93,7 +93,7 @@ export default function SaveDealButton({
     return (
       <button
         {...shared}
-        className={`btn btn-secondary btn-sm aria-pressed:border-accent-line aria-pressed:bg-accent-soft aria-pressed:text-accent-fg max-sm:w-(--btn-h) max-sm:px-0 ${className}`}
+        className={`btn btn-secondary btn-pill btn-sm border-line-hover aria-pressed:border-brand aria-pressed:bg-transparent aria-pressed:text-brand max-sm:w-(--btn-h) max-sm:px-0 ${className}`}
       >
         {icon}
         {/* Fixed, like the name: the filled heart and pressed colors show
@@ -107,7 +107,7 @@ export default function SaveDealButton({
   return (
     <button
       {...shared}
-      className={`btn btn-secondary btn-sm btn-icon bg-canvas/70 backdrop-blur aria-pressed:text-accent-fg ${className}`}
+      className={`btn btn-sm btn-icon border-line-hover bg-transparent text-fg-secondary hover:border-fg hover:text-fg aria-pressed:border-brand aria-pressed:text-brand ${className}`}
     >
       {icon}
     </button>

@@ -4,16 +4,13 @@ import { ArrowRight } from "lucide-react";
 import { requireAdmin } from "@/lib/admin";
 import { listAccounts } from "@/lib/admin-data";
 import { createAdminClient } from "@/lib/supabase/server";
+import LocalTime from "@/components/LocalTime";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 function weekAgoIso(): string {
   return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-}
-
-function day(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default async function AdminOverviewPage() {
@@ -58,7 +55,7 @@ export default async function AdminOverviewPage() {
             All users <ArrowRight />
           </Link>
         </div>
-        <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+        <ul className="divide-y divide-line overflow-hidden rounded-[3px] border border-line">
           {accounts.slice(0, 8).map((a) => (
             <li key={a.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm">
               <span>
@@ -68,7 +65,7 @@ export default async function AdminOverviewPage() {
                 </span>
                 <span className="ml-2 text-fg-muted">{a.email}</span>
               </span>
-              <span className="text-xs text-fg-muted">{day(a.signedUpAt)}</span>
+              <span className="text-xs text-fg-muted"><LocalTime iso={a.signedUpAt} style="date" /></span>
             </li>
           ))}
         </ul>

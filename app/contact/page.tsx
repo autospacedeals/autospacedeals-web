@@ -3,7 +3,7 @@ import ContactForm from "./ContactForm";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME, SITE_URL, pageMetadata } from "@/lib/site";
 import { jsonLdScript } from "@/lib/lease-pages";
-import { LogoMark } from "@/components/Logo";
+import Wordmark from "@/components/Wordmark";
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact Support",
@@ -56,13 +56,9 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           }),
         }}
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(50%_60%_at_50%_0%,rgb(47_123_255/0.14),transparent_70%)]"
-      />
       <div className="mx-auto w-full max-w-md">
-        <div className="panel p-8 shadow-pop sm:p-10">
-          <LogoMark decorative className="size-10 text-fg" />
+        <div className="panel border-rule-ink p-8 sm:p-10">
+          <Wordmark className="text-xl text-fg" />
           <p className="label mt-6">Support</p>
           <h1 className="type-page mt-1 text-3xl sm:text-3xl">Contact us</h1>
           <p className="mt-2 text-sm text-fg-muted">

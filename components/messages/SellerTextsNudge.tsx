@@ -24,7 +24,7 @@ export default function SellerTextsNudge({ defaultPhone, emailsOn }: { defaultPh
 
   if (!nudge) return <SmsSettings enabledPhone={null} defaultPhone={defaultPhone} />;
   return (
-    <div className={`rounded-xl border px-4 py-3 ${emailsOn ? "border-accent-line bg-accent-soft" : "border-warning bg-warning-soft"}`}>
+    <div className={`rounded-[3px] border px-4 py-3 ${emailsOn ? "border-accent-line bg-accent-soft" : "border-warning bg-warning-soft"}`}>
       <div className="flex items-start justify-between gap-3">
         <p className="flex items-center gap-2 text-sm font-medium text-fg">
           <BellRing className="size-4 shrink-0" /> Don&apos;t miss a shopper: turn on texts

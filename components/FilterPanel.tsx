@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SlidersHorizontal, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import type { BodyStyle, FuelType } from "@/lib/deals-data";
 import {
   DEFAULT_FILTERS,
@@ -44,23 +44,33 @@ export default function FilterPanel({
   mileageOptions,
   footer,
 }: FilterPanelProps) {
-  // Fuel type and mileage allowance are used far less often than the fields
-  // above them — tucked behind a toggle so the panel doesn't front-load 9
-  // dropdowns before you've even glanced at a car.
-  const [showMore, setShowMore] = useState(false);
+  // Make, model and body style are what most shoppers reach for; the rest
+  // sit under "More filters" (with a count of how many are set) so the
+  // panel doesn't front-load nine dropdowns before you've glanced at a car.
+  const moreSet = [filters.fuel, filters.seller, filters.state, filters.term, filters.paymentType, filters.mileage].filter(
+    (v) => v !== "All"
+  ).length;
+  const [showMore, setShowMore] = useState(moreSet > 0);
+  const anySet = (Object.keys(DEFAULT_FILTERS) as (keyof DealFilters)[]).some(
+    (k) => k !== "query" && filters[k] !== DEFAULT_FILTERS[k]
+  );
 
   return (
-    <div className="panel">
-      <div data-filter-head className="mb-5 flex items-center justify-between">
-        <p className="panel-title">
-          <SlidersHorizontal /> Filters
-        </p>
-        <button type="button" onClick={() => onChange(DEFAULT_FILTERS)} className="btn btn-ghost btn-sm -mr-2 px-3">
-          <RotateCcw /> Reset
-        </button>
+    <div>
+      <div data-filter-head className="flex items-baseline justify-between border-b border-rule-ink pb-2.5">
+        <p className="label text-fg">Filters</p>
+        {anySet && (
+          <button
+            type="button"
+            onClick={() => onChange(DEFAULT_FILTERS)}
+            className="inline-flex min-h-8 items-center gap-1.5 text-[13px] text-fg-muted underline underline-offset-[3px] transition-colors hover:text-fg"
+          >
+            <RotateCcw size={13} /> Reset
+          </button>
+        )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-1">
+      <div className="grid sm:grid-cols-2 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-1">
         <Select
           label="Make"
           value={filters.make}
@@ -87,50 +97,57 @@ export default function FilterPanel({
           onChange={(v) => onChange({ bodyStyle: v })}
           options={["All", ...bodyStyles]}
         />
-        <Select
-          label="Broker/dealer"
-          value={filters.seller}
-          onChange={(v) => onChange({ seller: v })}
-          options={sellers}
-        />
-        <Select
-          label="Location"
-          value={filters.state}
-          onChange={(v) => onChange({ state: v })}
-          options={states}
-        />
-        <Select
-          label="Lease term"
-          value={filters.term}
-          onChange={(v) => onChange({ term: v })}
-          options={terms}
-          format={(opt) => formatTerm(Number(opt))}
-        />
-        <Select
-          label="Lease type"
-          value={filters.paymentType}
-          onChange={(v) => onChange({ paymentType: v })}
-          options={["All", "Monthly", "One-pay"]}
-        />
       </div>
 
       <button
         type="button"
         onClick={() => setShowMore((v) => !v)}
         aria-expanded={showMore}
-        className="mt-4 inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg pointer-coarse:min-h-11"
+        className="flex min-h-12 w-full items-center justify-between gap-2 border-b border-line text-sm font-semibold text-fg pointer-coarse:min-h-12"
       >
-        {showMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        {showMore ? "Fewer filters" : "More filters"}
+        <span className="flex items-center gap-2">
+          More filters
+          {moreSet > 0 && (
+            <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-1.5 text-[10.5px] font-bold text-on-accent">
+              {moreSet}
+            </span>
+          )}
+        </span>
+        {showMore ? <ChevronUp size={15} className="text-fg-muted" /> : <ChevronDown size={15} className="text-fg-muted" />}
       </button>
 
       {showMore && (
-        <div className="mt-3 grid animate-fade-in gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-1">
+        <div className="grid animate-fade-in sm:grid-cols-2 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-1">
           <Select
             label="Fuel type"
             value={filters.fuel}
             onChange={(v) => onChange({ fuel: v })}
             options={["All", ...fuels]}
+          />
+          <Select
+            label="Broker/dealer"
+            value={filters.seller}
+            onChange={(v) => onChange({ seller: v })}
+            options={sellers}
+          />
+          <Select
+            label="Location"
+            value={filters.state}
+            onChange={(v) => onChange({ state: v })}
+            options={states}
+          />
+          <Select
+            label="Lease term"
+            value={filters.term}
+            onChange={(v) => onChange({ term: v })}
+            options={terms}
+            format={(opt) => formatTerm(Number(opt))}
+          />
+          <Select
+            label="Lease type"
+            value={filters.paymentType}
+            onChange={(v) => onChange({ paymentType: v })}
+            options={["All", "Monthly", "One-pay"]}
           />
           <Select
             label="Mileage allowance"
@@ -142,7 +159,7 @@ export default function FilterPanel({
         </div>
       )}
 
-      <div className="mt-5 space-y-5 border-t border-line pt-5">
+      <div className="space-y-1">
         <RangeField
           label="Max monthly payment"
           value={filters.maxPayment}
@@ -190,9 +207,13 @@ function Select({
   format?: (opt: string) => string;
 }) {
   return (
-    <label className="block">
-      <span className="field-label">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="select">
+    <label className="block border-b border-line pt-3 pb-2">
+      <span className="label">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`select-line mt-0.5 ${value !== "All" ? "select-line-set" : ""}`}
+      >
         {options.map((opt) => (
           <option key={opt} value={opt}>
             {opt === "All" ? `Any ${label.toLowerCase()}` : format(opt)}
@@ -222,9 +243,9 @@ function RangeField({
 }) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
-    <div>
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="text-[13px] font-medium text-fg-secondary">{label}</span>
+    <div className="border-b border-line pt-4 pb-2">
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <span className="text-[13px] text-fg-secondary">{label}</span>
         <span className="text-[13px] font-semibold text-fg">{display}</span>
       </div>
       <input

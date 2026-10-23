@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { LogoWordmark } from "@/components/Logo";
+import Wordmark from "@/components/Wordmark";
 import BrokerMessagesLink from "@/components/messages/BrokerMessagesLink";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -16,9 +16,9 @@ export default function BrokerHeader() {
         <Link
           href="/broker/dashboard"
           aria-label="Drive dealer & broker portal"
-          className="-m-1 flex items-center gap-3 rounded-lg p-1 pointer-coarse:-my-2.5 pointer-coarse:py-2.5"
+          className="-m-1 flex items-center gap-4 rounded-[2px] p-1 pointer-coarse:-my-2.5 pointer-coarse:py-2.5"
         >
-          <LogoWordmark decorative className="h-6 w-auto text-fg" />
+          <Wordmark className="text-[17px] text-fg" />
           <span aria-hidden="true" className="hidden h-4 w-px bg-line-strong sm:block" />
           <span className="hidden text-[13px] font-medium text-fg-muted sm:inline">
             Dealer &amp; broker portal

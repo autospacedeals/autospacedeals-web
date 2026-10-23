@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { withTimeout } from "@/lib/supabase/with-timeout";
 import { isMissingRelationError } from "@/lib/supabase/saved-searches";
 import { MANAGE_ALERTS_PATH, parseSavedSearchFilters, savedSearchLabel } from "@/lib/saved-searches";
-import { LogoMark } from "@/components/Logo";
+import Wordmark from "@/components/Wordmark";
 import UnsubscribeForm from "./UnsubscribeForm";
 
 export const dynamic = "force-dynamic";
@@ -68,13 +68,9 @@ export default async function UnsubscribePage({
 
   return (
     <main className="relative isolate px-4 py-16 sm:py-20">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(50%_60%_at_50%_0%,rgb(47_123_255/0.14),transparent_70%)]"
-      />
       <div className="mx-auto w-full max-w-md">
-        <div className="panel p-8 shadow-pop sm:p-10">
-          <LogoMark decorative className="size-10 text-fg" />
+        <div className="panel border-rule-ink p-8 sm:p-10">
+          <Wordmark className="text-xl text-fg" />
           <p className="label mt-6">Email alerts</p>
 
           {lookup.status === "found" ? (

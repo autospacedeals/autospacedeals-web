@@ -3,6 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { UserPlus, X } from "lucide-react";
 import { addAdminAction, removeAdminAction, type AdminChangeState } from "./actions";
+import LocalTime from "@/components/LocalTime";
 
 const initialState: AdminChangeState = { error: null };
 
@@ -19,7 +20,7 @@ export default function AdminsManager({
 
   return (
     <div className="space-y-8">
-      <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+      <ul className="divide-y divide-line overflow-hidden rounded-[3px] border border-line">
         {admins.map((a) => (
           <li key={a.email} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
             <span>
@@ -29,7 +30,12 @@ export default function AdminsManager({
               {a.addedBy && (
                 <span className="block text-xs text-fg-muted">
                   Added by {a.addedBy}
-                  {a.addedAt ? ` · ${new Date(a.addedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
+                  {a.addedAt ? (
+                    <>
+                      {" · "}
+                      <LocalTime iso={a.addedAt} style="date" />
+                    </>
+                  ) : null}
                 </span>
               )}
             </span>

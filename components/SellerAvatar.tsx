@@ -23,7 +23,7 @@ export default function SellerAvatar({
     return (
       <span
         aria-hidden="true"
-        className={`avatar overflow-hidden bg-white ${/\brounded/.test(className) ? "" : "rounded-xl"} ${className}`}
+        className={`avatar overflow-hidden bg-white ${/\brounded/.test(className) ? "" : "rounded-[3px]"} ${className}`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- a small logo from our storage */}
         <img src={logoUrl} alt="" className="size-full object-cover" />

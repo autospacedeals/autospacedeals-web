@@ -7,8 +7,8 @@ import { ContactSellerButton, type ContactKind } from "@/components/ContactSelle
 
 /**
  * Compact contact action used on deal cards — one "Message seller" button
- * (sellers are reached only through Drive's messaging). Tonal rather than
- * filled, so a grid of 12 cards isn't 12 bright-blue buttons. Stops
+ * (sellers are reached only through Drive's messaging). Outlined in ink
+ * rather than filled, so a grid of 12 cards isn't 12 dark blocks. Stops
  * click-through to the card's link.
  */
 export function ContactActionsCompact({ deal }: { deal: Deal }) {
@@ -16,15 +16,15 @@ export function ContactActionsCompact({ deal }: { deal: Deal }) {
 
   return (
     <div onClick={stop}>
-      <ContactSellerButton deal={deal} kind="message" className="btn btn-tonal btn-sm w-full">
-        <MessageSquare /> Message seller
+      <ContactSellerButton deal={deal} kind="message" className="btn btn-secondary w-full">
+        Message seller
       </ContactSellerButton>
     </div>
   );
 }
 
 const ROW_CLASS =
-  "group/row flex min-h-12 w-full items-center gap-3 px-4 text-left text-sm font-medium text-fg-secondary transition-colors hover:bg-hover hover:text-fg focus-visible:-outline-offset-2";
+  "group/row flex min-h-12 w-full items-center gap-3 px-0.5 text-left text-sm font-medium text-fg transition-colors hover:text-fg-secondary focus-visible:-outline-offset-2";
 
 /**
  * Full contact / lead-flow actions used on the deal detail page.
@@ -41,11 +41,14 @@ export function ContactActionsFull({
   similarIds = [],
   alertsAvailable = false,
   preview = false,
+  note,
 }: {
   deal: Deal;
   similarIds?: string[];
   alertsAvailable?: boolean;
   preview?: boolean;
+  // A line under the Message seller button.
+  note?: string;
 }) {
   // Each opens the message dialog with a ready-written message.
   const more: { kind: ContactKind; label: string; icon: typeof Mail }[] = [
@@ -60,11 +63,12 @@ export function ContactActionsFull({
           <MessageSquare /> Message seller
         </button>
       ) : (
-        <ContactSellerButton deal={deal} kind="message" className="btn btn-primary btn-lg w-full px-4">
-          <MessageSquare /> Message seller
+        <ContactSellerButton deal={deal} kind="message" className="btn btn-primary h-14 w-full px-4 text-[15px]">
+          Message seller
         </ContactSellerButton>
       )}
-      <ul className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line">
+      {note && <p className="mt-2 text-[12.5px] text-fg-secondary">{note}</p>}
+      <ul className="mt-2 divide-y divide-line border-b border-line">
         {more.map(({ kind, label, icon: Icon }) => (
           <li key={label}>
             <ContactSellerButton deal={deal} kind={kind} className={ROW_CLASS}>
@@ -102,7 +106,7 @@ export function ContactActionsFull({
 function RowContent({ icon: Icon, label }: { icon: typeof Mail; label: string }) {
   return (
     <>
-      <Icon size={16} className="shrink-0 text-fg-muted transition-colors group-hover/row:text-accent-fg" />
+      <Icon size={16} className="shrink-0 text-fg-muted transition-colors group-hover/row:text-brand" />
       {label}
       <ChevronRight
         size={16}

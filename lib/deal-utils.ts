@@ -250,11 +250,19 @@ export interface DealFilters {
   term: string; // "All" or term in months as string
   mileage: string; // "All" or miles/year as string
   paymentType: string; // "All" | "Monthly" | "One-pay"
+  segment: string; // "All" | "Luxury" (the make is a luxury brand, see LUXURY_MAKES)
   maxPayment: number;
   maxDueAtSigning: number;
 }
 
 export const MAX_PAYMENT_CEILING = 2000;
+
+// The makes the homepage's Luxury tab (DealFilters.segment) counts.
+export const LUXURY_MAKES = new Set([
+  "Acura", "Alfa Romeo", "Aston Martin", "Audi", "Bentley", "BMW", "Cadillac", "Ferrari", "Genesis", "Infiniti",
+  "Jaguar", "Lamborghini", "Land Rover", "Lexus", "Lincoln", "Lucid", "Maserati", "McLaren", "Mercedes-Benz",
+  "Polestar", "Porsche", "Rolls-Royce", "Volvo",
+]);
 export const MAX_DAS_CEILING = 10000;
 
 export const DEFAULT_FILTERS: DealFilters = {
@@ -269,6 +277,7 @@ export const DEFAULT_FILTERS: DealFilters = {
   term: "All",
   mileage: "All",
   paymentType: "All",
+  segment: "All",
   maxPayment: MAX_PAYMENT_CEILING,
   maxDueAtSigning: MAX_DAS_CEILING,
 };
@@ -442,6 +451,7 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
     const matchesPaymentType =
       filters.paymentType === "All" ||
       (filters.paymentType === "One-pay" ? deal.onePay : !deal.onePay);
+    const matchesSegment = filters.segment !== "Luxury" || LUXURY_MAKES.has(deal.make);
     // The sliders' max position is meant to mean "no limit" (shown as "Any"
     // in the UI — see FilterPanel), but a literal <= comparison against that
     // ceiling was quietly excluding anything priced above it even when the
@@ -489,6 +499,7 @@ export function filterDeals(deals: Deal[], filters: DealFilters): Deal[] {
       matchesTerm &&
       matchesMileage &&
       matchesPaymentType &&
+      matchesSegment &&
       matchesPayment &&
       matchesDueAtSigning &&
       matchesQuery

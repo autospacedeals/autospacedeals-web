@@ -1,15 +1,15 @@
 "use client";
 
-// Light / dark switch for the header. Everyone starts in dark; a pick is
-// saved in this browser (localStorage "drive-theme") and applied before the
-// page draws by the script in app/layout.tsx (THEME_SCRIPT), so there's no
-// flash of the other theme.
+// Light / dark switch for the header. Everyone starts in light; a
+// pick is saved in this browser (localStorage "drive-theme") and applied
+// before the page draws by the script in app/layout.tsx (THEME_SCRIPT), so
+// there's no flash of the other theme.
 import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
 export const THEME_KEY = "drive-theme";
 const EVENT = "drive-theme-change";
-const THEME_COLORS = { dark: "#060a14", light: "#eef5ff" };
+const THEME_COLORS = { dark: "#252621", light: "#f2f0eb" };
 
 type Theme = "dark" | "light";
 
@@ -43,15 +43,16 @@ function apply(theme: Theme) {
 }
 
 export default function ThemeToggle({ className = "" }: { className?: string }) {
-  const theme = useSyncExternalStore(subscribe, current, () => "dark" as Theme);
+  const theme = useSyncExternalStore(subscribe, current, () => "light" as Theme);
   const next = theme === "light" ? "dark" : "light";
+  const label = next === "dark" ? "Switch to dark mode" : "Switch to light mode";
   return (
     <button
       type="button"
       onClick={() => apply(next)}
-      aria-label={`Switch to ${next} mode`}
-      title={`Switch to ${next} mode`}
-      className={`btn btn-ghost btn-icon btn-sm ${className}`}
+      aria-label={label}
+      title={label}
+      className={`btn btn-icon btn-sm border-line-hover text-fg hover:border-fg ${className}`}
     >
       {theme === "light" ? <Moon /> : <Sun />}
     </button>

@@ -174,7 +174,7 @@ export function DealTaxBox({ deal }: { deal: Deal }) {
   if (status !== "ready" || !info) return null;
   const total = info.rate ? monthlyWithTax(deal, info.rate) : null;
   return (
-    <div className="mt-3 rounded-xl border border-line bg-raised px-4 py-3 text-sm">
+    <div className="mt-3 rounded-[3px] border border-line bg-raised px-4 py-3 text-sm">
       {editing ? (
         <ZipForm initial={info.zip} onDone={() => setEditing(false)} />
       ) : (

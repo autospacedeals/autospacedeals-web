@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cutoutSrc } from "@/lib/photo-src";
 
 // The deal data model has always supported multiple photos (brokers can
 // already paste several URLs, one per line, in the listing editor) — this
@@ -31,8 +32,8 @@ export default function DealPhotoGallery({
 
   return (
     <div>
-      <div className="media-stage aspect-[4/3] rounded-3xl border border-line">
-        <img src={safeImages[clampedIndex]} alt={alt} className="media-img" />
+      <div className="media-stage aspect-[4/3] rounded-[2px]">
+        <img src={cutoutSrc(safeImages[clampedIndex])} alt={alt} className="media-img" />
         {children}
 
         {hasMultiple && (
@@ -41,7 +42,7 @@ export default function DealPhotoGallery({
               type="button"
               onClick={prev}
               aria-label="Previous photo"
-              className="btn btn-secondary btn-icon absolute top-1/2 left-3 -translate-y-1/2 bg-canvas/70 backdrop-blur"
+              className="btn btn-icon absolute top-1/2 left-3 -translate-y-1/2 border-[#b8b3a9] bg-[#f7f5f1]/90 text-[#1d1d1b] hover:border-[#1d1d1b]"
             >
               <ChevronLeft />
             </button>
@@ -49,7 +50,7 @@ export default function DealPhotoGallery({
               type="button"
               onClick={next}
               aria-label="Next photo"
-              className="btn btn-secondary btn-icon absolute top-1/2 right-3 -translate-y-1/2 bg-canvas/70 backdrop-blur"
+              className="btn btn-icon absolute top-1/2 right-3 -translate-y-1/2 border-[#b8b3a9] bg-[#f7f5f1]/90 text-[#1d1d1b] hover:border-[#1d1d1b]"
             >
               <ChevronRight />
             </button>
@@ -69,9 +70,9 @@ export default function DealPhotoGallery({
               onClick={() => setIndex(i)}
               aria-label={`Show photo ${i + 1}`}
               aria-current={i === clampedIndex ? "true" : undefined}
-              className="h-16 w-20 shrink-0 overflow-hidden rounded-lg border border-line bg-raised opacity-60 transition hover:border-line-strong hover:opacity-100 focus-visible:opacity-100 aria-[current=true]:border-accent aria-[current=true]:opacity-100 aria-[current=true]:ring-2 aria-[current=true]:ring-accent/30"
+              className="media-stage h-16 w-20 shrink-0 rounded-[2px] border border-transparent opacity-65 transition hover:opacity-100 focus-visible:opacity-100 aria-[current=true]:border-fg aria-[current=true]:opacity-100"
             >
-              <img src={img} alt="" className="size-full object-cover object-[50%_58%]" />
+              <img src={cutoutSrc(img)} alt="" className="media-img" />
             </button>
           ))}
         </div>

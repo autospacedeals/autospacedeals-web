@@ -5,12 +5,11 @@ import { ChevronDown, ChevronRight, RotateCcw, Loader2 } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatDate } from "@/lib/deal-utils";
 import { restoreDealAction } from "./actions";
+import LocalTime from "@/components/LocalTime";
 
-function formatRemovedAt(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function formatRemovedAt(iso: string | null | undefined) {
+  if (!iso || Number.isNaN(new Date(iso).getTime())) return "—";
+  return <LocalTime iso={iso} style="date-year" />;
 }
 
 // History of listings the broker has taken down. Kept as real rows (soft-
@@ -39,7 +38,7 @@ export default function RemovedListings({ deals, asAdmin = false }: { deals: Dea
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex min-h-12 w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl px-5 py-4 text-left"
+        className="flex min-h-12 w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-[3px] px-5 py-4 text-left"
       >
         <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-fg-secondary">
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}

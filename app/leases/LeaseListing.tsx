@@ -108,7 +108,7 @@ export default function LeaseListing({
       </p>
 
       {low && (
-        <dl className="mt-6 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+        <dl className="mt-6 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-line bg-line sm:grid-cols-4">
           {[
             ["Lowest payment", `${formatCurrency(low.payment)}/mo`],
             ["Due at signing", formatCurrency(low.dueAtSigning)],

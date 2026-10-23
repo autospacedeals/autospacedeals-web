@@ -14,6 +14,7 @@ import {
   formatTerm,
   formatMsds,
 } from "@/lib/deal-utils";
+import { cutoutSrc } from "@/lib/photo-src";
 
 // A lightweight, client-only side-by-side view — no new route, since the
 // homepage already has every selected deal's full data in memory. Laid out
@@ -68,7 +69,7 @@ export default function CompareModal({
     },
     { label: "Due at signing", render: (d) => formatCurrency(d.dueAtSigning) },
     {
-      label: "Effective Payment",
+      label: "Real monthly cost",
       note: "(due at signing + remaining payments) / lease term",
       render: (d) => formatCurrency(effectiveMonthly(d)),
     },
@@ -154,8 +155,8 @@ export default function CompareModal({
               <div className={stickyCell} />
               {deals.map((deal) => (
                 <div key={deal.id} className="py-5">
-                  <div className="media-stage aspect-[4/3] rounded-xl">
-                    <img src={deal.images[0]} alt={dealTitle(deal)} className="media-img" />
+                  <div className="media-stage aspect-[4/3] rounded-[3px]">
+                    <img src={cutoutSrc(deal.images[0])} alt={dealTitle(deal)} className="media-img" />
                   </div>
                   <h3 className="type-card mt-3 text-base">{dealTitle(deal)}</h3>
                   <p className="mt-0.5 text-xs text-fg-muted">
@@ -196,7 +197,7 @@ export default function CompareModal({
               {deals.map((deal) => (
                 <div key={deal.id} className="border-t border-line py-4">
                   <Link href={`/deals/${deal.slug}`} className="btn btn-secondary btn-sm w-full">
-                    View full details <ArrowRight />
+                    View details <ArrowRight />
                   </Link>
                 </div>
               ))}
@@ -205,7 +206,7 @@ export default function CompareModal({
         )}
 
         <p className="border-t border-line px-5 py-4 text-xs leading-5 text-fg-muted sm:px-6">
-          Effective Payment is the fairest single number to compare across deals with
+          Real monthly cost (the effective payment) is the fairest single number to compare across deals with
           different due-at-signing amounts — a lower monthly payment with a much larger upfront
           cost isn&apos;t always the better deal.
         </p>

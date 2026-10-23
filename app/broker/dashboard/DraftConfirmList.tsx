@@ -132,7 +132,7 @@ function DraftRow({
 
   if (!editing) {
     return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-canvas/60 p-3.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[3px] border border-line bg-canvas/60 p-3.5">
         <button
           type="button"
           onClick={onToggle}
@@ -184,7 +184,7 @@ function DraftRow({
   }
 
   return (
-    <div className="rounded-xl border border-line-strong bg-hover p-4">
+    <div className="rounded-[3px] border border-line-strong bg-hover p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="font-semibold text-fg">{dealTitle(deal)}</p>
         <button

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Mona_Sans, Geist_Mono } from "next/font/google";
+import { Archivo, Newsreader, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { type HeaderAccount } from "@/components/SiteHeader";
 import SiteChrome from "@/components/SiteChrome";
@@ -7,20 +7,30 @@ import VisitTracker from "@/components/VisitTracker";
 import GoogleAdsTag from "@/components/GoogleAdsTag";
 
 // Applies the visitor's saved theme (components/ThemeToggle.tsx) before the
-// first paint. Everyone starts in dark; light only once they pick it.
-const THEME_SCRIPT = `try{if(localStorage.getItem("drive-theme")==="light"){document.documentElement.dataset.theme="light";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#eef5ff")}}catch(e){}`;
+// first paint. Everyone starts in light (the page is served with
+// data-theme="light"); dark only once they pick it.
+const THEME_SCRIPT = `try{if(localStorage.getItem("drive-theme")==="dark"){delete document.documentElement.dataset.theme;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#252621")}}catch(e){}`;
 import SeenPing from "@/components/SeenPing";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { withTimeout } from "@/lib/supabase/with-timeout";
 
-// Mona Sans is both the UI face and (semi-expanded, wdth 112) the display
+// Archivo is both the UI face and (a little wider, wdth 108) the display
 // face — one variable file. The width axis must be requested explicitly.
-const monaSans = Mona_Sans({
+const archivo = Archivo({
   subsets: ["latin"],
   axes: ["wdth"],
-  variable: "--font-mona",
+  variable: "--font-archivo",
+  display: "swap",
+});
+
+// The serif: ledes, long reading text and the italic word in a headline.
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  axes: ["opsz"],
+  variable: "--font-newsreader",
   display: "swap",
 });
 
@@ -32,7 +42,7 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#060a14",
+  themeColor: "#f2f0eb",
   colorScheme: "dark light",
 };
 
@@ -119,7 +129,8 @@ export default async function RootLayout({
     // React loads.
     <html
       lang="en"
-      className={`${monaSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-theme="light"
+      className={`${archivo.variable} ${newsreader.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

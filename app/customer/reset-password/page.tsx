@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ResetPasswordForm from "./ResetPasswordForm";
-import { LogoMark } from "@/components/Logo";
+import Wordmark from "@/components/Wordmark";
 
 export const metadata: Metadata = {
   title: "Set a New Password",
@@ -22,13 +22,9 @@ export default async function ResetPasswordPage() {
 
   return (
     <main className="relative isolate px-4 py-16 sm:py-20">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(50%_60%_at_50%_0%,rgb(47_123_255/0.14),transparent_70%)]"
-      />
       <div className="mx-auto w-full max-w-md">
-        <div className="panel p-8 shadow-pop sm:p-10">
-          <LogoMark decorative className="size-10 text-fg" />
+        <div className="panel border-rule-ink p-8 sm:p-10">
+          <Wordmark className="text-xl text-fg" />
           <p className="label mt-6">Your account</p>
           <h1 className="type-page mt-1 text-3xl sm:text-3xl">Set a new password</h1>
           <p className="mt-2 text-sm text-fg-muted">Choose a new password for your account.</p>

@@ -7,7 +7,7 @@
 import { deliveryLabel } from "@/lib/deal-location";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, MapPin, Flag, CircleAlert, MessageSquare } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin, Flag, CircleAlert } from "lucide-react";
 import PaymentEstimator from "@/components/PaymentEstimator";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 import type { Deal } from "@/lib/deals-data";
@@ -19,8 +19,6 @@ import {
   isNewlyPosted,
   msrpDiscountPercent,
   reportIssueMailtoHref,
-  formatMileage,
-  formatTerm,
   formatMsds,
   hasOtherMileages,
   otherTermsNote,
@@ -91,13 +89,25 @@ export default function DealDetailView({
     ? deal.packages.filter((p): p is string => typeof p === "string" && p.length > 0)
     : [];
   const headline = formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment);
+  const requires = (deal.incentives ?? []).filter(isRequiredProgram);
+  // Real monthly cost (lib/deal-utils.ts effectiveMonthly): the due at
+  // signing spread over the lease, the first payment inside it when the due
+  // covers it. With MSDs as an option, the same at the lower payment (the
+  // deposits come back, so they're left out).
+  const term = deal.term > 0 ? deal.term : 1;
+  const laterPayments = deal.dueAtSigning >= deal.payment ? term - 1 : term;
+  const real = deal.onePay ? deal.dueAtSigning / term : effectiveMonthly(deal);
+  const realWithMsds =
+    !deal.onePay && deal.msdPayment && deal.msdCount
+      ? (deal.dueAtSigning + deal.msdPayment * (deal.dueAtSigning >= deal.msdPayment ? term - 1 : term)) / term
+      : null;
   const sellerRating =
     deal.brokerId && brokerRating && brokerRating.count > 0 && brokerRating.average != null
       ? { average: brokerRating.average, count: brokerRating.count }
       : null;
 
   return (
-    <main className="container-page max-w-6xl pt-8 pb-12 sm:pt-12">
+    <main className="container-page pt-6 pb-12 sm:pt-10">
       {previewBanner}
 
       {backHref ? (
@@ -108,7 +118,7 @@ export default function DealDetailView({
         <DealBackLinks />
       )}
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-14">
         {/* Left column: photo + details */}
         <div className="min-w-0">
           <DealPhotoGallery images={deal.images} alt={dealTitle(deal)}>
@@ -128,16 +138,10 @@ export default function DealDetailView({
               )}
             </div>
             {deal.condition && <span className="tag absolute top-4 right-4">{deal.condition}</span>}
-            {deal.sample ? (
+            {deal.sample && (
               <p className="media-note media-note-warning pb-3 text-xs">
                 <CircleAlert /> Sample listing — photo is a stock image, not the exact vehicle
               </p>
-            ) : (
-              deal.photoAutoSourced && (
-                <p className="media-note pb-3 text-xs">
-                  <CircleAlert /> Stock photo — may not be the exact vehicle
-                </p>
-              )
             )}
           </DealPhotoGallery>
 
@@ -147,7 +151,10 @@ export default function DealDetailView({
                 corners already carry the tags. Icon-only on phones. Not
                 offered on a broker's draft preview. */}
             <div className="mt-2 flex items-start justify-between gap-4">
-              <h1 className="type-page min-w-0 text-3xl sm:text-4xl">{dealTitle(deal)}</h1>
+              <h1 className="type-page min-w-0 text-4xl sm:text-[3.5rem]">
+                {deal.year} {deal.make} {deal.model}
+                {deal.trim ? <em> {deal.trim}</em> : null}
+              </h1>
               {!isPreview && <SaveDealButton dealId={deal.id} variant="labeled" />}
             </div>
             <p className="mt-3 flex items-center gap-2 text-sm text-fg-muted">
@@ -161,136 +168,246 @@ export default function DealDetailView({
             )}
           </div>
 
-          <section className="panel mt-8">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <h2 className="type-title">Payment breakdown</h2>
-              <p className="text-xs text-fg-muted">Advertised by the seller</p>
-            </div>
+          {/* Level 1: the offer — the payment, what's due, the term and miles,
+              every condition that changes the price, and (when MSDs are an
+              option) the two ways to pay. */}
+          <section aria-label="The offer" className="mt-10 border-t border-rule-ink pt-5">
+            <p className="label">{deal.onePay ? "One-pay lease total" : "Monthly payment"}</p>
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-1.5">
+              <span className="price-lg text-[3.25rem] sm:text-[4rem]">{headline}</span>
+              {!deal.onePay && (
+                <span className="price-unit text-lg">
+                  {deal.paymentTaxRate ? `/mo (incl. ~${deal.paymentTaxRate}% tax)` : "/mo + tax"}
+                </span>
+              )}
+            </p>
 
-            {/* Key figures: always three cells */}
-            <dl className="spec-grid mt-5 sm:grid-cols-3">
-              <KeyFigure
-                className="col-span-2 sm:col-span-1"
-                label={deal.onePay ? "One-pay lease total" : "Monthly payment"}
-                value={headline}
-                unit={deal.onePay ? undefined : deal.paymentTaxRate ? "/mo" : "/mo + tax"}
+            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
+              {!deal.onePay && (
+                <Fact
+                  className="col-span-2 sm:col-span-1"
+                  label="Due at signing"
+                  value={formatCurrency(deal.dueAtSigning)}
+                  note={[
+                    deal.dueAtSigning >= deal.payment ? "Includes the first month’s payment." : null,
+                    deal.dueAtSigningTaxRate ? `Assumes ${deal.dueAtSigningTaxRate}% tax.` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                />
+              )}
+              <Fact
+                label={deal.dealType === "Finance" ? "Term" : "Lease length"}
+                value={`${deal.term} months`}
+                note={otherTermsNote(deal) ? `Priced ${otherTermsNote(deal)} too; see the estimate below.` : undefined}
+              />
+              <Fact
+                label="Miles a year"
+                value={deal.milesPerYear ? deal.milesPerYear.toLocaleString("en-US") : "Not specified"}
                 note={
-                  !deal.onePay && deal.msdPayment && deal.msdCount
-                    ? `or ${formatCurrency(deal.msdPayment)}/mo with ${deal.msdCount} MSD${deal.msdCount === 1 ? "" : "s"}`
-                    : !deal.onePay && deal.paymentTaxRate
-                      ? `Includes ~${deal.paymentTaxRate}% tax`
-                      : undefined
+                  hasOtherMileages(deal)
+                    ? "Other mileages are priced too; see the estimate below."
+                    : `Ask ${deal.sellerName} about more or fewer miles.`
                 }
               />
-              <KeyFigure
-                label="Due at signing"
-                value={formatCurrency(deal.dueAtSigning)}
-                note={deal.dueAtSigningTaxRate ? `Assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
-              />
-              <KeyFigure
-                label="Term"
-                value={formatTerm(deal.term)}
-                note={otherTermsNote(deal) ? `${otherTermsNote(deal)} — see below` : undefined}
-              />
             </dl>
 
-            {/* Everything else as statement rows */}
-            <dl className="statement mt-2">
+            {/* Anything the shopper has to know before counting on the price. */}
+            <ul aria-label="Before you count on this price" className="mt-6 space-y-2 border-l-2 border-brand bg-surface px-[18px] py-4 text-[14.5px] leading-normal text-fg-secondary [&_strong]:font-semibold [&_strong]:text-fg">
+              {requires.length > 0 && (
+                <li>
+                  <strong>Requires {requires.map((i) => i.name).join(" & ")} eligibility.</strong> This price is for
+                  shoppers who qualify. {deal.sellerName} confirms it with you.
+                </li>
+              )}
               {deal.brokerFee != null && (
-                <Row label="Broker fee" note="Separate from due at signing" value={formatCurrency(deal.brokerFee)} />
+                <li>
+                  <strong>Broker fee: {formatCurrency(deal.brokerFee)}</strong>, paid to {deal.sellerName} on top of the
+                  due at signing.
+                </li>
               )}
-              {deal.msdCount ? (
-                <Row
-                  label="Multiple security deposits"
-                  note={
-                    deal.msdPayment
-                      ? `Optional: lowers the payment to ${formatCurrency(deal.msdPayment)}/mo. Paid at signing on top of due at signing, refunded at lease end`
-                      : "The payment assumes these. Paid at signing on top of due at signing, refunded at lease end"
-                  }
-                  value={formatMsds(deal.msdCount, deal.msdTotal)}
-                />
+              {deal.msdCount && !deal.msdPayment ? (
+                <li>
+                  <strong>The payment assumes {formatMsds(deal.msdCount, deal.msdTotal)}</strong>, paid at signing on
+                  top of the due at signing and refunded at the end of the lease.
+                </li>
               ) : null}
-              {(deal.incentives ?? []).some(isRequiredProgram) && (
-                <Row
-                  label="Price requires"
-                  note="You need to qualify for this"
-                  value={(deal.incentives ?? [])
-                    .filter(isRequiredProgram)
-                    .map((i) => i.name)
-                    .join(" & ")}
-                />
-              )}
-              {deal.sellingPrice != null && (
-                <Row label={TOTAL_PRICE_LABEL} note={TOTAL_PRICE_NOTE} value={formatCurrency(deal.sellingPrice)} />
-              )}
-              <Row label="MSRP" value={displayMsrp(deal)} />
-              {discount > 0 && <Row label="Discount off MSRP" value={`${discount.toFixed(1)}%`} positive />}
-              {deal.milesPerYear ? (
-                <Row
-                  label="Mileage allowance"
-                  value={formatMileage(deal.milesPerYear)}
-                  note={
-                    hasOtherMileages(deal)
-                      ? "Other mileages priced below"
-                      : `Contact ${deal.sellerName} for more/less mileage`
-                  }
-                />
-              ) : (
-                <Row label="Mileage allowance" value="Not specified" />
-              )}
-              {deal.apr != null && <Row label="APR" value={`${deal.apr}%`} />}
-            </dl>
+              <li>
+                <strong>{deal.paymentTaxRate ? `Includes about ${deal.paymentTaxRate}% sales tax.` : "Plus sales tax"}</strong>
+                {deal.paymentTaxRate ? "" : " on the monthly payment."} Credit approval required.
+              </li>
+            </ul>
 
-            <div className="callout mt-5 flex flex-wrap items-end justify-between gap-4">
-              <div className="max-w-sm">
-                <p className="text-sm font-semibold text-fg">Effective Payment</p>
-                <p className="mt-1 text-[13px] leading-5 text-fg-secondary">
-                  (due at signing + the remaining monthly payments) / lease term. Due at signing
-                  already includes the first payment. A fair way to compare deals with different
-                  upfront amounts.
+            {/* MSDs as an option: two clearly separate ways to pay, so the
+                lower payment can't be read as the advertised one. */}
+            {!deal.onePay && deal.msdPayment && deal.msdCount ? (
+              <div className="mt-6">
+                <p className="label">Two ways to pay</p>
+                <div className="mt-2.5 grid gap-3.5 sm:grid-cols-2">
+                  <PayOption
+                    selected
+                    title="Standard (the advertised price)"
+                    payment={formatCurrency(deal.payment)}
+                    note={`${formatCurrency(deal.dueAtSigning)} due at signing`}
+                  />
+                  <PayOption
+                    title="With refundable deposits"
+                    payment={formatCurrency(deal.msdPayment)}
+                    note={
+                      deal.msdTotal
+                        ? `${formatCurrency(deal.dueAtSigning)} due + ${formatCurrency(deal.msdTotal)} in deposits (${formatCurrency(deal.dueAtSigning + deal.msdTotal)} at signing)`
+                        : `${formatCurrency(deal.dueAtSigning)} due + ${deal.msdCount} deposit${deal.msdCount === 1 ? "" : "s"}`
+                    }
+                  />
+                </div>
+                <p className="mt-3 font-serif text-[15.5px] leading-normal text-fg-secondary">
+                  <strong className="font-display text-sm font-semibold text-fg">
+                    Refundable security deposits (MSDs)
+                  </strong>{" "}
+                  are money you hand over at signing and get back when the lease ends in good standing. Paying them
+                  lowers the monthly payment. They’re optional, and they aren’t part of the{" "}
+                  {formatCurrency(deal.dueAtSigning)} due at signing.
                 </p>
               </div>
-              <p className="flex items-baseline gap-1.5">
-                <span className="price">{formatCurrency(effectiveMonthly(deal))}</span>
-                <span className="price-unit">/mo effective</span>
-              </p>
-            </div>
+            ) : null}
           </section>
 
-          <PaymentEstimator deal={deal} />
+          {/* Level 2: the full breakdown, each part in its own section that
+              opens. */}
+          <section aria-label="The full breakdown" className="mt-14 border-t border-rule-ink pt-3.5">
+            <h2 className="dp-h2">The full breakdown</h2>
+            <p className="mt-1.5 mb-2.5 font-serif text-base text-fg-secondary">
+              Everything that makes up this offer, for when you want the detail. Nothing here changes the price above.
+            </p>
 
-          <section className="panel mt-6">
-            <h2 className="type-title">Vehicle details</h2>
-            <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-              {deal.exterior && <Detail label="Exterior" value={deal.exterior} />}
-              {deal.interior && <Detail label="Interior" value={deal.interior} />}
-              {deal.fuel && <Detail label="Fuel type" value={deal.fuel} />}
-              {deal.bodyStyle && <Detail label="Body style" value={deal.bodyStyle} />}
-            </dl>
+            <Acc
+              open
+              title="What you pay, and when"
+              summary={
+                deal.onePay
+                  ? `${headline} at signing`
+                  : `${formatCurrency(deal.dueAtSigning)}${deal.brokerFee ? ` + ${formatCurrency(deal.brokerFee)}` : ""} at signing`
+              }
+            >
+              <dl className="statement">
+                <Row
+                  label={deal.onePay ? "One-pay lease total" : "Due at signing"}
+                  note={
+                    deal.onePay
+                      ? "The whole lease, paid when you sign."
+                      : `Paid when you sign.${deal.dueAtSigning >= deal.payment ? " Includes the first month’s payment." : ""}`
+                  }
+                  value={formatCurrency(deal.dueAtSigning)}
+                />
+                {deal.brokerFee != null && (
+                  <Row
+                    label="Broker fee"
+                    note={`${deal.sellerName}’s fee for arranging the lease, paid separately.`}
+                    value={formatCurrency(deal.brokerFee)}
+                  />
+                )}
+                {!deal.onePay && (
+                  <Row
+                    label="Monthly payment"
+                    note={`${laterPayments} ${deal.dueAtSigning >= deal.payment ? "more payments after the first" : "monthly payments"}${deal.paymentTaxRate ? `, including about ${deal.paymentTaxRate}% tax` : ", plus sales tax"}.`}
+                    value={formatCurrency(deal.payment)}
+                  />
+                )}
+                {deal.msdCount ? (
+                  <Row
+                    label={deal.msdPayment ? "Refundable deposits (optional)" : "Refundable deposits"}
+                    note={
+                      deal.msdPayment
+                        ? `Only if you choose the lower ${formatCurrency(deal.msdPayment)}/mo payment. Returned at lease end.`
+                        : "The payment assumes these. Paid at signing, returned at lease end."
+                    }
+                    value={formatMsds(deal.msdCount, deal.msdTotal)}
+                  />
+                ) : null}
+                {deal.sellingPrice != null && (
+                  <Row label={TOTAL_PRICE_LABEL} note={TOTAL_PRICE_NOTE} value={formatCurrency(deal.sellingPrice)} />
+                )}
+                <Row label="MSRP" value={displayMsrp(deal)} />
+                {discount > 0 && <Row label="Discount off MSRP" value={`${discount.toFixed(1)}%`} positive />}
+                {deal.apr != null && <Row label="APR" value={`${deal.apr}%`} />}
+              </dl>
+            </Acc>
 
-            {packages.length > 0 && (
-              <div className="mt-6">
-                <p className="label">Packages</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {packages.map((item) => (
-                    // Package names are free text from the seller: let a long
-                    // one wrap (same 20px height on one line) instead of
-                    // .pill's nowrap pushing the page wider than the phone.
-                    <span key={item} className="pill pill-neutral max-w-full py-0.5 leading-4 break-words whitespace-normal">
-                      {item}
-                    </span>
-                  ))}
+            <Acc title="Real monthly cost" summary={`About ${formatCurrency(real)}/mo`}>
+              <p className="acc-p">
+                {deal.onePay ? (
+                  <>
+                    The one payment spread over the lease: {headline} ÷ {deal.term} months ≈{" "}
+                    <strong>{formatCurrency(real)} a month</strong>.
+                  </>
+                ) : (
+                  <>
+                    The due at signing spread over the whole lease, so you can compare deals with different upfront
+                    amounts: ({formatCurrency(deal.dueAtSigning)} + {formatCurrency(deal.payment)} × {laterPayments}) ÷{" "}
+                    {deal.term} months ≈ <strong>{formatCurrency(real)} a month</strong>.
+                    {realWithMsds != null &&
+                      ` With the refundable deposits it’s about ${formatCurrency(realWithMsds)} a month, since the deposits come back.`}
+                  </>
+                )}{" "}
+                {realWithMsds != null ? "Neither includes" : "It doesn’t include"} the broker fee or taxes.
+              </p>
+            </Acc>
+
+            {requires.length > 0 && (
+              <Acc title={`Eligibility: ${requires.map((i) => i.name).join(" & ")}`} summary="Must qualify">
+                <p className="acc-p">
+                  Brands lower some lease prices for shoppers in a program, such as <strong>loyalty</strong> (usually
+                  you already own or lease one of their cars) or <strong>corporate</strong> (you work for a company in
+                  their program). This price needs {requires.length === 1 ? "this one" : "these"}:{" "}
+                  <strong>{requires.map((i) => i.name).join(" & ")}</strong>. Ask {deal.sellerName} what proof they
+                  need; without it the payment will be different.
+                </p>
+              </Acc>
+            )}
+
+            <Acc title="Estimate a different payment" summary="Calculator">
+              <PaymentEstimator deal={deal} embedded />
+            </Acc>
+
+            <Acc
+              title="Vehicle details"
+              summary={[deal.condition, deal.fuel === "EV" ? "Electric" : deal.fuel, deal.bodyStyle].filter(Boolean).join(" · ")}
+            >
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
+                {deal.condition && <Detail label="Condition" value={deal.condition} />}
+                {deal.exterior && <Detail label="Exterior" value={deal.exterior} />}
+                {deal.interior && <Detail label="Interior" value={deal.interior} />}
+                {deal.fuel && <Detail label="Fuel type" value={deal.fuel} />}
+                {deal.bodyStyle && <Detail label="Body style" value={deal.bodyStyle} />}
+                <Detail label="MSRP" value={displayMsrp(deal)} />
+              </dl>
+              {packages.length > 0 && (
+                <div className="mt-6">
+                  <p className="label">Packages</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {packages.map((item) => (
+                      // Package names are free text from the seller: let a long
+                      // one wrap (same 20px height on one line) instead of
+                      // .pill's nowrap pushing the page wider than the phone.
+                      <span key={item} className="pill pill-neutral max-w-full py-0.5 leading-4 break-words whitespace-normal">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+            </Acc>
+
+            {deal.notes && (
+              <Acc title="From the seller" summary="Notes">
+                <p className="font-serif text-lg leading-[1.6] break-words whitespace-pre-line text-fg-secondary">
+                  {deal.notes}
+                </p>
+              </Acc>
             )}
           </section>
 
-          <section className="panel mt-6">
-            <h2 className="type-title">Description</h2>
-            <p className="mt-3 text-[15px] leading-7 break-words whitespace-pre-line text-fg-secondary">{deal.notes}</p>
-          </section>
-
-          <div className="alert alert-warning mt-6">
+          <div className="alert mt-10 border-0 border-l-2 border-brand bg-hover-strong text-[13px] text-fg-secondary [&>svg]:text-brand">
             <CircleAlert />
             <p>
               This deal is subject to availability and credit approval.{" "}
@@ -310,6 +427,7 @@ export default function DealDetailView({
               documentation fees are included in the due-at-signing amount, but that total may
               change based on the actual tax rate applied. Always confirm the full, out-the-door
               total directly with {deal.sellerName} before signing.
+              {deal.photoAutoSourced ? " Photos are stock images of the model and may not show the exact vehicle." : ""}
             </p>
           </div>
 
@@ -336,28 +454,40 @@ export default function DealDetailView({
         {/* Right column: contact card (repeats the headline numbers so the
             price and the Call button stay in view while scrolling) */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="card relative overflow-hidden">
-            <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
+          <div className="relative overflow-hidden rounded-[2px] border border-rule-ink">
             <div className="p-6">
               <p className="label">{deal.onePay ? "One-pay lease total" : "Monthly payment"}</p>
               <p className="mt-2 flex flex-wrap items-baseline gap-x-1.5">
-                <span className="price-lg">{headline}</span>
+                <span className="price-lg sm:text-[3.5rem]">{headline}</span>
                 {!deal.onePay && (
                   <span className="price-unit text-base">/mo{deal.paymentTaxRate ? "" : " + tax"}</span>
                 )}
               </p>
+              <p className="mt-3 text-sm text-fg-secondary">
+                {!deal.onePay && (
+                  <>
+                    <strong className="font-semibold text-fg">{formatCurrency(deal.dueAtSigning)}</strong> due at signing ·{" "}
+                  </>
+                )}
+                {deal.term} months
+                {deal.milesPerYear ? ` · ${deal.milesPerYear.toLocaleString("en-US")} mi/yr` : ""}
+              </p>
+              {(requires.length > 0 || deal.brokerFee != null) && (
+                <p className="mt-2 text-[13px] font-semibold text-fg">
+                  {[
+                    requires.length > 0 ? `Requires ${requires.map((i) => i.name).join(" & ")} eligibility` : null,
+                    deal.brokerFee != null ? `Broker fee ${formatCurrency(deal.brokerFee)}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
               {!deal.onePay && deal.msdPayment && deal.msdCount ? (
-                <p className="mt-1 text-sm text-fg-secondary">
-                  or <strong className="font-semibold text-success">{formatCurrency(deal.msdPayment)}/mo</strong> with{" "}
-                  {deal.msdCount} MSD{deal.msdCount === 1 ? "" : "s"}
-                  {deal.msdTotal ? ` (${formatCurrency(deal.msdTotal)} refundable)` : ""}
+                <p className="mt-1.5 text-[13px] text-fg-secondary">
+                  Option: {formatCurrency(deal.msdPayment)}/mo
+                  {deal.msdTotal ? ` with ${formatCurrency(deal.msdTotal)} in refundable deposits` : " with refundable deposits"}
                 </p>
               ) : null}
-              <p className="mt-3 text-sm text-fg-secondary">
-                {!deal.onePay && `${formatCurrency(deal.dueAtSigning)} due at signing · `}
-                {formatTerm(deal.term)}
-                {deal.milesPerYear ? ` · ${formatMileage(deal.milesPerYear)}` : ""}
-              </p>
               {/* With the signed-in shopper's sales tax (California ZIPs). */}
               <DealTaxBox deal={deal} />
               {deal.sellingPrice != null && (
@@ -413,6 +543,7 @@ export default function DealDetailView({
                   similarIds={similar.map((d) => d.id)}
                   alertsAvailable={alertsAvailable}
                   preview={isPreview}
+                  note="Ask about the deal, availability or eligibility."
                 />
               </div>
             </div>
@@ -428,7 +559,7 @@ export default function DealDetailView({
                   {sameDeals.map((d) => {
                     const diff = d.brokerFee != null && deal.brokerFee != null ? d.brokerFee - deal.brokerFee : null;
                     return (
-                      <li key={d.id} className="flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-3">
+                      <li key={d.id} className="flex items-center justify-between gap-3 rounded-[3px] border border-line px-4 py-3">
                         <div className="min-w-0 text-sm">
                           <p className="truncate font-medium text-fg">{d.sellerName}</p>
                           <p className="text-fg-muted">
@@ -462,9 +593,9 @@ export default function DealDetailView({
 
       {/* Similar deals */}
       {similar.length > 0 && (
-        <section className="mt-20 border-t border-line pt-12">
-          <h2 className="type-section mb-8">Similar deals</h2>
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="mt-24">
+          <h2 className="type-section mb-8 text-[2.5rem] sm:text-[3.5rem]">Similar deals</h2>
+          <div className="grid gap-x-8 gap-y-14 sm:grid-cols-2 xl:grid-cols-3">
             {similar.map((d) => (
               <DealCard key={d.id} deal={d} />
             ))}
@@ -475,8 +606,7 @@ export default function DealDetailView({
       {/* Phones/tablets: price + Message seller stay reachable. Sticky (not fixed)
           at the end of <main>, so it scrolls away before the footer. */}
       {!isPreview && (
-        <div className="sticky bottom-0 z-40 -mx-4 mt-10 border-t border-line bg-canvas/90 backdrop-blur-xl sm:-mx-6 lg:hidden">
-          <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
+        <div className="sticky bottom-0 z-40 -mx-4 mt-10 border-t border-rule-ink bg-canvas/95 backdrop-blur-xl sm:-mx-6 lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
             <div className="min-w-0 flex-1">
               <p className="flex items-baseline gap-1">
@@ -484,11 +614,12 @@ export default function DealDetailView({
                 {!deal.onePay && <span className="price-unit">/mo</span>}
               </p>
               <p className="mt-0.5 truncate text-xs text-fg-muted">
-                {deal.onePay ? "One-pay total" : `${formatCurrency(deal.dueAtSigning)} due`} · {formatTerm(deal.term)}
+                {deal.onePay ? "One-pay total" : `${formatCurrency(deal.dueAtSigning)} due`} · {deal.term} mo
+                {deal.milesPerYear ? ` · ${deal.milesPerYear.toLocaleString("en-US")} mi` : ""}
               </p>
             </div>
-            <ContactSellerButton deal={deal} kind="message" className="btn btn-primary btn-sm">
-              <MessageSquare /> Message seller
+            <ContactSellerButton deal={deal} kind="message" className="btn btn-primary h-12 px-5">
+              Message seller
             </ContactSellerButton>
           </div>
         </div>
@@ -497,28 +628,41 @@ export default function DealDetailView({
   );
 }
 
-function KeyFigure({
-  label,
-  value,
-  unit,
-  note,
-  className = "",
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  note?: string;
-  className?: string;
-}) {
+function Fact({ label, value, note, className = "" }: { label: string; value: string; note?: string; className?: string }) {
   return (
-    <div className={`spec p-4 ${className}`}>
+    <div className={`border-t border-line pt-2.5 ${className}`}>
       <dt className="spec-label">{label}</dt>
-      <dd className="mt-2 flex flex-wrap items-baseline gap-x-1">
-        <span className="stat-value whitespace-nowrap max-sm:text-xl">{value}</span>
-        {unit && <span className="price-unit">{unit}</span>}
+      <dd className="mt-1.5 font-display text-[1.625rem] leading-tight font-semibold tracking-[-0.02em] text-fg tabular-nums">
+        {value}
       </dd>
-      {note && <dd className="spec-note mt-1">{note}</dd>}
+      {note && <dd className="mt-1 font-serif text-[14.5px] leading-snug text-fg-secondary">{note}</dd>}
     </div>
+  );
+}
+
+function PayOption({ title, payment, note, selected = false }: { title: string; payment: string; note: string; selected?: boolean }) {
+  return (
+    <div className={`border px-4 py-3.5 ${selected ? "border-fg" : "border-line-strong"}`}>
+      <p className="text-[12.5px] font-semibold text-fg-secondary">{title}</p>
+      <p className="mt-1.5 text-[15px] text-fg-muted">
+        <span className="font-display text-[1.875rem] font-semibold tracking-[-0.02em] text-fg tabular-nums">{payment}</span> /mo
+      </p>
+      <p className="mt-0.5 text-[13px] text-fg-secondary">{note}</p>
+    </div>
+  );
+}
+
+// One part of the full breakdown: a row that opens, with a short value on
+// the right (hidden on phones).
+function Acc({ title, summary, open = false, children }: { title: string; summary?: string; open?: boolean; children: ReactNode }) {
+  return (
+    <details className="acc" open={open}>
+      <summary>
+        <span>{title}</span>
+        {summary && <span className="acc-v">{summary}</span>}
+      </summary>
+      <div className="pb-5">{children}</div>
+    </details>
   );
 }
 
@@ -527,7 +671,7 @@ function Row({ label, value, note, positive }: { label: string; value: string; n
     <div className="statement-row">
       <dt>
         {label}
-        {note && <span className="mt-0.5 block text-xs text-fg-muted">{note}</span>}
+        {note && <span className="mt-0.5 block font-serif text-[14.5px] text-fg-muted italic">{note}</span>}
       </dt>
       <dd className={positive ? "text-success" : undefined}>{value}</dd>
     </div>

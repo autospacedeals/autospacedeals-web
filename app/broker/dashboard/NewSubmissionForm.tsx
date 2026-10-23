@@ -179,7 +179,7 @@ function LinkForm({
     const parsedCount = state.parsedCount ?? 0;
     const skippedCount = state.skippedCount ?? 0;
     return (
-      <div className="rounded-2xl border border-success/20 bg-success/5 p-4 sm:p-5">
+      <div className="rounded-[3px] border border-success/20 bg-success/5 p-4 sm:p-5">
         <p className="text-sm font-semibold text-success">
           {parsedCount === 0
             ? "Source saved."
@@ -317,7 +317,7 @@ function LinkForm({
             photos, as drafts for you to review before they publish (or live right away if you keep it
             synced). Can take a minute or two.
           </p>
-          <div className="mt-3 rounded-xl border border-line bg-hover p-3.5">
+          <div className="mt-3 rounded-[3px] border border-line bg-hover p-3.5">
             <label className="flex cursor-pointer items-start gap-2.5 text-sm text-fg-secondary">
               <input
                 type="checkbox"
@@ -394,7 +394,7 @@ function LinkForm({
             <ShareSheetBox sheetUrl={sheetUrl} email={sheetShareEmail} onShared={showTabs} />
           )}
           {sheetTabs && (
-            <fieldset className="mt-3 rounded-xl border border-line bg-hover p-3.5">
+            <fieldset className="mt-3 rounded-[3px] border border-line bg-hover p-3.5">
               <legend className="sr-only">Tabs to import</legend>
               <p className="text-sm font-medium text-fg">Which tabs should we pull cars from?</p>
               <p className="mt-0.5 text-xs text-fg-muted">
@@ -438,7 +438,7 @@ function LinkForm({
                   Set sharing to &quot;Anyone with the link can view&quot; so we can read it.
                 </p>
               )}
-              <div className="mt-3 space-y-3 rounded-xl border border-line bg-hover p-3.5">
+              <div className="mt-3 space-y-3 rounded-[3px] border border-line bg-hover p-3.5">
                 <label className="flex cursor-pointer items-start gap-2.5 text-sm text-fg-secondary">
                   <input
                     type="checkbox"
@@ -553,7 +553,7 @@ function ManualForm({
   return (
     <form action={formAction} onSubmit={submitKeepingValues(formAction)} className="space-y-4" key={resetCount}>
       {submissionId && <input type="hidden" name="submissionId" value={submissionId} />}
-      <div className="space-y-6 rounded-xl border border-line bg-hover p-4">
+      <div className="space-y-6 rounded-[3px] border border-line bg-hover p-4">
         <div>
           <p className={sectionHeadingClass}>Vehicle</p>
           <div className="grid gap-3 sm:grid-cols-4">

@@ -3,6 +3,7 @@
 // browser's back button returns to it. Readable keys and values:
 //
 //   /?make=bmw&model=x5&body=suv&fuel=ev&max=600&due=3000&term=36&sort=paymentLow
+//   /?class=luxury
 //
 // Values are matched loosely ("mercedes-benz", "Mercedes Benz") against the
 // deals on the page, and anything unknown is dropped, so an old or mistyped
@@ -20,6 +21,7 @@ export const urlValue = slug;
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUELS = ["Gas", "Hybrid", "PHEV", "EV"];
 const PAYMENT_TYPES: Record<string, string> = { monthly: "Monthly", "one-pay": "One-pay" };
+const SEGMENTS: Record<string, string> = { luxury: "Luxury" };
 
 // The URL key for each filter, in the order they're written.
 const KEYS = {
@@ -34,6 +36,7 @@ const KEYS = {
   term: "term",
   mileage: "miles",
   paymentType: "type",
+  segment: "class",
   maxPayment: "max",
   maxDueAtSigning: "due",
 } as const satisfies Record<keyof DealFilters, string>;
@@ -96,6 +99,8 @@ export function filtersFromParams(params: Params, deals: Deal[]): { filters: Dea
   if (miles) filters.mileage = String(miles);
   const type = PAYMENT_TYPES[slug(params.get(KEYS.paymentType) ?? "")];
   if (type) filters.paymentType = type;
+  const segment = SEGMENTS[slug(params.get(KEYS.segment) ?? "")];
+  if (segment) filters.segment = segment;
   const max = wholeNumber(KEYS.maxPayment, MAX_PAYMENT_CEILING);
   if (max !== null) filters.maxPayment = max;
   const due = wholeNumber(KEYS.maxDueAtSigning, MAX_DAS_CEILING);

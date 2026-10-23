@@ -110,7 +110,7 @@ export default async function AdminListingsPage({
       </form>
 
       {!filtering && (
-        <ul className="mt-8 divide-y divide-line overflow-hidden rounded-xl border border-line">
+        <ul className="mt-8 divide-y divide-line overflow-hidden rounded-[3px] border border-line">
           {sellers.map((s) => (
             <li key={s.id}>
               <Link

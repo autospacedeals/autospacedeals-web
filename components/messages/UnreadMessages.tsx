@@ -95,7 +95,7 @@ export function UnreadBadge({ count, className = "" }: { count: number; classNam
   if (count <= 0) return null;
   return (
     <span
-      className={`inline-flex min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[11px] leading-[18px] font-semibold text-white ${className}`}
+      className={`inline-flex min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[11px] leading-[18px] font-semibold text-on-accent ${className}`}
     >
       {count > 9 ? "9+" : count}
       <span className="sr-only"> unread</span>

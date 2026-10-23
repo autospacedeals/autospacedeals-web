@@ -43,7 +43,7 @@ export default function CalculatorPage() {
           className="card-interactive group mt-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="flex items-center gap-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-fg">
+            <span className="grid size-10 shrink-0 place-items-center rounded-[3px] bg-accent-soft text-accent-fg">
               <Scale size={18} />
             </span>
             <span>

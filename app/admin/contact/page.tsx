@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
+import LocalTime from "@/components/LocalTime";
 
 export const metadata: Metadata = { title: "Contact messages", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -33,17 +34,6 @@ function place(m: ContactMessage): string | null {
     // keep the code
   }
   return [m.city, country].filter(Boolean).join(", ");
-}
-
-function when(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/Los_Angeles",
-  });
 }
 
 // Everything sent through the "Contact support" form, newest first. Each
@@ -84,7 +74,7 @@ export default async function AdminContactPage() {
                     {m.email}
                   </a>
                 </p>
-                <p className="text-xs text-fg-muted">{when(m.created_at)}</p>
+                <p className="text-xs text-fg-muted"><LocalTime iso={m.created_at} style="datetime-year" /></p>
               </div>
               <p className="mt-1 text-xs text-fg-muted">
                 {m.topic}

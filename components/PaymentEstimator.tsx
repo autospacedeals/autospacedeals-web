@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calculator, RotateCcw, CircleAlert } from "lucide-react";
+import { RotateCcw, CircleAlert } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { estimatePayment, formatCurrency, formatTerm, leaseCombos } from "@/lib/deal-utils";
 import { isRequiredProgram } from "@/lib/deal-options";
@@ -12,7 +12,9 @@ import { isRequiredProgram } from "@/lib/deal-options";
 // sent anywhere. Intentionally simplified (linear proration, see
 // estimatePayment) since the point is a ballpark "what if," not a finance
 // quote, and that's disclosed clearly below the numbers.
-export default function PaymentEstimator({ deal }: { deal: Deal }) {
+// `embedded`: shown inside the deal page's "Estimate a different payment"
+// section, which already has the heading.
+export default function PaymentEstimator({ deal, embedded = false }: { deal: Deal; embedded?: boolean }) {
   // Tracked as a raw string so the field can be freely cleared/retyped
   // without snapping to $0 mid-edit; the parsed, clamped number below is
   // what actually drives the live calculation on every keystroke.
@@ -110,13 +112,11 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
   }
 
   return (
-    <section className="panel mt-6">
+    <section className={embedded ? "" : "mt-12 border-t border-rule-ink pt-4"}>
       {/* Row reserves the Reset button's height (36px, 44px on touch) so the
           slider doesn't jump down when Reset appears mid-drag. */}
       <div className="flex min-h-9 items-center justify-between gap-3 pointer-coarse:min-h-11">
-        <h2 className="panel-title">
-          <Calculator /> Estimate your payment
-        </h2>
+        {embedded ? <span /> : <h2 className="dp-h2">Estimate your payment</h2>}
         {!isDefault && (
           <button type="button" onClick={reset} className="btn btn-ghost btn-sm -mr-2 px-3">
             <RotateCcw /> Reset
@@ -215,8 +215,8 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
                 role="radio"
                 aria-checked={withMsds === on}
                 onClick={() => setWithMsds(on)}
-                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                  withMsds === on ? "border-accent bg-accent-soft text-fg" : "border-line text-fg-secondary hover:border-line-strong"
+                className={`rounded-[2px] border px-3 py-2.5 text-left text-sm transition-colors ${
+                  withMsds === on ? "border-fg bg-hover-strong text-fg" : "border-line-strong text-fg-secondary hover:border-line-hover"
                 }`}
               >
                 <span className="block font-medium">
@@ -298,7 +298,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
         </div>
       )}
 
-      <div className="well mt-5">
+      <div className="mt-6 border border-rule-ink p-5">
         {deal.onePay ? (
           <>
             <p className="label">Estimated one-pay total</p>
@@ -309,7 +309,7 @@ export default function PaymentEstimator({ deal }: { deal: Deal }) {
             <div>
               <p className="label">Estimated monthly payment</p>
               <p className="mt-2 flex items-baseline gap-1">
-                <span className="stat-value">{formatCurrency(estimate.monthly)}</span>
+                <span className="price-lg">{formatCurrency(estimate.monthly)}</span>
                 <span className="price-unit">/mo + tax</span>
               </p>
             </div>

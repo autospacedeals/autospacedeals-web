@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X, LogOut, ChevronRight, MessageSquare } from "lucide-react";
 import { headerSignOutAction } from "@/app/actions";
 import { UnreadBadge, useUnreadMessages } from "@/components/messages/UnreadMessages";
-import { LogoWordmark } from "@/components/Logo";
+import Wordmark from "@/components/Wordmark";
 import ThemeToggle from "@/components/ThemeToggle";
 
 // Shopper destinations only — the broker portal (/broker/login,
@@ -56,31 +56,32 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-canvas/75 backdrop-blur-xl backdrop-saturate-150">
-      <div className="container-page flex h-16 items-center justify-between gap-6">
-        <div className="flex items-center gap-8">
-          <Link
-            href="/"
-            aria-label="Drive — home"
-            className="-m-1 shrink-0 rounded-lg p-1 pointer-coarse:-my-2 pointer-coarse:py-2"
-          >
-            <LogoWordmark decorative className="h-7 w-auto text-fg" />
-          </Link>
-          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={link.match(pathname) ? "page" : undefined}
-                className="nav-link pointer-coarse:py-3"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
+    <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur-xl">
+      {/* Three columns on desktop: nav, the wordmark centred, account. On
+          phones the wordmark moves to the left and the nav into the menu. */}
+      <div className="container-page grid h-16 grid-cols-[auto_1fr] items-center gap-4 md:h-[4.5rem] md:grid-cols-[1fr_auto_1fr]">
+        <nav aria-label="Main" className="hidden items-center gap-7 md:flex">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={link.match(pathname) ? "page" : undefined}
+              className="nav-link pointer-coarse:py-3"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
-        <div className="flex min-w-0 items-center gap-2">
+        <Link
+          href="/"
+          aria-label="Drive — home"
+          className="-m-1 shrink-0 justify-self-start rounded-[2px] p-1 text-fg pointer-coarse:-my-2 pointer-coarse:py-2 md:justify-self-center"
+        >
+          <Wordmark className="text-[19px] md:text-[23px]" />
+        </Link>
+
+        <div className="flex min-w-0 items-center justify-end gap-2">
           <ThemeToggle />
           {account ? (
             <>
@@ -96,28 +97,26 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
               )}
               <Link
                 href={account.href}
-                className="btn btn-ghost btn-sm hidden min-w-0 shrink pl-1.5 sm:inline-flex"
+                className="btn btn-secondary btn-pill btn-sm hidden min-w-0 shrink border-line-hover pl-1.5 sm:inline-flex"
               >
                 <span aria-hidden="true" className="avatar size-6 text-[11px]">
                   {initials(account.label)}
                 </span>
                 <span className="max-w-40 truncate">{account.label}</span>
               </Link>
-              <form action={headerSignOutAction} className="hidden sm:block">
-                <button type="submit" className="btn btn-ghost btn-sm">
-                  <LogOut /> Sign out
+              {/* Icon only on tablets, where the header is tight. */}
+              <form action={headerSignOutAction} className="hidden md:block">
+                <button type="submit" aria-label="Sign out" className="btn btn-ghost btn-sm">
+                  <LogOut /> <span className="hidden lg:inline">Sign out</span>
                 </button>
               </form>
             </>
           ) : (
-            <>
-              <Link href="/login" className="btn btn-ghost btn-sm hidden sm:inline-flex">
-                Log in
-              </Link>
-              <Link href="/signup" className="btn btn-primary btn-sm hidden sm:inline-flex">
-                Sign up
-              </Link>
-            </>
+            // One way in, like Google's: the login page offers email,
+            // Google, a text code, and a link to create an account.
+            <Link href="/login" className="btn btn-primary btn-pill btn-sm">
+              Sign in
+            </Link>
           )}
 
           <button
@@ -125,7 +124,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
             onClick={() => setOpen((v) => !v)}
             aria-label="Toggle menu"
             aria-expanded={open}
-            className="btn btn-secondary btn-icon md:hidden"
+            className="btn btn-icon btn-sm border-line-hover text-fg md:hidden"
           >
             {open ? <X /> : <Menu />}
           </button>
@@ -133,7 +132,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
       </div>
 
       {open && (
-        <div className="animate-fade-in border-t border-line bg-overlay/95 backdrop-blur-xl md:hidden">
+        <div className="animate-fade-in border-t border-line bg-canvas md:hidden">
           <nav aria-label="Mobile" className="container-page py-3">
             {NAV_LINKS.map((link) => (
               <Link
@@ -141,7 +140,7 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
                 href={link.href}
                 onClick={() => setOpen(false)}
                 aria-current={link.match(pathname) ? "page" : undefined}
-                className="flex h-12 items-center justify-between rounded-xl px-3 text-base font-medium text-fg-secondary transition-colors hover:bg-hover hover:text-fg aria-[current=page]:text-fg"
+                className="flex h-12 items-center justify-between border-b border-line px-1 text-base font-medium text-fg-secondary transition-colors hover:text-fg aria-[current=page]:text-fg"
               >
                 {link.label}
                 <ChevronRight size={16} aria-hidden="true" className="text-fg-faint" />
@@ -166,11 +165,11 @@ export default function SiteHeader({ account }: { account: HeaderAccount | null 
                 </>
               ) : (
                 <>
-                  <Link href="/login" onClick={() => setOpen(false)} className="btn btn-secondary">
-                    Log in
+                  <Link href="/login" onClick={() => setOpen(false)} className="btn btn-primary">
+                    Sign in
                   </Link>
-                  <Link href="/signup" onClick={() => setOpen(false)} className="btn btn-primary">
-                    Sign up
+                  <Link href="/signup" onClick={() => setOpen(false)} className="btn btn-secondary">
+                    Create an account
                   </Link>
                 </>
               )}

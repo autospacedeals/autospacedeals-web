@@ -41,7 +41,7 @@ function ProposalCard({
   if (!m.kind || !p) return null;
   const verb = m.kind === "remove" ? "Takes down" : "Changes";
   return (
-    <div className="mt-2 rounded-xl border border-line bg-raised p-3 text-sm">
+    <div className="mt-2 rounded-[3px] border border-line bg-raised p-3 text-sm">
       <p className="font-medium text-fg">{m.summary}</p>
       <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-fg-secondary">
         {p.changes.map((c) => (
@@ -196,7 +196,7 @@ export default function ListingAssistant({
         )}
         {messages.map((m) => (
           <div key={m.id} className="space-y-2">
-            <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-accent-soft px-3.5 py-2 text-sm break-words whitespace-pre-wrap text-fg">
+            <p className="ml-auto w-fit max-w-[85%] rounded-[3px] rounded-br-md bg-accent-soft px-3.5 py-2 text-sm break-words whitespace-pre-wrap text-fg">
               {m.message}
             </p>
             <div className="max-w-[92%]">
@@ -213,7 +213,7 @@ export default function ListingAssistant({
         ))}
         {pendingText && (
           <div className="space-y-2">
-            <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-accent-soft px-3.5 py-2 text-sm break-words whitespace-pre-wrap text-fg">
+            <p className="ml-auto w-fit max-w-[85%] rounded-[3px] rounded-br-md bg-accent-soft px-3.5 py-2 text-sm break-words whitespace-pre-wrap text-fg">
               {pendingText}
             </p>
             <p className="text-sm text-fg-muted">Looking at your cars…</p>
@@ -280,7 +280,7 @@ export default function ListingAssistant({
         <div className="mt-8">
           <h3 className="text-sm font-semibold text-fg">Your standing rules</h3>
           <p className="mt-0.5 text-xs text-fg-muted">Applied to matching cars now and to every car you add or sync later.</p>
-          <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
+          <ul className="mt-3 divide-y divide-line rounded-[3px] border border-line">
             {rules.map((r) => (
               <li key={r.id} className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="min-w-0 text-sm">

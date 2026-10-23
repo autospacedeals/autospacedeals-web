@@ -23,7 +23,7 @@ export default function TextRepliesPrompt({ sellerName, defaultPhone }: { seller
 
   if (!show) return null;
   return (
-    <div className="mt-5 rounded-xl border border-accent-line bg-accent-soft px-4 py-3">
+    <div className="mt-5 rounded-[3px] border border-accent-line bg-accent-soft px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-fg">Get a text when {sellerName} replies</p>
         <button

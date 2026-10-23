@@ -49,7 +49,7 @@ function LocationTable({ title, rows, share }: { title: string; rows: LocationSt
   const shown = rows.slice(0, LOCATION_ROWS);
   const recorded = rows.filter((r) => r.key !== "Not recorded").reduce((n, r) => n + r.visitors, 0);
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line">
+    <div className="overflow-x-auto rounded-[3px] border border-line">
       <table className="w-full text-left text-sm">
         <thead className="bg-surface text-xs text-fg-muted">
           <tr>
@@ -144,7 +144,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
       </div>
 
       {!stats.ready && (
-        <p className="mt-6 rounded-2xl border border-line bg-surface p-4 text-sm text-warning">
+        <p className="mt-6 rounded-[3px] border border-line bg-surface p-4 text-sm text-warning">
           Lead tracking isn&apos;t set up in the database yet (migration 0033).
         </p>
       )}
@@ -168,7 +168,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
           <code className="break-all text-fg-secondary">idriveus.com/?utm_source=instagram-ads&amp;utm_campaign=oct-test</code>
           . Untagged visits are grouped by the site that sent them.
         </p>
-        <div className="overflow-x-auto rounded-2xl border border-line">
+        <div className="overflow-x-auto rounded-[3px] border border-line">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-surface text-xs text-fg-muted">
               <tr>
@@ -235,7 +235,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
           Reply time is from the shopper&apos;s first message to the broker&apos;s first answer. &ldquo;Waiting&rdquo; means the
           shopper wrote last, over an hour ago.
         </p>
-        <div className="overflow-x-auto rounded-2xl border border-line">
+        <div className="overflow-x-auto rounded-[3px] border border-line">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-surface text-xs text-fg-muted">
               <tr>
@@ -294,7 +294,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
 
       <section className="mt-10">
         <h2 className="type-title mb-3">Most viewed listings</h2>
-        <div className="overflow-x-auto rounded-2xl border border-line">
+        <div className="overflow-x-auto rounded-[3px] border border-line">
           <table className="w-full min-w-[520px] text-left text-sm">
             <thead className="bg-surface text-xs text-fg-muted">
               <tr>
@@ -326,7 +326,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
       <section className="mt-10">
         <h2 className="type-title mb-1">Most saved cars</h2>
         <p className="mb-3 text-sm text-fg-muted">The listings shoppers save to come back to: a sign of what they want before they message.</p>
-        <div className="overflow-x-auto rounded-2xl border border-line">
+        <div className="overflow-x-auto rounded-[3px] border border-line">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-surface text-xs text-fg-muted">
               <tr>
@@ -373,7 +373,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
 
       <section className="mt-10">
         <h2 className="type-title mb-3">Latest saves</h2>
-        <div className="overflow-x-auto rounded-2xl border border-line">
+        <div className="overflow-x-auto rounded-[3px] border border-line">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-surface text-xs text-fg-muted">
               <tr>
@@ -419,7 +419,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
 
       <section className="mt-10">
         <h2 className="type-title mb-3">Latest conversations</h2>
-        <div className="overflow-x-auto rounded-2xl border border-line">
+        <div className="overflow-x-auto rounded-[3px] border border-line">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-surface text-xs text-fg-muted">
               <tr>

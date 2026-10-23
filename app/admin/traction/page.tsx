@@ -28,7 +28,7 @@ function change(cur: number, prev: number | undefined): string {
 
 function Table({ head, rows }: { head: string[]; rows: (string | number)[][] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line">
+    <div className="overflow-x-auto rounded-[3px] border border-line">
       <table className="w-full text-left text-sm">
         <thead className="bg-surface text-xs text-fg-muted">
           <tr>

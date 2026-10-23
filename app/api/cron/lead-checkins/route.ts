@@ -12,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { participantNames, conversationPath } from "@/lib/messages";
 import { OUTCOMES_ENABLED, OUTCOME_LABELS, outcomeToken, type LeadOutcome } from "@/lib/leads";
 import { emailLayoutHtml, emailLinkHtml, escapeHtml, isEmailConfigured, sendEmail, siteLink } from "@/lib/email";
+import { DRIVE_TZ, formatWhen } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -84,7 +85,8 @@ export async function GET(request: NextRequest) {
 
       const rows = leads.map((l) => {
         const shopper = (names.customers.get(l.customer_id) ?? "A shopper").split(" ")[0];
-        const day = new Date(l.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        // An email can't ask the reader's time zone: Pacific, Drive's home.
+        const day = formatWhen(l.created_at, "date", DRIVE_TZ);
         const what = l.deal_label || "a listing";
         return {
           html:

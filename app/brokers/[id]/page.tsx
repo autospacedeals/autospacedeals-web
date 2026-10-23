@@ -100,7 +100,7 @@ export default async function BrokerProfilePage({
       <section className="card relative overflow-hidden p-6 sm:p-8">
         <div aria-hidden="true" className="light-bar absolute inset-x-0 top-0" />
         <div className="flex items-start gap-4">
-          <SellerAvatar name={broker.businessName} logoUrl={broker.logoUrl} className="size-16 rounded-2xl text-xl" />
+          <SellerAvatar name={broker.businessName} logoUrl={broker.logoUrl} className="size-16 rounded-[3px] text-xl" />
           <div className="min-w-0">
             <p className="label">{broker.sellerType}</p>
             <h1 className="type-page mt-1 text-3xl break-words sm:text-4xl">{broker.businessName}</h1>

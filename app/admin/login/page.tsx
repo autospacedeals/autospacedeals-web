@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { safeNextPath } from "@/lib/safe-next-path";
-import { LogoMark } from "@/components/Logo";
+import Wordmark from "@/components/Wordmark";
 import AdminLoginForm from "./AdminLoginForm";
 
 export const metadata: Metadata = { title: "Admin sign in", robots: { index: false, follow: false } };
@@ -23,8 +23,8 @@ export default async function AdminLoginPage({
   return (
     <main className="relative isolate px-4 py-16 sm:py-20">
       <div className="mx-auto w-full max-w-md">
-        <div className="panel p-8 shadow-pop sm:p-10">
-          <LogoMark decorative className="size-10 text-fg" />
+        <div className="panel border-rule-ink p-8 sm:p-10">
+          <Wordmark className="text-xl text-fg" />
           <p className="label mt-6">Drive admin</p>
           <h1 className="type-page mt-1 text-3xl sm:text-3xl">Sign in</h1>
           {user && (

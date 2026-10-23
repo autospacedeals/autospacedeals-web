@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { getPublishedDeals } from "@/lib/supabase/deals";
 import { getSavedSearchesAvailable } from "@/lib/supabase/saved-searches";
 import HomeClient from "@/components/HomeClient";
@@ -63,6 +64,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // already filtered.
   const raw = await searchParams;
   const initial = filtersFromParams({ get: (key) => (typeof raw[key] === "string" ? raw[key] : null) }, deals);
+  // Where the visitor is, roughly, from their IP (Vercel adds these headers;
+  // nothing locally): "Irvine, CA" for the masthead's location chip.
+  const h = await headers();
+  const city = decodeGeo(h.get("x-vercel-ip-city"));
+  const region = decodeGeo(h.get("x-vercel-ip-country-region"));
+  const visitorPlace = h.get("x-vercel-ip-country") === "US" && city ? (region ? `${city}, ${region}` : city) : null;
   return (
     <>
       <script
@@ -83,7 +90,20 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         savedSearchesAvailable={savedSearchesAvailable}
         initialFilters={initial.filters}
         initialSort={initial.sortBy}
+        visitorPlace={visitorPlace}
       />
     </>
   );
+}
+
+// Vercel's geo headers are URI-encoded ("San%20Diego"). Letters, spaces and
+// a few marks only, so nothing odd lands in the page.
+function decodeGeo(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const text = decodeURIComponent(value).trim();
+    return /^[\p{L} .'-]{1,40}$/u.test(text) ? text : null;
+  } catch {
+    return null;
+  }
 }

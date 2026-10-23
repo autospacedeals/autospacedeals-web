@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MessageSquare } from "lucide-react";
+import LocalTime from "@/components/LocalTime";
 
 export interface ConversationListItem {
   id: string;
@@ -9,13 +10,6 @@ export interface ConversationListItem {
   preview: string;
   lastMessageAt: string;
   unread: boolean;
-}
-
-function when(iso: string): string {
-  const d = new Date(iso);
-  return d.toDateString() === new Date().toDateString()
-    ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 // An inbox: newest conversation first, unread ones marked.
@@ -35,7 +29,7 @@ export default function ConversationList({
     );
   }
   return (
-    <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+    <ul className="divide-y divide-line overflow-hidden rounded-[3px] border border-line">
       {items.map((c) => (
         <li key={c.id}>
           <Link href={c.href} className="flex items-start gap-3 px-4 py-4 transition-colors hover:bg-hover sm:px-5">
@@ -49,7 +43,7 @@ export default function ConversationList({
                   {c.title}
                   {c.unread && <span className="sr-only"> (unread)</span>}
                 </span>
-                <span className="shrink-0 text-xs text-fg-muted">{when(c.lastMessageAt)}</span>
+                <span className="shrink-0 text-xs text-fg-muted"><LocalTime iso={c.lastMessageAt} style="time-or-date" /></span>
               </span>
               {c.dealLabel && <span className="mt-0.5 block truncate text-xs text-fg-muted">{c.dealLabel}</span>}
               <span className={`mt-1 block truncate text-sm ${c.unread ? "text-fg" : "text-fg-muted"}`}>{c.preview}</span>

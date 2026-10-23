@@ -296,7 +296,7 @@ export default async function BrokerDashboardPage() {
         </div>
       </div>
 
-      <div className="mt-8 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-line px-5 py-4 text-sm">
+      <div className="mt-8 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-[3px] border border-line px-5 py-4 text-sm">
         <p className="text-fg-secondary">
           <span className="font-medium text-fg">Ad archive</span> · every version of your listings, kept 2+ years
           for California&apos;s CARS Act.

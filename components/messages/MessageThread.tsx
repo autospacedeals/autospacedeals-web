@@ -30,6 +30,7 @@ import {
   type MessageAttachment,
   type ShareableDoc,
 } from "@/lib/message-attachments";
+import LocalTime from "@/components/LocalTime";
 
 type ViewerRole = "customer" | "broker" | "admin";
 
@@ -108,7 +109,7 @@ function Attachments({
           return (
             <span
               key={a.path}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-line px-3 py-2 text-xs text-fg-muted"
+              className="inline-flex items-center gap-1.5 rounded-[3px] border border-dashed border-line px-3 py-2 text-xs text-fg-muted"
             >
               {isImageType(a.type) ? <ImageOff className="size-3.5" /> : <FileX className="size-3.5" />}
               {a.kind === "license" || a.kind === "insurance" ? attachmentLabel(a) : isImageType(a.type) ? "Photo" : "File"} deleted
@@ -137,7 +138,7 @@ function Attachments({
               <img
                 src={attachmentUrl(message.id, i)}
                 alt={attachmentLabel(a)}
-                className="max-h-56 max-w-[240px] rounded-xl border border-line object-cover"
+                className="max-h-56 max-w-[240px] rounded-[3px] border border-line object-cover"
                 // Showing it to the person it was sent to is opening it.
                 onLoad={() => recipient && !openedAt && onOpened(key)}
               />
@@ -152,7 +153,7 @@ function Attachments({
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => recipient && !openedAt && onOpened(key)}
-              className="inline-flex max-w-[240px] items-center gap-2 rounded-xl border border-line bg-raised px-3 py-2 text-left text-sm text-fg hover:border-line-strong"
+              className="inline-flex max-w-[240px] items-center gap-2 rounded-[3px] border border-line bg-raised px-3 py-2 text-left text-sm text-fg hover:border-line-strong"
             >
               <FileText className="size-4 shrink-0 text-fg-muted" />
               <span className="truncate">{attachmentLabel(a)}</span>
@@ -163,14 +164,6 @@ function Attachments({
       })}
     </div>
   );
-}
-
-function timeLabel(iso: string): string {
-  const d = new Date(iso);
-  const sameDay = d.toDateString() === new Date().toDateString();
-  return sameDay
-    ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export default function MessageThread({
@@ -378,13 +371,13 @@ export default function MessageThread({
             <li key={m.id} className={`flex ${right ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] sm:max-w-[70%] ${right ? "text-right" : ""}`}>
                 <p className="mb-1 text-[11px] text-fg-muted">
-                  {mine ? "You" : names[m.sender_role]} · {timeLabel(m.created_at)}
+                  {mine ? "You" : names[m.sender_role]} · <LocalTime iso={m.created_at} style="time-or-datetime" />
                   {m.channel === "sms" && " · via text"}
                 </p>
                 {m.body && (
                   <p
-                    className={`inline-block rounded-2xl px-3.5 py-2.5 text-left text-sm leading-6 break-words whitespace-pre-wrap ${
-                      right ? "bg-accent text-white" : "border border-line bg-raised text-fg"
+                    className={`inline-block rounded-[3px] px-3.5 py-2.5 text-left text-sm leading-6 break-words whitespace-pre-wrap ${
+                      right ? "bg-accent text-on-accent" : "border border-line bg-raised text-fg"
                     }`}
                   >
                     {m.body}
@@ -432,9 +425,9 @@ export default function MessageThread({
                 <li key={`${f.name}-${i}`} className="relative">
                   {previews[i] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={previews[i]} alt={f.name} className="size-16 rounded-lg border border-line object-cover" />
+                    <img src={previews[i]} alt={f.name} className="size-16 rounded-[2px] border border-line object-cover" />
                   ) : (
-                    <span className="flex h-16 max-w-[160px] items-center gap-1.5 rounded-lg border border-line bg-raised px-2.5 text-xs text-fg">
+                    <span className="flex h-16 max-w-[160px] items-center gap-1.5 rounded-[2px] border border-line bg-raised px-2.5 text-xs text-fg">
                       <FileText className="size-4 shrink-0 text-fg-muted" />
                       <span className="truncate">{f.name}</span>
                     </span>
@@ -453,7 +446,7 @@ export default function MessageThread({
           )}
 
           {docsOpen && (
-            <div className="mt-3 rounded-xl border border-line bg-raised p-3 text-sm">
+            <div className="mt-3 rounded-[3px] border border-line bg-raised p-3 text-sm">
               {shareableDocs.length > 0 ? (
                 <>
                   <p className="font-medium text-fg">Send {names.broker} your documents</p>

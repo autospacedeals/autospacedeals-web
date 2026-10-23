@@ -55,7 +55,7 @@ export default function PhoneCodeSignIn({ next = null }: { next?: string | null 
 
   return (
     <form
-      className="rounded-xl border border-line p-4"
+      className="rounded-[3px] border border-line p-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (pending) return;

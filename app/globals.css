@@ -15,138 +15,152 @@
    6. @utility          tiny custom utilities (no-scrollbar)
    7. reduced motion    unlayered, last, wins everything
    --------------------------------------------------------------------------
-   Never use `tabular-nums`: Mona Sans's tabular figures carry a slashed
-   zero ($1Ø,ØØØ). Proportional figures are used everywhere.
+   Prices and figures use Archivo's tabular figures (.price etc.) so columns
+   of numbers line up.
    ========================================================================== */
 
 /* 1. TOKENS ================================================================ */
-/* Two themes on <html data-theme>: dark (default) and light, picked with the
-   header's theme toggle (components/ThemeToggle.tsx) and remembered per
-   visitor. Every colour on the site comes from these tokens; component styles
-   mix them (color-mix) rather than hard-coding a theme's raw values. */
-:root {
+/* Two themes on <html data-theme>: light ("paper", the default) and dark
+   (olive-charcoal), picked with the header's theme toggle
+   (components/ThemeToggle.tsx) and remembered per visitor. Every colour on
+   the site comes from these tokens; component styles mix them (color-mix)
+   rather than hard-coding a theme's raw values. The look is editorial: one
+   ink colour on warm paper, hairline rules instead of boxes, and a muted
+   brass as the only accent, kept small. */
+/* .theme-dark puts any block in the dark palette, whatever the page's
+   theme (the footer band). */
+:root,
+.theme-dark {
   color-scheme: dark;
 
-  /* Surfaces — deep navy, four tonal steps (back -> front) */
-  --canvas: #060a14; /* page, header (75%), footer */
-  --surface: #0c1322; /* cards, panels, filter sidebar, how-it-works band */
-  --raised: #141d31; /* avatars, selected segment, thumbnail wells */
-  --overlay: #1a2440; /* modals, menus, compare tray, <option> lists */
+  /* Surfaces — warm charcoal with a hint of olive, four tonal steps */
+  --canvas: #252621; /* page, header */
+  --surface: #2e2f29; /* panels, forms, back-office cards */
+  --raised: #393a33; /* avatars, selected segment, thumbnail wells */
+  --overlay: #2b2c26; /* modals, menus, <option> lists */
 
-  /* Lines + hover washes (use these instead of raw white alphas) */
-  --line: rgb(190 210 255 / 0.08);
-  --line-strong: rgb(190 210 255 / 0.14);
-  --line-hover: rgb(190 210 255 / 0.24);
-  --hover: rgb(190 210 255 / 0.045);
-  --hover-strong: rgb(190 210 255 / 0.09);
+  /* Lines + hover washes (ivory at low strength) */
+  --line: rgb(227 225 211 / 0.13);
+  --line-strong: rgb(227 225 211 / 0.22);
+  --line-hover: rgb(227 225 211 / 0.36);
+  --hover: rgb(227 225 211 / 0.04);
+  --hover-strong: rgb(227 225 211 / 0.08);
+  /* The heavy rule under headings, above the search bar and card tops */
+  --rule-ink: #bdbbab;
 
-  /* Text — contrast on canvas / surface / raised / overlay */
-  --fg: #f2f5fa; /* headings, values, prices */
-  --fg-secondary: #b6bfd0; /* body copy, nav */
-  --fg-muted: #8d97ab; /* labels, meta, legal — 6:1 on canvas */
-  --fg-faint: #5d6780; /* icons, dividers, disabled. NEVER text */
+  /* Text — soft ivory; secondary and muted text kept bright enough to read
+     (AA on the canvas, the muted grey about 7:1) */
+  --fg: #e3e1d3; /* headings, values, prices */
+  --fg-secondary: #d2d0c2; /* body copy, nav, terms, sellers */
+  --fg-muted: #b2b0a2; /* labels, meta, fine print */
+  --fg-faint: #75746a; /* icons, dividers, disabled. NEVER text */
 
-  /* Accent — electric blue, plus a violet second colour for depth (glows,
-     highlight lines, a few accents). */
-  --brand: #2f7bff; /* logo, eyebrow/bullet parallelograms, range fill, dots */
-  --accent: #2a66f2; /* filled buttons — white text 4.9:1 */
-  --accent-hover: #2e6bf7; /* white text 4.6:1 */
-  --accent-fg: #7eabff; /* accent TEXT / icons on dark — 8.3:1 */
-  --accent-soft: rgb(47 123 255 / 0.14); /* tonal fills (Call button, callout) */
-  --accent-soft-hover: rgb(47 123 255 / 0.22);
-  --accent-line: rgb(47 123 255 / 0.42); /* tinted borders */
-  --on-accent: #ffffff;
-  --accent-2: #8b6cff; /* violet: glows, gradient ends, small highlights */
-  --accent-2-fg: #b9a6ff; /* violet TEXT on dark */
-  --accent-2-soft: rgb(139 108 255 / 0.14);
+  /* Accent. Filled buttons are ivory with charcoal text; brass marks
+     links, small highlights and the focus ring. */
+  --brand: #c3ad72; /* brass: bullets, diamonds, dots */
+  --accent: #dddbcd; /* filled buttons */
+  --accent-hover: #ebe9dc;
+  --accent-fg: #d1bd86; /* accent TEXT / links on the dark — 8:1 */
+  --accent-soft: rgb(195 173 114 / 0.12);
+  --accent-soft-hover: rgb(195 173 114 / 0.2);
+  --accent-line: rgb(195 173 114 / 0.42);
+  --on-accent: #252621;
+  --accent-2: #a89660;
+  --accent-2-fg: #d1bd86;
+  --accent-2-soft: rgb(168 150 96 / 0.14);
 
   /* Status */
-  --success: #4ade9a;
-  --success-soft: rgb(74 222 154 / 0.1);
-  --warning: #f7b955;
-  --warning-soft: rgb(247 185 85 / 0.1);
-  --danger: #ff7a7a;
-  --danger-soft: rgb(255 122 122 / 0.1);
+  --success: #9fd4a8;
+  --success-soft: rgb(159 212 168 / 0.1);
+  --warning: #e8b86a;
+  --warning-soft: rgb(232 184 106 / 0.12);
+  --danger: #f2937f;
+  --danger-soft: rgb(242 147 127 / 0.1);
 
-  /* Focus — 6.5:1 on canvas */
-  --ring: #5b8fff;
+  /* Focus — brass */
+  --ring: #c3ad72;
 
-  /* Mixed into component styles: --contrast = hairline highlights,
-     --glow = light-blue glow lines, --shadow-ink = shadows. */
-  --contrast: #ffffff;
-  --glow: #7eabff;
+  --contrast: #e3e1d3;
+  --glow: #c3ad72;
   --shadow-ink: #000000;
 
-  /* Photo stage (behind car photos while loading) + glass tags on photos */
-  --stage-top: #1a2236;
-  --stage-bottom: #0a0f1a;
-  --tag-bg: rgb(6 10 20 / 0.66);
-  --note-fade: rgb(0 0 0 / 0.8); /* behind the "Stock photo" note on photos */
-  --vignette: rgb(0 0 0 / 0.22); /* photo edge shading */
-  --photo-brightness: 0.94;
+  /* Photo stage. Listing photos are served cut out of their white studio
+     backdrop (/api/photo), so the car sits straight on the page. Photos
+     that can't be cut (a car on a lot) show as they are. Tags on photos
+     are dark glass. */
+  --stage: transparent;
+  --photo-blend: normal;
+  --stage-ink: #5d5c54; /* text printed on the photo plate */
+  --tag-bg: rgb(37 38 33 / 0.74);
+  --tag-fg: #e3e1d3;
+  --photo-brightness: 1;
   /* Modal backdrop */
-  --scrim: rgb(3 5 10 / 0.72);
+  --scrim: rgb(10 11 8 / 0.72);
 }
 
-/* Light theme ("Sky"): pale blue page, white cards, navy text, bright blue
-   with a cyan second accent. */
+/* Light theme ("paper"), the default: warm paper, ink text, olive filled
+   buttons, brass accents. */
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --canvas: #eef5ff;
-  --surface: #ffffff;
-  --raised: #e3eefc;
-  --overlay: #ffffff;
+  --canvas: #f2f0eb;
+  --surface: #faf8f4;
+  --raised: #e8e5de;
+  --overlay: #fbfaf7;
 
-  --line: rgb(20 60 120 / 0.1);
-  --line-strong: rgb(20 60 120 / 0.16);
-  --line-hover: rgb(20 60 120 / 0.28);
-  --hover: rgb(20 60 120 / 0.04);
-  --hover-strong: rgb(20 60 120 / 0.08);
+  --line: rgb(29 26 22 / 0.12);
+  --line-strong: rgb(29 26 22 / 0.2);
+  --line-hover: rgb(29 26 22 / 0.34);
+  --hover: rgb(29 26 22 / 0.035);
+  --hover-strong: rgb(29 26 22 / 0.07);
+  --rule-ink: #1d1d1b;
 
-  --fg: #0b1a33; /* 16:1 on canvas */
-  --fg-secondary: #33445f; /* 9:1 */
-  --fg-muted: #56677f; /* 5.3:1 */
-  --fg-faint: #93a3b8; /* icons, dividers, disabled. NEVER text */
+  --fg: #1d1d1b; /* 15:1 on canvas */
+  --fg-secondary: #46433e; /* 9:1 */
+  --fg-muted: #6b665f; /* 5.2:1 */
+  --fg-faint: #a8a298; /* icons, dividers, disabled. NEVER text */
 
-  --brand: #1f7aff;
-  --accent: #1a6ef0; /* white text 4.6:1 */
-  --accent-hover: #155fd4;
-  --accent-fg: #1462d6; /* accent TEXT on light — 5.1:1 */
-  --accent-soft: rgb(31 122 255 / 0.1);
-  --accent-soft-hover: rgb(31 122 255 / 0.16);
-  --accent-line: rgb(31 122 255 / 0.35);
-  --on-accent: #ffffff;
-  --accent-2: #06b6d4;
-  --accent-2-fg: #0891b2;
-  --accent-2-soft: rgb(6 182 212 / 0.12);
+  --brand: #857437;
+  --accent: #373c28; /* olive — light text 11:1 */
+  --accent-hover: #2a2e1e;
+  --accent-fg: #6c5f27; /* accent TEXT / links on paper — 5.6:1 */
+  --accent-soft: rgb(133 116 55 / 0.1);
+  --accent-soft-hover: rgb(133 116 55 / 0.16);
+  --accent-line: rgb(108 95 39 / 0.35);
+  --on-accent: #f4f2ea;
+  --accent-2: #857437;
+  --accent-2-fg: #6c5f27;
+  --accent-2-soft: rgb(133 116 55 / 0.12);
 
-  --success: #0f8a54;
-  --success-soft: rgb(15 138 84 / 0.09);
-  --warning: #a8620a;
-  --warning-soft: rgb(217 133 18 / 0.12);
-  --danger: #c93636;
-  --danger-soft: rgb(201 54 54 / 0.08);
+  --success: #2f7a4b;
+  --success-soft: rgb(47 122 75 / 0.09);
+  --warning: #96580f;
+  --warning-soft: rgb(196 125 30 / 0.12);
+  --danger: #b23a2c;
+  --danger-soft: rgb(178 58 44 / 0.08);
 
-  --ring: #1a6ef0;
+  --ring: #6c5f27;
 
-  --contrast: #0b1a33;
-  --glow: #38bdf8;
-  --shadow-ink: #1a2a4a;
+  --contrast: #1d1d1b;
+  --glow: #857437;
+  --shadow-ink: #23261a;
 
-  --stage-top: #ffffff;
-  --stage-bottom: #e8f1fd;
-  --tag-bg: rgb(255 255 255 / 0.82);
-  --note-fade: rgb(255 255 255 / 0.92);
-  --vignette: rgb(26 42 74 / 0.04);
-  --photo-brightness: 1;
-  --scrim: rgb(14 22 38 / 0.45);
+  /* Photos multiply straight onto the paper (any white left around an
+     uncut photo disappears into it). */
+  --stage: var(--canvas);
+  --photo-blend: multiply;
+  --stage-ink: #6b665f;
+  --tag-bg: rgb(242 240 235 / 0.88);
+  --tag-fg: #1d1d1b;
+  /* Lifts off-white photo backgrounds (some sellers' photos are ~#f5)
+     to white, so they disappear into the paper too. */
+  --photo-brightness: 1.045;
+  --scrim: rgb(29 22 18 / 0.45);
 
-  /* Softer shadows than the dark theme's. */
-  --shadow-card: 0 1px 2px 0 rgb(26 42 74 / 0.06), 0 1px 3px 0 rgb(26 42 74 / 0.05);
-  --shadow-lift: 0 18px 40px -18px rgb(26 42 74 / 0.28);
-  --shadow-pop: 0 0 0 1px rgb(26 42 74 / 0.05), 0 24px 56px -24px rgb(26 42 74 / 0.22);
-  --shadow-glow: 0 10px 28px -12px rgb(31 122 255 / 0.55);
+  --shadow-card: none;
+  --shadow-lift: none;
+  --shadow-pop: 0 0 0 1px rgb(29 26 22 / 0.06), 0 24px 56px -28px rgb(35 38 26 / 0.32);
+  --shadow-glow: none;
 }
 
 /* 2. UTILITY MAPPING ======================================================= */
@@ -192,11 +206,16 @@
   --color-background: var(--canvas);
   --color-foreground: var(--fg);
 
-  /* Mona Sans (variable: wght 200–900, wdth 75–125) is the UI AND display
-     face. font-display = same family, semi-expanded (wdth 112). */
-  --font-sans: var(--font-mona), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-mona), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display--font-variation-settings: "wdth" 112;
+  --color-rule-ink: var(--rule-ink);
+
+  /* Archivo (variable: wght 100–900, wdth 62–125) is the UI AND display
+     face; font-display = same family, a little wider (wdth 108). Newsreader
+     is the serif: body copy in long text, ledes, and the italic word in a
+     headline. */
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display--font-variation-settings: "wdth" 108;
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -204,10 +223,12 @@
 @theme static {
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --shadow-card: inset 0 1px 0 0 color-mix(in srgb, var(--contrast) 4%, transparent), 0 1px 2px 0 color-mix(in srgb, var(--shadow-ink) 50%, transparent);
-  --shadow-lift: inset 0 1px 0 0 color-mix(in srgb, var(--contrast) 6%, transparent), 0 24px 48px -20px color-mix(in srgb, var(--shadow-ink) 90%, transparent);
-  --shadow-pop: 0 0 0 1px color-mix(in srgb, var(--contrast) 6%, transparent), 0 32px 80px -16px color-mix(in srgb, var(--shadow-ink) 90%, transparent);
-  --shadow-glow: 0 10px 30px -10px color-mix(in srgb, var(--brand) 70%, transparent);
+  /* Flat by design: hairlines do the separating. Only menus and modals
+     float. */
+  --shadow-card: none;
+  --shadow-lift: none;
+  --shadow-pop: 0 0 0 1px color-mix(in srgb, var(--contrast) 6%, transparent), 0 32px 80px -24px color-mix(in srgb, var(--shadow-ink) 85%, transparent);
+  --shadow-glow: none;
 
   --animate-fade-up: fade-up 0.6s var(--ease-out-expo) both;
   --animate-fade-in: fade-in 0.2s ease-out both;
@@ -281,7 +302,7 @@
   }
   ::selection {
     background-color: color-mix(in srgb, var(--brand) 35%, transparent);
-    color: #fff;
+    color: var(--fg);
   }
   /* One focus style for everything that isn't a text field (fields use a
      ring-coloured border + soft halo instead, see .input). */
@@ -323,62 +344,80 @@
 
   /* ---------- Type (colour included; override with any text-* utility) ---------- */
   .type-hero {
-    @apply font-display text-[2.625rem] leading-[1] font-semibold tracking-[-0.035em] text-fg sm:text-6xl lg:text-[4.25rem];
-    font-variation-settings: "wdth" 112;
+    @apply font-display text-[3.25rem] leading-[0.92] font-semibold tracking-[-0.035em] text-fg sm:text-7xl lg:text-[7.5rem];
+    font-variation-settings: "wdth" 108;
   }
   .type-page {
-    @apply font-display text-4xl leading-[1.05] font-semibold tracking-[-0.03em] text-fg sm:text-5xl;
-    font-variation-settings: "wdth" 112;
+    @apply font-display text-4xl leading-[1] font-semibold tracking-[-0.03em] text-fg sm:text-[3.25rem];
+    font-variation-settings: "wdth" 108;
   }
   .type-section {
-    @apply font-display text-2xl leading-tight font-semibold tracking-[-0.025em] text-fg sm:text-3xl;
-    font-variation-settings: "wdth" 112;
+    @apply font-display text-3xl leading-[1] font-semibold tracking-[-0.03em] text-fg sm:text-[2.75rem];
+    font-variation-settings: "wdth" 108;
+  }
+  /* The serif italic word inside a headline ("Lease the car, *not* the showroom") */
+  .type-hero em,
+  .type-page em,
+  .type-section em,
+  .serif-em {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    font-variation-settings: normal;
   }
   .type-title {
     @apply text-lg leading-snug font-semibold tracking-[-0.01em] text-fg;
   }
   .type-card {
-    @apply font-display text-lg leading-snug font-semibold tracking-[-0.015em] text-fg;
-    font-variation-settings: "wdth" 108;
+    @apply font-display text-[1.375rem] leading-[1.15] font-semibold tracking-[-0.015em] text-fg;
+    font-variation-settings: "wdth" 104;
   }
+  /* Ledes and long reading text are set in the serif. */
   .lede {
-    @apply text-base leading-7 text-fg-secondary sm:text-lg sm:leading-8;
+    @apply font-serif text-lg leading-[1.5] text-fg-secondary sm:text-[1.1875rem];
   }
+  .serif {
+    font-family: var(--font-serif);
+  }
+  /* Small caps-style label: DUE AT SIGNING, MONTHLY PAYMENT */
   .label {
-    @apply text-xs font-medium text-fg-muted;
+    @apply text-[11px] leading-4 font-semibold tracking-[0.14em] text-fg-muted uppercase;
   }
-  /* Section kicker. Sentence case. The brand parallelogram echoes the logo's i-dot. */
+  /* Section kicker. Spaced capitals after a small crema diamond. */
   .eyebrow {
-    @apply inline-flex items-center gap-2.5 text-[13px] font-medium text-fg-secondary;
+    @apply inline-flex items-center gap-2.5 text-[11px] font-semibold tracking-[0.16em] text-fg-muted uppercase;
   }
-  /* Blue-to-violet text for a headline's key words. */
+  /* Formerly a blue-to-violet gradient on a headline's key words; now the
+     serif italic, so headlines that use it pick up the new look. */
   .text-gradient {
-    background: linear-gradient(100deg, var(--accent-fg) 10%, var(--accent-2-fg) 90%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    font-variation-settings: normal;
   }
   .eyebrow::before {
     content: "";
-    @apply h-1.5 w-2.5 shrink-0 rounded-[1px];
-    background: linear-gradient(90deg, var(--brand), var(--accent-2));
-    transform: skewX(-12deg);
+    @apply size-1.5 shrink-0;
+    background: var(--brand);
+    transform: rotate(45deg);
   }
   .price {
-    @apply font-display text-[1.75rem] leading-none font-semibold tracking-[-0.03em] text-fg;
-    font-variation-settings: "wdth" 112;
+    @apply font-display text-[2.5rem] leading-none font-semibold tracking-[-0.03em] text-fg tabular-nums;
+    font-variation-settings: "wdth" 100;
   }
   .price-lg {
-    @apply font-display text-4xl leading-none font-semibold tracking-[-0.035em] text-fg sm:text-[2.75rem];
-    font-variation-settings: "wdth" 112;
+    @apply font-display text-5xl leading-none font-semibold tracking-[-0.035em] text-fg tabular-nums sm:text-[3.5rem];
+    font-variation-settings: "wdth" 100;
   }
   .price-unit {
-    @apply text-sm font-normal tracking-normal text-fg-muted;
+    @apply text-[15px] font-medium tracking-normal text-fg-muted;
     font-variation-settings: normal;
   }
   .stat-value {
-    @apply font-display text-2xl leading-none font-semibold tracking-[-0.02em] text-fg;
-    font-variation-settings: "wdth" 112;
+    @apply font-display text-2xl leading-none font-semibold tracking-[-0.02em] text-fg tabular-nums;
+    font-variation-settings: "wdth" 100;
   }
   .link {
     @apply font-medium text-accent-fg underline decoration-accent-line underline-offset-4 transition-colors hover:decoration-accent-fg;
@@ -386,8 +425,9 @@
   .link-quiet {
     @apply text-fg-muted transition-colors hover:text-fg;
   }
+  /* "See the deal →": ink text over a 1px underline */
   .link-arrow {
-    @apply inline-flex items-center gap-1.5 text-[13px] font-medium text-fg-secondary transition-colors hover:text-fg [&_svg]:size-3.5;
+    @apply inline-flex items-center gap-1.5 border-b border-current pb-0.5 text-[13px] font-semibold text-fg transition-colors hover:text-fg-secondary [&_svg]:size-3.5;
   }
   .link-arrow svg {
     transition: transform 0.25s var(--ease-out-expo);
@@ -403,9 +443,9 @@
     height: var(--btn-h, 2.75rem); /* 44px */
     padding-inline: var(--btn-px, 1.25rem);
     border: 1px solid transparent;
-    border-radius: 9999px;
+    border-radius: var(--btn-r, 2px);
     font-size: var(--btn-fs, 0.875rem);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1;
     white-space: nowrap;
     user-select: none;
@@ -440,21 +480,26 @@
   .btn-icon {
     width: var(--btn-h, 2.75rem);
     padding-inline: 0;
+    --btn-r: 9999px;
+  }
+  /* Rounded ends: Sign in, chips-like small actions */
+  .btn-pill {
+    --btn-r: 9999px;
   }
   /* The ONE filled blue per screen region: main action. */
   .btn-primary {
     background-color: var(--accent);
     color: var(--on-accent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--contrast) 18%, transparent), 0 1px 2px color-mix(in srgb, var(--shadow-ink) 40%, transparent);
   }
   /* Quiet blue: a repeated "primary-ish" action, e.g. Call on every deal card. */
   .btn-tonal {
     background-color: var(--accent-soft);
     color: var(--accent-fg);
   }
+  /* Outlined in ink: "Message seller" on cards, quieter actions */
   .btn-secondary {
-    border-color: var(--line-strong);
-    background-color: var(--hover);
+    border-color: var(--fg);
+    background-color: transparent;
     color: var(--fg);
   }
   .btn-ghost {
@@ -468,14 +513,14 @@
   @media (hover: hover) {
     .btn-primary:hover {
       background-color: var(--accent-hover);
-      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--contrast) 22%, transparent), var(--shadow-glow);
     }
     .btn-tonal:hover {
       background-color: var(--accent-soft-hover);
     }
     .btn-secondary:hover {
-      border-color: var(--line-hover);
-      background-color: var(--hover-strong);
+      border-color: var(--accent);
+      background-color: var(--accent);
+      color: var(--on-accent);
     }
     .btn-ghost:hover {
       background-color: var(--hover-strong);
@@ -504,8 +549,8 @@
     height: var(--input-h, 2.75rem);
     padding-inline: var(--input-px, 0.875rem);
     border: 1px solid var(--line-strong);
-    border-radius: 0.75rem;
-    background-color: color-mix(in srgb, var(--contrast) 3%, transparent);
+    border-radius: 2px;
+    background-color: color-mix(in srgb, var(--contrast) 2%, transparent);
     color: var(--fg);
     font-size: 1rem; /* 16px below sm: stops iOS Safari zooming on focus */
     transition-property: border-color, background-color, box-shadow;
@@ -532,9 +577,9 @@
   .textarea:focus,
   .input-group:focus-within {
     outline: none;
-    border-color: var(--ring);
-    background-color: color-mix(in srgb, var(--contrast) 5%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent);
+    border-color: var(--fg);
+    background-color: color-mix(in srgb, var(--contrast) 3%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
   }
   .input[aria-invalid="true"],
   .select[aria-invalid="true"],
@@ -582,19 +627,38 @@
     background-repeat: no-repeat;
     background-size: 16px;
   }
+  /* Ruled select: no box, just the value on a hairline (filter sidebar,
+     the hero search). "select-line-set" underlines a chosen value in crema. */
+  .select-line {
+    @apply block w-full cursor-pointer appearance-none bg-transparent py-1 pr-6 text-base font-medium text-fg outline-none sm:text-[15px];
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%238a837a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0 center;
+    background-repeat: no-repeat;
+    background-size: 13px;
+  }
+  .select-line-set {
+    text-decoration: underline;
+    text-decoration-color: var(--brand);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+  .select-line:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
   /* Compact field for dense back-office forms/tables: "input input-sm" */
   .input-sm {
     --input-h: 2.25rem;
     --input-px: 0.75rem;
     --input-fs: 0.8125rem;
-    border-radius: 0.625rem;
+    border-radius: 2px;
   }
-  /* Compact pill select for toolbars (sort): "select select-sm" */
+  /* Compact select for toolbars (sort): "select select-sm" */
   .select-sm {
     --input-h: 2.25rem;
     --input-fs: 0.8125rem;
     width: auto;
-    border-radius: 9999px;
+    border-radius: 2px;
     padding-left: 1rem;
     padding-right: 2.25rem;
     font-weight: 500;
@@ -636,20 +700,24 @@
      source-type pickers). Selected state comes from the input itself
      (:has(:checked)) — no conditional classes needed. */
   .choice {
-    @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-line bg-hover px-3.5 py-2.5 text-sm text-fg-secondary transition-colors hover:border-line-strong has-[:checked]:border-accent-line has-[:checked]:bg-accent-soft has-[:checked]:text-fg has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0;
+    @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-[2px] border border-line bg-transparent px-3.5 py-2.5 text-sm text-fg-secondary transition-colors hover:border-line-strong has-[:checked]:border-accent-line has-[:checked]:bg-accent-soft has-[:checked]:text-fg has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0;
   }
   .choice:has(input.sr-only:focus-visible) {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
   .checkbox {
-    @apply grid size-[18px] shrink-0 cursor-pointer appearance-none place-items-center rounded-[6px] border border-line-hover bg-hover transition-colors checked:border-accent checked:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+    @apply grid size-[17px] shrink-0 cursor-pointer appearance-none place-items-center rounded-[2px] border border-line-hover bg-transparent transition-colors checked:border-accent checked:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
   }
+  /* The tick is the button text colour: charcoal on ivory in dark, paper on olive in light */
   .checkbox:checked {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23252621' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
     background-position: center;
     background-repeat: no-repeat;
     background-size: 12px;
+  }
+  :root[data-theme="light"] .checkbox:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f4f2ea' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
   }
   /* Range: set style={{ "--range-pct": `${pct}%` }} for the filled track (WebKit). */
   .range {
@@ -659,7 +727,7 @@
   .range::-webkit-slider-runnable-track {
     height: 4px;
     border-radius: 9999px;
-    background: linear-gradient(to right, var(--brand) 0 var(--range-pct), color-mix(in srgb, var(--contrast) 10%, transparent) var(--range-pct) 100%);
+    background: linear-gradient(to right, var(--fg) 0 var(--range-pct), color-mix(in srgb, var(--contrast) 14%, transparent) var(--range-pct) 100%);
   }
   .range::-moz-range-track {
     height: 4px;
@@ -669,7 +737,7 @@
   .range::-moz-range-progress {
     height: 4px;
     border-radius: 9999px;
-    background: var(--brand);
+    background: var(--fg);
   }
   .range::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -677,30 +745,30 @@
     margin-top: -8px;
     width: 20px;
     height: 20px;
-    border: 0;
+    border: 3px solid var(--canvas);
     border-radius: 9999px;
-    background: #fff;
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent), 0 2px 6px color-mix(in srgb, var(--shadow-ink) 50%, transparent);
+    background: var(--fg);
+    box-shadow: 0 0 0 1px var(--fg);
     transition: box-shadow 0.15s;
   }
   .range::-moz-range-thumb {
     width: 20px;
     height: 20px;
-    border: 0;
+    border: 3px solid var(--canvas);
     border-radius: 9999px;
-    background: #fff;
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent), 0 2px 6px color-mix(in srgb, var(--shadow-ink) 50%, transparent);
+    background: var(--fg);
+    box-shadow: 0 0 0 1px var(--fg);
   }
   @media (hover: hover) {
     .range:hover::-webkit-slider-thumb {
-      box-shadow: 0 0 0 6px color-mix(in srgb, var(--brand) 30%, transparent), 0 2px 6px color-mix(in srgb, var(--shadow-ink) 50%, transparent);
+      box-shadow: 0 0 0 1px var(--fg), 0 0 0 6px color-mix(in srgb, var(--brand) 22%, transparent);
     }
   }
   .file-input {
-    @apply block w-full rounded-xl border border-line-strong bg-hover p-1.5 text-sm text-fg-muted;
+    @apply block w-full rounded-[2px] border border-line-strong bg-hover p-1.5 text-sm text-fg-muted;
   }
   .file-input::file-selector-button {
-    @apply mr-3 cursor-pointer rounded-full border-0 bg-hover-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors;
+    @apply mr-3 cursor-pointer rounded-[2px] border-0 bg-hover-strong px-4 py-2 text-[13px] font-semibold text-fg transition-colors;
   }
   @media (hover: hover) {
     .file-input:hover::file-selector-button {
@@ -710,123 +778,119 @@
 
   /* ---------- Surfaces ---------- */
   .card {
-    @apply rounded-2xl border border-line bg-surface;
+    @apply rounded-[3px] border border-line-strong bg-surface;
     box-shadow: var(--shadow-card);
   }
   /* Clickable surface: lifts, brightens its border and lights a blue hairline
      on its top edge. Add `group` so .media-img inside zooms on hover. */
   .card-interactive {
-    @apply relative rounded-2xl border border-line bg-surface transition-[translate,border-color,box-shadow] duration-500 ease-out-expo;
+    @apply relative rounded-[3px] border border-line-strong bg-surface transition-[translate,border-color,box-shadow] duration-500 ease-out-expo;
     box-shadow: var(--shadow-card);
   }
   .card-interactive::before {
     content: "";
     @apply pointer-events-none absolute inset-x-6 top-0 z-10 h-px opacity-0 transition-opacity duration-500;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--glow) 75%, transparent) 40%, color-mix(in srgb, var(--accent-2) 75%, transparent) 70%, transparent);
+    background: var(--fg);
   }
   .card-interactive:has(:focus-visible) {
     border-color: var(--line-hover);
   }
   @media (hover: hover) {
     .card-interactive:hover {
-      translate: 0 -2px;
-      border-color: var(--line-strong);
-      box-shadow: var(--shadow-lift);
+      border-color: var(--line-hover);
     }
     .card-interactive:hover::before {
       opacity: 1;
     }
   }
   .panel {
-    @apply rounded-2xl border border-line bg-surface p-5 sm:p-6;
+    @apply rounded-[3px] border border-line-strong bg-surface p-5 sm:p-6;
     box-shadow: var(--shadow-card);
   }
   .panel-title {
-    @apply flex items-center gap-2 text-base font-semibold text-fg [&_svg]:size-[18px] [&_svg]:text-accent-fg;
+    @apply flex items-center gap-2 text-base font-semibold text-fg [&_svg]:size-[18px] [&_svg]:text-brand;
   }
   .modal {
-    @apply rounded-t-3xl border border-line-strong bg-overlay sm:rounded-3xl;
+    @apply rounded-t-[6px] border border-line-strong bg-overlay sm:rounded-[4px];
     box-shadow: var(--shadow-pop);
     --spec-bg: var(--overlay);
   }
   .well {
-    @apply rounded-xl border border-line bg-canvas/60 p-4;
+    @apply rounded-[2px] border border-line bg-canvas/60 p-4;
     --spec-bg: var(--canvas);
   }
+  /* Tinted note box ("Effective payment"): paper-dark fill, crema edge */
   .callout {
-    @apply relative overflow-hidden rounded-xl border border-accent-line bg-accent-soft p-4 sm:p-5;
+    @apply relative overflow-hidden rounded-[2px] border-l-2 border-brand bg-hover-strong p-4 sm:p-5;
   }
-  .callout::before {
-    content: "";
-    @apply absolute inset-x-0 top-0 h-px;
-    background: linear-gradient(90deg, transparent, var(--accent-fg) 40%, var(--accent-2-fg) 70%, transparent);
-  }
-  /* Signature detail: a 1px blue gradient line (hero horizon, footer top, contact card top). */
+  /* Formerly a blue glow line; now a plain ink hairline. */
   .light-bar {
     @apply pointer-events-none h-px w-full;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--glow) 60%, transparent) 40%, color-mix(in srgb, var(--accent-2) 60%, transparent) 65%, transparent);
+    background: var(--rule-ink);
+  }
+  /* The heavy rule: section tops, card tops, the search bar */
+  .rule-top {
+    border-top: 1px solid var(--rule-ink);
   }
   .skeleton {
-    @apply rounded-lg bg-raised;
+    @apply rounded-[2px] bg-raised;
   }
 
-  /* ---------- Homepage hero (the only place with atmosphere) ---------- */
+  /* Section heading on the deal page ("Payment breakdown") */
+  .dp-h2 {
+    @apply font-display text-[1.625rem] leading-tight font-semibold tracking-[-0.02em] text-fg;
+    font-variation-settings: "wdth" 104;
+  }
+  /* The deal page's "full breakdown": rows that open, + / – on the right */
+  .acc {
+    @apply border-b border-line;
+  }
+  .acc > summary {
+    @apply flex cursor-pointer list-none items-baseline justify-between gap-4 py-4 text-[15px] font-semibold text-fg sm:text-base;
+  }
+  .acc > summary::-webkit-details-marker {
+    display: none;
+  }
+  .acc > summary::after {
+    content: "+";
+    @apply ml-3 font-normal text-fg-muted;
+  }
+  .acc[open] > summary::after {
+    content: "–";
+  }
+  .acc > summary:hover {
+    @apply text-fg-secondary;
+  }
+  .acc-v {
+    @apply ml-auto hidden text-sm font-medium text-fg-secondary sm:inline;
+  }
+  .acc-p {
+    @apply max-w-[40em] font-serif text-base leading-[1.55] text-fg-secondary [&_strong]:font-semibold [&_strong]:text-fg;
+  }
+
+  /* ---------- Homepage hero ---------- */
   .hero {
-    @apply relative isolate overflow-hidden border-b border-line;
-  }
-  .hero-glow {
-    @apply pointer-events-none absolute inset-0 -z-10;
-    background:
-      radial-gradient(55% 70% at 88% -12%, color-mix(in srgb, var(--accent-2) 22%, transparent), transparent 70%),
-      radial-gradient(45% 55% at 0% 30%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%),
-      radial-gradient(70% 60% at 50% 118%, color-mix(in srgb, var(--brand) 26%, transparent), transparent 70%);
-  }
-  /* Faint perspective "road grid" running to the horizon */
-  .hero-road {
-    @apply pointer-events-none absolute -inset-x-1/4 bottom-0 -z-10 h-[58%];
-    background-image:
-      repeating-linear-gradient(90deg, color-mix(in srgb, var(--contrast) 5.5%, transparent) 0 1px, transparent 1px 72px),
-      repeating-linear-gradient(0deg, color-mix(in srgb, var(--contrast) 4%, transparent) 0 1px, transparent 1px 56px);
-    transform: perspective(420px) rotateX(62deg);
-    transform-origin: bottom center;
-    mask-image: linear-gradient(to top, #000 5%, transparent 80%);
-  }
-  .hero-horizon {
-    @apply pointer-events-none absolute inset-x-0 bottom-0 h-px;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--glow) 60%, transparent) 40%, color-mix(in srgb, var(--accent-2) 60%, transparent) 65%, transparent);
-  }
-  .hero-horizon::after {
-    content: "";
-    @apply absolute inset-x-[15%] -bottom-1.5 h-3 blur-md;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 55%, transparent), transparent);
+    @apply relative isolate;
   }
   .search-bar {
-    @apply flex items-center gap-2 rounded-full border border-line-strong bg-surface/80 py-1.5 pr-1.5 pl-5 backdrop-blur-xl transition-[border-color,box-shadow] duration-200;
-    box-shadow: var(--shadow-pop);
+    @apply flex items-center gap-2 rounded-[2px] border border-rule-ink bg-transparent py-1.5 pr-1.5 pl-5 transition-[border-color,box-shadow] duration-200;
   }
   .search-bar:focus-within {
-    border-color: var(--ring);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent), var(--shadow-pop);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
   }
   .search-bar input {
     @apply h-11 min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-fg-muted sm:text-[15px];
   }
 
   /* ---------- Photo stage (every car photo) ---------- */
+  /* Listing photos are studio shots on white. Multiplied onto the stage, the
+     white becomes the stage colour: the paper itself in light mode (the car
+     sits on the page), nothing in dark (cutouts sit straight on the charcoal). */
   .media-stage {
     @apply relative isolate overflow-hidden;
-    background: radial-gradient(120% 90% at 50% 0%, var(--stage-top), var(--stage-bottom) 70%);
+    background: var(--stage);
   }
-  /* Soft vignette + hairline: tames bright studio backdrops next to darker
-     dealer photos so a grid of mixed photos reads as one set. */
-  .media-stage::after {
-    content: "";
-    @apply pointer-events-none absolute inset-0 z-[1];
-    border-radius: inherit;
-    background: radial-gradient(130% 110% at 50% 42%, transparent 55%, var(--vignette));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--contrast) 4%, transparent);
-  }
-  /* tags, notes and buttons placed inside the stage sit above the vignette */
+  /* tags, notes and buttons placed inside the stage sit above the photo */
   .media-stage > :not(img) {
     z-index: 2;
   }
@@ -841,6 +905,7 @@
     object-fit: contain;
     object-position: center;
     filter: brightness(var(--photo-brightness));
+    mix-blend-mode: var(--photo-blend, normal);
     transition:
       scale 0.7s var(--ease-out-expo),
       filter 0.7s var(--ease-out-expo);
@@ -857,23 +922,27 @@
       filter: brightness(1);
     }
   }
-  /* Disclosure strip on photos ("Stock photo…", "Sample listing…") */
+  /* Disclosure line on photos ("Sample listing…"), printed small along
+     the bottom of the photo. */
   .media-note {
-    @apply pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 px-3 pt-8 pb-2.5 text-center text-[11px] leading-4 font-medium text-fg-secondary [&_svg]:size-3.5 [&_svg]:shrink-0;
-  }
-  .media-note {
-    background: linear-gradient(to top, var(--note-fade), color-mix(in srgb, var(--note-fade) 68%, transparent), transparent);
+    @apply pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 px-3 pb-1.5 text-center font-serif text-[12.5px] leading-4 italic [&_svg]:size-3.5 [&_svg]:shrink-0;
+    color: var(--stage-ink);
   }
   .media-note-warning {
-    @apply text-warning;
+    @apply not-italic font-sans font-medium text-warning;
   }
 
   /* ---------- Labels ---------- */
   /* .tag = labels ON photos only (neutral glass, fg text, one style for all) */
   .tag {
-    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] leading-none font-medium text-fg backdrop-blur-md [&_svg]:size-3;
+    @apply inline-flex items-center gap-1.5 rounded-[2px] border px-2 py-1 text-[10.5px] leading-none font-semibold tracking-[0.12em] uppercase backdrop-blur-md [&_svg]:size-3;
     background-color: var(--tag-bg);
-    border-color: color-mix(in srgb, var(--contrast) 12%, transparent);
+    color: var(--tag-fg);
+    border-color: color-mix(in srgb, var(--tag-fg) 22%, transparent);
+  }
+  /* Condition / status label beside a card's kind line (LOANER, PENDING) */
+  .cond-tag {
+    @apply inline-flex items-center rounded-[2px] border border-line-hover px-2 py-[3px] text-[10.5px] leading-none font-semibold tracking-[0.12em] text-fg-secondary uppercase;
   }
   .tag-dot {
     @apply size-1.5 shrink-0 rounded-full bg-brand;
@@ -883,7 +952,7 @@
   }
   /* .pill = inline status labels on dark surfaces */
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs leading-none font-medium whitespace-nowrap [&_svg]:size-3;
+    @apply inline-flex items-center gap-1.5 rounded-[2px] px-2 py-1 text-xs leading-none font-medium whitespace-nowrap [&_svg]:size-3;
   }
   .pill-neutral {
     @apply bg-hover-strong text-fg-secondary;
@@ -902,35 +971,35 @@
   }
   /* .chip = pressable filter shortcut; state via aria-pressed */
   .chip {
-    @apply inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-hover px-4 text-[13px] font-medium whitespace-nowrap text-fg-secondary transition-colors hover:border-line-hover hover:bg-hover-strong hover:text-fg aria-pressed:border-accent-line aria-pressed:bg-accent-soft aria-pressed:text-fg [&_svg]:size-3.5;
+    @apply inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-transparent px-4 text-[13px] font-medium whitespace-nowrap text-fg-secondary transition-colors hover:border-fg hover:text-fg aria-pressed:border-accent aria-pressed:bg-accent aria-pressed:text-on-accent [&_svg]:size-3.5;
   }
 
   /* ---------- Segmented control (e.g. the calculator's fee toggles) ---------- */
   .segmented {
-    @apply inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-1;
+    @apply inline-flex items-center gap-0.5 rounded-full border border-line-strong bg-transparent p-1;
   }
   .segmented-item {
-    @apply inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg [&_svg]:size-3.5;
+    @apply inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg aria-pressed:bg-accent aria-pressed:text-on-accent [&_svg]:size-3.5;
   }
   .segmented-item[aria-pressed="true"] {
-    box-shadow: inset 0 0 0 1px var(--line-strong), 0 1px 2px color-mix(in srgb, var(--shadow-ink) 40%, transparent);
+    box-shadow: none;
   }
 
   /* ---------- Numbers: spec sheet, statement rows ---------- */
   /* 2 columns by default; change with a utility (sm:grid-cols-3). Keep the
      cell count a multiple of the column count so no empty hairline cell shows. */
+  /* Ruled, not boxed: each cell has a hairline on top. */
   .spec-grid {
-    @apply grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line;
+    @apply grid grid-cols-2 gap-x-4;
   }
   .spec {
-    @apply px-3 py-2.5;
-    background-color: var(--spec-bg, var(--surface));
+    @apply border-t border-line py-2.5;
   }
   .spec-label {
-    @apply text-[11px] leading-4 font-medium text-fg-muted;
+    @apply text-[10.5px] leading-4 font-semibold tracking-[0.14em] text-fg-muted uppercase;
   }
   .spec-value {
-    @apply mt-0.5 text-sm font-semibold text-fg;
+    @apply mt-1 text-[17px] font-semibold text-fg tabular-nums;
   }
   .spec-note {
     @apply mt-0.5 text-[11px] leading-4 text-fg-muted;
@@ -955,11 +1024,11 @@
 
   /* ---------- Navigation, misc ---------- */
   .nav-link {
-    @apply rounded-full px-3.5 py-2 text-sm font-medium text-fg-secondary transition-colors hover:text-fg aria-[current=page]:bg-hover-strong aria-[current=page]:text-fg;
+    @apply border-b border-transparent py-1 text-sm font-medium text-fg-secondary transition-colors hover:border-fg hover:text-fg aria-[current=page]:border-fg aria-[current=page]:text-fg;
   }
   /* <label className="compare-toggle"><input type="checkbox" className="checkbox" /> Compare</label> */
   .compare-toggle {
-    @apply inline-flex min-h-9 cursor-pointer items-center gap-2 text-[13px] font-medium text-fg-muted transition-colors select-none hover:text-fg has-[:checked]:text-accent-fg has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50;
+    @apply inline-flex min-h-9 cursor-pointer items-center gap-2 text-[13px] font-medium text-fg-secondary transition-colors select-none hover:text-fg has-[:checked]:text-fg has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50;
   }
   .avatar {
     @apply grid size-11 shrink-0 place-items-center rounded-full border border-line-strong bg-raised font-display text-sm font-semibold text-fg;
@@ -967,7 +1036,7 @@
 
   /* ---------- Alerts (first child svg is auto-sized) ---------- */
   .alert {
-    @apply flex items-start gap-3 rounded-xl border p-4 text-sm leading-6 [&>svg]:mt-0.5 [&>svg]:size-[18px] [&>svg]:shrink-0;
+    @apply flex items-start gap-3 rounded-[2px] border p-4 text-sm leading-6 [&>svg]:mt-0.5 [&>svg]:size-[18px] [&>svg]:shrink-0;
   }
   .alert-warning {
     @apply border-warning/20 bg-warning-soft text-fg-secondary [&>svg]:text-warning;
@@ -979,7 +1048,7 @@
     @apply border-success/20 bg-success-soft text-success;
   }
   .alert-info {
-    @apply border-accent-line bg-accent-soft text-fg-secondary [&>svg]:text-accent-fg;
+    @apply border-line-strong bg-hover-strong text-fg-secondary [&>svg]:text-brand;
   }
 
   /* ---------- Tables (broker portal, admin) ---------- */
@@ -998,17 +1067,17 @@
 
   /* ---------- Long-form content (guide, privacy, terms, seller notes) ---------- */
   .prose-drive {
-    @apply text-base leading-7 text-fg-secondary;
+    @apply font-serif text-[1.125rem] leading-[1.65] text-fg-secondary;
   }
   .prose-drive > * + * {
     @apply mt-4;
   }
   .prose-drive h2 {
-    @apply mt-12 font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-fg;
-    font-variation-settings: "wdth" 112;
+    @apply mt-12 border-t border-rule-ink pt-4 font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] text-fg;
+    font-variation-settings: "wdth" 104;
   }
   .prose-drive h3 {
-    @apply mt-8 text-lg font-semibold text-fg;
+    @apply mt-8 font-sans text-lg font-semibold text-fg;
   }
   .prose-drive strong {
     @apply font-semibold text-fg;
@@ -1026,8 +1095,8 @@
   /* bullets = tiny brand parallelograms (the logo's i-dot) */
   .prose-drive ul > li::before {
     content: "";
-    @apply absolute top-[0.72em] left-0.5 h-[5px] w-2 rounded-[1px] bg-brand;
-    transform: skewX(-12deg);
+    @apply absolute top-[0.62em] left-0.5 size-[6px] bg-brand;
+    transform: rotate(45deg);
   }
   .prose-drive ol {
     @apply list-decimal pl-5 marker:text-fg-muted;
@@ -1036,7 +1105,7 @@
     @apply rounded-md bg-hover-strong px-1.5 py-0.5 font-mono text-[0.875em] text-fg;
   }
   .formula {
-    @apply rounded-r-xl border-l-2 border-brand bg-surface px-4 py-3 font-mono text-[13px] leading-6 text-fg;
+    @apply rounded-r-[2px] border-l-2 border-brand bg-hover-strong px-4 py-3 font-mono text-[13px] leading-6 text-fg;
   }
 
   /* ---------- Touch: compact controls grow to 44px on coarse pointers ---------- */

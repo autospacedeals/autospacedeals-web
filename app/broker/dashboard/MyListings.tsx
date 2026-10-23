@@ -334,7 +334,7 @@ export default function MyListings({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-line bg-hover p-1">
+      <div className="overflow-x-auto rounded-[3px] border border-line bg-hover p-1">
         <table className="table-fixed border-separate text-sm [border-spacing:0_2px]">
           <colgroup>
             <col style={{ width: UTILITY_WIDTHS.select }} />
@@ -771,7 +771,7 @@ function ListingRow({
 
       {expanded && (
         <tr>
-          <td colSpan={COLUMN_COUNT} className="rounded-xl border border-line bg-hover p-4 sm:p-5">
+          <td colSpan={COLUMN_COUNT} className="rounded-[3px] border border-line bg-hover p-4 sm:p-5">
             {/* Never submitted — Save sends the draft below — so Enter in a
                 field doesn't reload the page. */}
             <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
@@ -937,7 +937,7 @@ function ListingRow({
                   </p>
                 )}
                 {draft.images.split("\n")[0]?.trim() && (
-                  <div className="media-stage mb-2 aspect-[4/3] w-full max-w-[160px] rounded-lg">
+                  <div className="media-stage mb-2 aspect-[4/3] w-full max-w-[160px] rounded-[2px]">
                     <img
                       src={draft.images.split("\n")[0].trim()}
                       alt="Current primary photo"

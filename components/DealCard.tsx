@@ -11,16 +11,15 @@ import { deliveryLabel } from "@/lib/deal-location";
 import { CardTaxLine } from "@/components/TaxRate";
 import { useId } from "react";
 import Link from "next/link";
-import { MapPin, ArrowRight, Store, CircleAlert } from "lucide-react";
+import { ArrowRight, CircleAlert } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import {
+  dealTitle,
   displayMsrp,
   formatCurrency,
   isNewlyPosted,
   markDealViewed,
   msrpDiscountPercent,
-  formatMileage,
-  formatTerm,
   formatMsds,
   hasOtherMileages,
   otherTermsNote,
@@ -29,6 +28,7 @@ import { isRequiredProgram } from "@/lib/deal-options";
 import { TOTAL_PRICE_SUFFIX } from "@/lib/cars-act";
 import { ContactActionsCompact } from "./ContactActions";
 import SaveDealButton, { useShowSaveDealButton } from "./SaveDealButton";
+import { cutoutSrc } from "@/lib/photo-src";
 
 // HOT and VALUE badges were dropped per Robert — too cluttered for the
 // clean look he wants. Only badge types listed here render at all; a
@@ -67,208 +67,176 @@ export default function DealCard({
   const image = deal.images[0];
   const discount = msrpDiscountPercent(deal);
   const detailHref = `/deals/${deal.slug}`;
-  const title = `${deal.year} ${deal.make} ${deal.model}`;
   const showSave = useShowSaveDealButton(deal.id);
   const titleId = useId();
+  const requires = (deal.incentives ?? []).filter(isRequiredProgram);
+  // "also 24 & 36 months · other mileages too"
+  const otherPricing = [otherTermsNote(deal), hasOtherMileages(deal) ? "other mileages too" : null]
+    .filter(Boolean)
+    .join(" · ");
 
+  // No box: a heavy rule on top, then the car straight on the page.
   return (
-    <article className="card-interactive group flex h-full flex-col overflow-hidden">
-      {/* Inset focus ring: the card clips overflow (rounded photo corners),
-          which would otherwise hide most of this full-bleed link's outline. */}
+    <article className="rule-top group flex h-full flex-col pt-3.5">
+      <div className="flex min-h-9 items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="label">{[deal.bodyStyle, fuelLabel(deal.fuel)].filter(Boolean).join(" · ")}</p>
+          {isNewlyPosted(deal) && (
+            <span className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-brand uppercase">
+              <span aria-hidden="true" className="size-1.5 rotate-45 bg-brand" /> Just listed
+            </span>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {deal.badge && BADGE_STYLES[deal.badge] && deal.badge !== "NEW" && (
+            <span className="cond-tag">{deal.badge}</span>
+          )}
+          {deal.condition && deal.condition !== "New" && <span className="cond-tag">{deal.condition}</span>}
+          {!deal.inStock && <span className="cond-tag text-warning">Pending · call to confirm</span>}
+          {showSave && <SaveDealButton dealId={deal.id} savedHint={savedHint} describedBy={titleId} />}
+        </div>
+      </div>
+
       <Link
         href={detailHref}
         onClick={() => markDealViewed(deal.id)}
-        className="block focus-visible:-outline-offset-2"
+        className="mt-1 block rounded-[2px] focus-visible:outline-offset-4"
       >
-        <div className="media-stage aspect-[4/3]">
+        {/* The car is the biggest thing on the card: the cutout runs a little
+            past the card's edges (into the grid gap). */}
+        <div className="media-stage -mx-[4%] aspect-[16/9.4] sm:-mx-[7%]">
           {/* Lazy: the homepage grid renders every deal at once, and these
               are full-size dealer/manufacturer photos (often 1–2 MB each). */}
-          <img src={image} alt={title} loading="lazy" decoding="async" className="media-img" />
-
-          {/* One row across the top: the left-hand tags wrap onto a second
-              line before they can run underneath the condition tag. When
-              the save heart is shown it has the top-right corner to itself:
-              the row stops short of it (36px, or 44px on touch, plus the
-              gap) and the condition tag joins the end of the left-hand
-              group instead, wrapping as a whole tag, so the other tags keep
-              the room they had. On touch the row also moves down with the
-              heart (see below). */}
-          <div
-            className={`absolute top-3 left-3 flex items-start justify-between gap-2 ${
-              showSave ? "right-14 pointer-coarse:top-4 pointer-coarse:right-16" : "right-3"
-            }`}
-          >
-            <div className="flex min-w-0 flex-wrap gap-1.5">
-              {isNewlyPosted(deal) && (
-                <span className="tag">
-                  <span className="tag-dot" /> Just listed
-                </span>
-              )}
-              {deal.badge && BADGE_STYLES[deal.badge] && (
-                <span className={BADGE_STYLES[deal.badge]}>{deal.badge}</span>
-              )}
-              {otherSellers.length > 0 && <span className="tag">{otherSellers.length + 1} sellers</span>}
-              {!deal.inStock && (
-                <span className="tag">
-                  <span className="tag-dot tag-dot-warning" /> Pending · call to confirm
-                </span>
-              )}
-              {showSave && deal.condition && <span className="tag">{deal.condition}</span>}
-            </div>
-
-            {!showSave && deal.condition && <span className="tag shrink-0">{deal.condition}</span>}
-          </div>
-
-          {deal.sample ? (
-            <p className="media-note media-note-warning">
-              <CircleAlert /> Sample listing — photo not exact vehicle
-            </p>
-          ) : (
-            deal.photoAutoSourced && (
-              <p className="media-note">Stock photo — may not be exact vehicle</p>
-            )
-          )}
+          <img src={cutoutSrc(image)} alt={dealTitle(deal)} loading="lazy" decoding="async" className="media-img scale-105" />
         </div>
-
-        <div className="px-5 pt-5">
-          <p className="label">{[deal.dealType, deal.fuel].filter(Boolean).join(" · ")}</p>
-          <h3 id={titleId} className="type-card mt-1.5">{title}</h3>
-          {/* line-clamp, not truncate: nowrap text would set the card's
-              min-content width and could push the phone grid wider than
-              the screen on a long trim. */}
-          {deal.trim && <p className="mt-0.5 line-clamp-1 text-sm text-fg-secondary">{deal.trim}</p>}
-        </div>
+        {deal.sample ? (
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-center text-[12px] font-medium text-warning [&_svg]:size-3.5">
+            <CircleAlert /> Sample listing — photo not exact vehicle
+          </p>
+        ) : null}
+        <h3 id={titleId} className="type-card mt-2.5 text-2xl">
+          {deal.make} {deal.model}
+        </h3>
+        {/* line-clamp, not truncate: nowrap text would set the card's
+            min-content width and could push the phone grid wider than
+            the screen on a long trim. */}
+        <p className="mt-0.5 line-clamp-1 font-serif text-base text-fg-secondary italic">
+          {deal.year}
+          {deal.trim ? ` · ${deal.trim}` : ""}
+        </p>
       </Link>
 
-      {/* Save heart over the photo's top-right corner. It sits outside the
-          link (a button can't be nested in an <a>) and is centered on the
-          tag row: 21px is a .tag's height. On touch the button grows to
-          44px, so it and the row move down 4px to keep the circle (and its
-          focus ring) clear of the card's top edge, as the 36px one is. */}
-      {showSave && (
-        <div className="absolute top-3 right-3 z-10 flex h-[21px] items-center pointer-coarse:top-4">
-          <SaveDealButton dealId={deal.id} savedHint={savedHint} describedBy={titleId} />
-        </div>
-      )}
-
-      <div className="flex flex-1 flex-col px-5 pb-5">
-        <div className="mt-4 flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="label">{deal.onePay ? "One-pay lease total" : "Monthly payment"}</p>
-            <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1">
-              <span className="price">
-                {formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment)}
-              </span>
-              {!deal.onePay && (
-                <span className="price-unit">
-                  /mo{deal.paymentTaxRate ? ` (incl. ~${deal.paymentTaxRate}% tax)` : " + tax"}
-                </span>
-              )}
-            </p>
-            {/* The lower payment with MSDs, when they're an option. */}
-            {!deal.onePay && deal.msdPayment && deal.msdCount ? (
-              <p className="mt-1 text-[13px] text-fg-secondary">
-                or <strong className="font-semibold text-success">{formatCurrency(deal.msdPayment)}/mo</strong> with{" "}
-                {deal.msdCount} MSD{deal.msdCount === 1 ? "" : "s"}
-              </p>
-            ) : null}
-            {/* With the signed-in shopper's sales tax (California ZIPs). */}
-            <CardTaxLine deal={deal} />
-            {/* The vehicle's total price, when the seller gives it (required on
-                dealership listings by California's CARS Act). */}
-            {deal.sellingPrice != null && (
-              <p className="mt-1 text-[13px] text-fg-secondary">
-                Total price <strong className="font-semibold text-fg">{formatCurrency(deal.sellingPrice)}</strong>
-                <span className="text-fg-muted">{TOTAL_PRICE_SUFFIX}</span>
-              </p>
-            )}
-          </div>
+      {/* In order of importance: the monthly payment, what's due at signing,
+          the term and miles, any eligibility the price needs; then MSRP, fees
+          and the total price as small print. */}
+      <div className="flex flex-1 flex-col">
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <p className="flex min-w-0 flex-wrap items-baseline gap-x-1">
+            <span className="price text-[2.625rem] sm:text-[2.875rem]">
+              {formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment)}
+            </span>
+            <span className="price-unit">
+              {deal.onePay
+                ? "one-pay lease total"
+                : deal.paymentTaxRate
+                  ? `/mo (incl. ~${deal.paymentTaxRate}% tax)`
+                  : "/mo + tax"}
+            </span>
+          </p>
           {discount > 0 && (
-            <p className="shrink-0 pb-0.5 text-[13px] font-medium text-success">
-              {discount.toFixed(0)}% off MSRP
-            </p>
+            <p className="shrink-0 pb-1 text-[13px] font-semibold text-brand">{discount.toFixed(0)}% off MSRP</p>
           )}
         </div>
-
-        {/* Always exactly four cells (2 × 2) so every card's spec sheet is the
-            same height; the optional broker fee is one fine-print line below. */}
-        <dl className="spec-grid mt-4">
-          <Spec
-            label="Due at signing"
-            value={formatCurrency(deal.dueAtSigning)}
-            note={deal.dueAtSigningTaxRate ? `assumes ${deal.dueAtSigningTaxRate}% tax` : undefined}
-          />
-          <Spec label="Term" value={formatTerm(deal.term)} note={otherTermsNote(deal) ?? undefined} />
-          <Spec
-            label="Mileage"
-            value={deal.milesPerYear ? formatMileage(deal.milesPerYear) : "N/A"}
-            note={hasOtherMileages(deal) ? "other mileages too" : undefined}
-          />
-          <Spec label="MSRP" value={displayMsrp(deal)} />
-        </dl>
-        {deal.brokerFee != null && (
-          <p className="spec-footnote mt-2">
-            Broker fee <strong>{formatCurrency(deal.brokerFee)}</strong> · separate from due at
+        {/* The lower payment with MSDs, spelled out so it can't be read as the
+            advertised price. */}
+        {!deal.onePay && deal.msdPayment && deal.msdCount ? (
+          <p className="mt-2 text-[13.5px] text-fg-secondary">
+            Option: <strong className="font-semibold text-fg">{formatCurrency(deal.msdPayment)}/mo</strong> if you also
+            pay {deal.msdTotal ? formatCurrency(deal.msdTotal) : `${deal.msdCount} MSD${deal.msdCount === 1 ? "" : "s"}`} in
+            refundable deposits
+          </p>
+        ) : null}
+        {!deal.onePay && (
+          <p className="mt-2.5 text-[17px] text-fg-secondary">
+            <strong className="text-xl font-semibold text-fg tabular-nums">{formatCurrency(deal.dueAtSigning)}</strong> due at
             signing
           </p>
         )}
-        {/* When MSDs are an option, the payment line above already says so. */}
-        {deal.msdCount && !deal.msdPayment ? (
-          <p className="spec-footnote mt-2">
-            Payment assumes <strong>{formatMsds(deal.msdCount, deal.msdTotal)}</strong> · paid at signing
-          </p>
-        ) : null}
-        {(deal.incentives ?? []).some(isRequiredProgram) && (
-          <p className="spec-footnote mt-2">
-            Price requires{" "}
-            <strong>
-              {(deal.incentives ?? [])
-                .filter(isRequiredProgram)
-                .map((i) => i.name)
-                .join(" & ")}
-            </strong>{" "}
-            · must qualify
+        <p className="mt-1 text-[14.5px] text-fg-secondary">
+          {deal.term}-month {deal.dealType === "Finance" ? "finance" : "lease"}
+          {deal.milesPerYear ? ` · ${deal.milesPerYear.toLocaleString("en-US")} miles a year` : ""}
+        </p>
+        {requires.length > 0 && (
+          <p className="mt-2 flex items-start gap-2 text-[13px] leading-[1.35] font-semibold text-fg">
+            <span aria-hidden="true" className="mt-[5px] size-1.5 shrink-0 rotate-45 border-[1.5px] border-brand" />
+            Requires {requires.map((i) => i.name).join(" & ")} eligibility
           </p>
         )}
+        {/* With the signed-in shopper's sales tax (California ZIPs). */}
+        <CardTaxLine deal={deal} />
+
+        <div className="mt-3.5 space-y-0.5 border-t border-line pt-2.5 [&_p]:text-[12.5px] [&_p]:leading-[1.45]">
+          <p className="spec-footnote">
+            {deal.brokerFee != null && (
+              <>
+                Broker fee <strong>{formatCurrency(deal.brokerFee)}</strong>, paid on top of the due at signing ·{" "}
+              </>
+            )}
+            MSRP {displayMsrp(deal)}
+          </p>
+          {deal.dueAtSigningTaxRate ? (
+            <p className="spec-footnote">Due at signing assumes {deal.dueAtSigningTaxRate}% tax</p>
+          ) : null}
+          {/* The vehicle's total price, when the seller gives it (required on
+              dealership listings by California's CARS Act). */}
+          {deal.sellingPrice != null && (
+            <p className="spec-footnote">
+              Total price <strong>{formatCurrency(deal.sellingPrice)}</strong>
+              {TOTAL_PRICE_SUFFIX}
+            </p>
+          )}
+          {/* When MSDs are an option, the line above the due already says so. */}
+          {deal.msdCount && !deal.msdPayment ? (
+            <p className="spec-footnote">
+              Payment assumes <strong>{formatMsds(deal.msdCount, deal.msdTotal)}</strong> · paid at signing
+            </p>
+          ) : null}
+          {otherPricing && <p className="spec-footnote first-letter:uppercase">{otherPricing}</p>}
+        </div>
 
         {/* Seller + actions are one unit anchored to the card bottom, so
             action rows line up across a grid row. */}
         <div className="mt-auto pt-5">
-          <div className="space-y-1.5 border-t border-line pt-4 text-[13px] text-fg-muted">
-            <p className="flex items-center gap-2">
-              <MapPin size={14} className="shrink-0 text-fg-faint" /> {deal.city}, {deal.state}
-              {deliveryLabel(deal.delivery) && <span className="text-fg-faint">· {deliveryLabel(deal.delivery)}</span>}
+          <div className="text-[12.5px] leading-5 text-fg-secondary">
+            <p>
+              {deal.brokerId ? (
+                <Link
+                  href={`/brokers/${deal.brokerId}`}
+                  className="font-semibold text-fg underline decoration-line-hover underline-offset-[3px] transition-colors hover:decoration-fg"
+                >
+                  {deal.sellerName}
+                </Link>
+              ) : (
+                <span className="font-semibold text-fg">{deal.sellerName}</span>
+              )}{" "}
+              · {deal.sellerType}
+              {deal.sellerDealership && ` at ${deal.sellerDealership}`}
             </p>
-            <p className="flex items-start gap-2">
-              <Store size={14} className="mt-0.5 shrink-0 text-fg-faint" />
-              <span>
-                {deal.brokerId ? (
-                  <Link
-                    href={`/brokers/${deal.brokerId}`}
-                    className="font-medium text-fg-secondary transition-colors hover:text-fg"
-                  >
-                    {deal.sellerName}
-                  </Link>
-                ) : (
-                  <span className="font-medium text-fg-secondary">{deal.sellerName}</span>
-                )}{" "}
-                · {deal.sellerType}
-                {otherSellers.length > 0 && (
-                  <span className="mt-0.5 block text-fg-faint">
-                    {otherSellers.length === 1
-                      ? `Also offered by ${otherSellers[0].sellerName}`
-                      : `Also offered by ${otherSellers.length} other sellers`}
-                  </span>
-                )}
-                {deal.sellerDealership && ` at ${deal.sellerDealership}`}
-              </span>
+            <p>
+              {deal.city}, {deal.state}
+              {deliveryLabel(deal.delivery) && ` · ${deliveryLabel(deal.delivery)}`}
             </p>
+            {otherSellers.length > 0 && (
+              <p>
+                {otherSellers.length === 1
+                  ? `Also offered by ${otherSellers[0].sellerName}`
+                  : `Also offered by ${otherSellers.length} other sellers`}
+              </p>
+            )}
           </div>
-
-          <div className="mt-4">
+          <div className="mt-3 [&_.btn]:min-h-[2.875rem] [&_.btn]:text-[14.5px]">
             <ContactActionsCompact deal={deal} />
           </div>
-
           {/* Wraps onto two left-aligned lines when the card is too narrow
               for the compare toggle and the details link side by side. */}
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3">
@@ -281,7 +249,7 @@ export default function DealCard({
                   disabled={compareDisabled && !compareSelected}
                   onChange={onToggleCompare}
                 />
-                {compareSelected ? "Added to compare" : "Compare this deal"}
+                {compareSelected ? "Added to compare" : "Compare"}
               </label>
             ) : (
               <span />
@@ -289,9 +257,9 @@ export default function DealCard({
             <Link
               href={detailHref}
               onClick={() => markDealViewed(deal.id)}
-              className="link-arrow min-h-9 pointer-coarse:min-h-11"
+              className="link-arrow min-h-0 pointer-coarse:py-2"
             >
-              View full details <ArrowRight />
+              View details <ArrowRight />
             </Link>
           </div>
         </div>
@@ -300,12 +268,8 @@ export default function DealCard({
   );
 }
 
-function Spec({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="spec">
-      <dt className="spec-label">{label}</dt>
-      <dd className="spec-value">{value}</dd>
-      {note && <dd className="spec-note">{note}</dd>}
-    </div>
-  );
+// "EV" reads as "Electric" in a label; the rest are already words.
+function fuelLabel(fuel: Deal["fuel"]) {
+  if (!fuel) return null;
+  return fuel === "EV" ? "Electric" : fuel === "PHEV" ? "Plug-in hybrid" : fuel;
 }

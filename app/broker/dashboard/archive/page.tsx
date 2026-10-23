@@ -5,22 +5,12 @@ import { ArrowLeft, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { changeLabel, getAdVersions } from "@/lib/ad-archive";
 import { formatCurrency } from "@/lib/deal-utils";
+import LocalTime from "@/components/LocalTime";
 
 export const metadata: Metadata = { title: "Ad archive", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 const SHOWN = 300;
-
-function when(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/Los_Angeles",
-  });
-}
 
 const money = (v: number | null) => (v == null ? "—" : formatCurrency(v));
 const TH = "px-3 py-2.5 font-medium";
@@ -59,7 +49,7 @@ export default async function AdArchivePage() {
       {rows.length === 0 ? (
         <p className="mt-8 text-sm text-fg-muted">Nothing archived yet. Your listings will show up here.</p>
       ) : (
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-line">
+        <div className="mt-8 overflow-x-auto rounded-[3px] border border-line">
           <table className="w-full min-w-[1000px] text-left text-sm">
             <thead className="bg-surface text-xs text-fg-muted">
               <tr>
@@ -76,7 +66,7 @@ export default async function AdArchivePage() {
             <tbody className="divide-y divide-line">
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className={`${TD} text-fg-secondary`}>{when(r.recordedAt)}</td>
+                  <td className={`${TD} text-fg-secondary`}><LocalTime iso={r.recordedAt} style="datetime-year" /></td>
                   <td className={TD}>
                     {changeLabel(r.change)}
                     {r.status && r.status !== "published" && r.change !== "deleted" && (

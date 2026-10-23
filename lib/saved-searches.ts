@@ -56,6 +56,7 @@ const OPTION_MAX = 80;
 const BODY_STYLES = ["Sedan", "SUV", "Truck", "Coupe", "Minivan", "Hatchback"];
 const FUEL_TYPES = ["Gas", "Hybrid", "PHEV", "EV"];
 const PAYMENT_TYPES = ["All", "Monthly", "One-pay"];
+const SEGMENTS = ["All", "Luxury"];
 
 // Free-text values: a bounded string with no control characters. Anything
 // else is rejected rather than cleaned up, since it can't have come from
@@ -110,6 +111,7 @@ export function parseSavedSearchFilters(raw: unknown): DealFilters | null {
     term: digitsOrAll(pick("term"), 3),
     mileage: digitsOrAll(pick("mileage"), 6),
     paymentType: oneOf(pick("paymentType"), PAYMENT_TYPES),
+    segment: oneOf(pick("segment"), SEGMENTS),
     maxPayment: wholeNumberInRange(pick("maxPayment"), 0, MAX_PAYMENT_CEILING),
     maxDueAtSigning: wholeNumberInRange(pick("maxDueAtSigning"), 0, MAX_DAS_CEILING),
   };
@@ -141,6 +143,7 @@ export function hasActiveFilters(filters: DealFilters): boolean {
     filters.term !== DEFAULT_FILTERS.term ||
     filters.mileage !== DEFAULT_FILTERS.mileage ||
     filters.paymentType !== DEFAULT_FILTERS.paymentType ||
+    filters.segment !== DEFAULT_FILTERS.segment ||
     filters.maxPayment < MAX_PAYMENT_CEILING ||
     filters.maxDueAtSigning < MAX_DAS_CEILING
   );
@@ -175,6 +178,7 @@ export function describeFilters(filters: DealFilters): FilterSummaryItem[] {
   if (filters.model !== "All") items.push({ name: "Model", value: filters.model });
   if (filters.trim !== "All") items.push({ name: "Trim", value: filters.trim });
   if (filters.bodyStyle !== "All") items.push({ name: "Body style", value: filters.bodyStyle });
+  if (filters.segment !== "All") items.push({ name: "Class", value: filters.segment });
   if (filters.seller !== "All") items.push({ name: "Broker/dealer", value: filters.seller });
   if (filters.state !== "All") items.push({ name: "Location", value: filters.state });
   if (filters.term !== "All") items.push({ name: "Lease term", value: formatTerm(Number(filters.term)) });
@@ -201,6 +205,7 @@ export function savedSearchLabel(filters: DealFilters): string {
   if (query) parts.push(`“${query}”`);
   const vehicle = [filters.make, filters.model, filters.trim].filter((v) => v !== "All").join(" ");
   if (vehicle) parts.push(vehicle);
+  if (filters.segment !== "All") parts.push(filters.segment);
   if (filters.bodyStyle !== "All") parts.push(filters.bodyStyle);
   if (filters.fuel !== "All") parts.push(filters.fuel);
   if (filters.paymentType === "One-pay") parts.push("One-pay");
