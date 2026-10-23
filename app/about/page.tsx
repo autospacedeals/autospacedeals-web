@@ -88,7 +88,7 @@ export default async function AboutPage() {
             <ul>
               <li>
                 <strong>Compare.</strong> Search and filter every deal by make, model, body style,
-                payment, term and seller, or sort by total cost per month (due at signing included).
+                payment, term and seller, or sort by total cost per month (due at signing and broker fee included).
               </li>
               <li>
                 <strong>Save and get alerts.</strong> Save deals, or save a search and get an email when

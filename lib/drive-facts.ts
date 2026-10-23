@@ -3,7 +3,7 @@
 // that state facts directly, so each answer leads with the fact and the
 // numbers come from the live listings.
 import type { Deal } from "@/lib/deals-data";
-import { effectiveMonthly, formatCurrency } from "@/lib/deal-utils";
+import { formatCurrency, realMonthlyCost } from "@/lib/deal-utils";
 import { REGION, byPayment, plural } from "@/lib/lease-pages";
 
 export interface DriveStats {
@@ -26,7 +26,7 @@ export function driveStats(deals: Deal[]): DriveStats {
     sellers: new Set(deals.map((d) => d.brokerId ?? d.sellerName)).size,
     brands: new Set(deals.map((d) => d.make.toLowerCase())).size,
     lowest: [...leases].sort(byPayment)[0] ?? null,
-    lowestEffective: [...leases].sort((a, b) => effectiveMonthly(a) - effectiveMonthly(b))[0] ?? null,
+    lowestEffective: [...leases].sort((a, b) => realMonthlyCost(a) - realMonthlyCost(b))[0] ?? null,
     electric: deals.filter((d) => d.fuel === "EV").length,
     updated: new Date().toLocaleDateString("en-US", {
       month: "long",
@@ -85,8 +85,8 @@ export function driveFaq(s: DriveStats): Faq[] {
         // "ADV AUTO Inc." already ends the sentence.
         `from ${s.lowest.sellerName.replace(/\.$/, "")}.` +
         (s.lowestEffective && s.lowestEffective.id !== s.lowest.id
-          ? ` Counting the money due at signing, the lowest total cost per month is the ${carName(s.lowestEffective)} ` +
-            `at about ${formatCurrency(effectiveMonthly(s.lowestEffective))}/mo.`
+          ? ` Counting the money due at signing and any broker fee, the lowest total cost per month is the ${carName(s.lowestEffective)} ` +
+            `at about ${formatCurrency(realMonthlyCost(s.lowestEffective))}/mo.`
           : ""),
     },
     {
@@ -104,7 +104,8 @@ export function driveFaq(s: DriveStats): Faq[] {
     {
       q: "What does \"total cost per month\" mean?",
       a:
-        "It spreads the money due at signing across the lease: (due at signing + payment × (term − 1)) ÷ term. " +
+        "It spreads the money due at signing, and any broker fee the listing states, across the lease: " +
+        "(due at signing + payment × (term − 1) + broker fee) ÷ term. " +
         "Due at signing already includes the first month's payment, so it isn't counted twice. Over 36 months, " +
         "a $299/mo deal with $4,000 due is really more expensive than a $349/mo deal with $349 due, and this " +
         "number shows that. Drive can sort every deal by it.",

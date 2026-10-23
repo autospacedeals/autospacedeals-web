@@ -128,6 +128,18 @@ export function effectiveMonthly(deal: Deal): number {
   return (dueAtSigning + payment * laterPayments) / term;
 }
 
+// Real monthly cost: the effective payment plus the broker fee, when the
+// listing states one, spread over the term — it's money the shopper pays
+// too, and a dealer's own fees are already inside due at signing, so
+// leaving it out would make broker deals look cheaper than they are.
+// Refundable deposits and taxes aren't counted. Used wherever Drive shows
+// or ranks by "real monthly cost" / "total cost per month".
+export function realMonthlyCost(deal: Deal): number {
+  const term = Number.isFinite(deal.term) && deal.term > 0 ? deal.term : 1;
+  const fee = deal.brokerFee != null && Number.isFinite(deal.brokerFee) && deal.brokerFee > 0 ? deal.brokerFee : 0;
+  return effectiveMonthly(deal) + fee / term;
+}
+
 export function msrpDiscountPercent(deal: Deal): number {
   if (!deal.msrp || deal.msrp <= 0 || deal.sellingPrice == null || !Number.isFinite(deal.sellingPrice)) {
     return 0;
@@ -528,7 +540,7 @@ export function sortDeals(deals: Deal[], sortBy: SortOption, referenceState: str
     case "dueLow":
       return list.sort((a, b) => a.dueAtSigning - b.dueAtSigning);
     case "effectiveLow":
-      return list.sort((a, b) => effectiveMonthly(a) - effectiveMonthly(b));
+      return list.sort((a, b) => realMonthlyCost(a) - realMonthlyCost(b));
     case "newest":
       return list.sort((a, b) => (a.datePosted < b.datePosted ? 1 : -1));
     case "discountHigh":

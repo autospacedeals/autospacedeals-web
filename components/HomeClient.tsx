@@ -961,15 +961,17 @@ export default function HomeClient({
       <section aria-label="What a lease really costs" className="container-page pt-20 sm:pt-28">
         <div className="grid gap-x-6 gap-y-6 lg:grid-cols-12">
           <blockquote className="font-serif text-[1.875rem] leading-[1.14] tracking-[-0.015em] text-fg sm:text-[3.25rem] lg:col-span-8 lg:col-start-2">
-            A $225 payment with $3,500 due at signing is really a <em className="text-brand">$361</em> payment.
+            A $225 payment with $3,500 due at signing and a $799 broker fee is really a{" "}
+            <em className="text-brand">$395</em> payment.
             Drive prints both.
           </blockquote>
           <div className="self-end border-t border-rule-ink pt-3 text-sm leading-7 tabular-nums lg:col-span-3 lg:col-start-10">
             <p className="label mb-1.5">Real cost per month</p>
-            ($3,500 + $225 × 23) ÷ 24
-            <br />= $361.46
+            ($3,500 + $225 × 23 + $799) ÷ 24
+            <br />= $394.75
             <p className="mt-2 text-[12.5px] leading-5 text-fg-muted">
-              The due at signing covers the first month, so 23 payments follow it.
+              The due at signing covers the first month, so 23 payments follow it. The broker fee is
+              paid on top.
             </p>
           </div>
         </div>

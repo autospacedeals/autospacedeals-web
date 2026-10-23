@@ -14,10 +14,10 @@ import type { Deal } from "@/lib/deals-data";
 import {
   dealTitle,
   displayMsrp,
-  effectiveMonthly,
   formatCurrency,
   isNewlyPosted,
   msrpDiscountPercent,
+  realMonthlyCost,
   reportIssueMailtoHref,
   formatMsds,
   hasOtherMileages,
@@ -90,17 +90,19 @@ export default function DealDetailView({
     : [];
   const headline = formatCurrency(deal.onePay ? deal.dueAtSigning : deal.payment);
   const requires = (deal.incentives ?? []).filter(isRequiredProgram);
-  // Real monthly cost (lib/deal-utils.ts effectiveMonthly): the due at
-  // signing spread over the lease, the first payment inside it when the due
-  // covers it. With MSDs as an option, the same at the lower payment (the
-  // deposits come back, so they're left out).
+  // Real monthly cost (lib/deal-utils.ts realMonthlyCost): the due at
+  // signing and any listed broker fee spread over the lease, the first
+  // payment inside the due when it covers it. With MSDs as an option, the
+  // same at the lower payment (the deposits come back, so they're left out).
   const term = deal.term > 0 ? deal.term : 1;
   const laterPayments = deal.dueAtSigning >= deal.payment ? term - 1 : term;
-  const real = deal.onePay ? deal.dueAtSigning / term : effectiveMonthly(deal);
+  const fee = deal.brokerFee != null && deal.brokerFee > 0 ? deal.brokerFee : 0;
+  const real = deal.onePay ? (deal.dueAtSigning + fee) / term : realMonthlyCost(deal);
   const realWithMsds =
     !deal.onePay && deal.msdPayment && deal.msdCount
-      ? (deal.dueAtSigning + deal.msdPayment * (deal.dueAtSigning >= deal.msdPayment ? term - 1 : term)) / term
+      ? (deal.dueAtSigning + deal.msdPayment * (deal.dueAtSigning >= deal.msdPayment ? term - 1 : term) + fee) / term
       : null;
+  const feeTerm = fee ? ` + ${formatCurrency(fee)} broker fee` : "";
   const sellerRating =
     deal.brokerId && brokerRating && brokerRating.count > 0 && brokerRating.average != null
       ? { average: brokerRating.average, count: brokerRating.count }
@@ -337,19 +339,24 @@ export default function DealDetailView({
               <p className="acc-p">
                 {deal.onePay ? (
                   <>
-                    The one payment spread over the lease: {headline} ÷ {deal.term} months ≈{" "}
-                    <strong>{formatCurrency(real)} a month</strong>.
+                    The one payment{fee ? " and the broker fee" : ""} spread over the lease: {fee ? "(" : ""}
+                    {headline}
+                    {fee ? `${feeTerm})` : ""} ÷ {deal.term} months ≈ <strong>{formatCurrency(real)} a month</strong>.
                   </>
                 ) : (
                   <>
-                    The due at signing spread over the whole lease, so you can compare deals with different upfront
-                    amounts: ({formatCurrency(deal.dueAtSigning)} + {formatCurrency(deal.payment)} × {laterPayments}) ÷{" "}
-                    {deal.term} months ≈ <strong>{formatCurrency(real)} a month</strong>.
+                    The due at signing{fee ? " and the broker fee" : ""} spread over the whole lease, so you can compare
+                    deals with different upfront amounts: ({formatCurrency(deal.dueAtSigning)} +{" "}
+                    {formatCurrency(deal.payment)} × {laterPayments}
+                    {feeTerm}) ÷ {deal.term} months ≈ <strong>{formatCurrency(real)} a month</strong>.
                     {realWithMsds != null &&
                       ` With the refundable deposits it’s about ${formatCurrency(realWithMsds)} a month, since the deposits come back.`}
                   </>
                 )}{" "}
-                {realWithMsds != null ? "Neither includes" : "It doesn’t include"} the broker fee or taxes.
+                {!fee && deal.sellerType === "Broker"
+                  ? `No broker fee is listed, so none is counted; ask ${deal.sellerName} what it is. `
+                  : ""}
+                Taxes aren’t included.
               </p>
             </Acc>
 

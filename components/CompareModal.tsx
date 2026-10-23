@@ -7,7 +7,7 @@ import type { Deal } from "@/lib/deals-data";
 import {
   dealTitle,
   displayMsrp,
-  effectiveMonthly,
+  realMonthlyCost,
   formatCurrency,
   msrpDiscountPercent,
   formatMileage,
@@ -70,8 +70,8 @@ export default function CompareModal({
     { label: "Due at signing", render: (d) => formatCurrency(d.dueAtSigning) },
     {
       label: "Real monthly cost",
-      note: "(due at signing + remaining payments) / lease term",
-      render: (d) => formatCurrency(effectiveMonthly(d)),
+      note: "(due at signing + remaining payments + broker fee) ÷ lease term",
+      render: (d) => formatCurrency(realMonthlyCost(d)),
     },
     { label: "Term", render: (d) => formatTerm(d.term) },
     {
@@ -206,7 +206,7 @@ export default function CompareModal({
         )}
 
         <p className="border-t border-line px-5 py-4 text-xs leading-5 text-fg-muted sm:px-6">
-          Real monthly cost (the effective payment) is the fairest single number to compare across deals with
+          Real monthly cost (the effective payment, with any listed broker fee) is the fairest single number to compare across deals with
           different due-at-signing amounts — a lower monthly payment with a much larger upfront
           cost isn&apos;t always the better deal.
         </p>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { Deal } from "@/lib/deals-data";
 import { getPublishedDeals } from "@/lib/supabase/deals";
-import { effectiveMonthly, formatCurrency, groupSameDeals } from "@/lib/deal-utils";
+import { formatCurrency, groupSameDeals, realMonthlyCost } from "@/lib/deal-utils";
 import { pageMetadata } from "@/lib/site";
 import { REGION, breadcrumbJsonLd, byPayment, itemListJsonLd, jsonLdScript, monthYear } from "@/lib/lease-pages";
 import { carName, dealTerms, driveStats } from "@/lib/drive-facts";
@@ -27,7 +27,7 @@ const LUXURY = new Set(
 
 // A monthly lease with real numbers: the only kind a "best" can be stated for.
 const ranked = (d: Deal) => !d.onePay && d.payment > 0 && d.term > 0 && d.dealType !== "Finance";
-const byEffective = (a: Deal, b: Deal) => effectiveMonthly(a) - effectiveMonthly(b) || byPayment(a, b);
+const byEffective = (a: Deal, b: Deal) => realMonthlyCost(a) - realMonthlyCost(b) || byPayment(a, b);
 
 interface Category {
   id: string;
@@ -62,7 +62,7 @@ export default async function BestLeaseDealsPage() {
     {
       id: "lowest-total-cost",
       title: "Lowest total cost per month",
-      blurb: "Due at signing spread across the lease: (due at signing + payment × (term − 1)) ÷ term, since due at signing includes the first payment. The fairest way to compare.",
+      blurb: "Due at signing and any broker fee spread across the lease: (due at signing + payment × (term − 1) + broker fee) ÷ term, since due at signing includes the first payment. The fairest way to compare.",
       deals: top(deals, byEffective, 10),
     },
     {
@@ -125,7 +125,7 @@ export default async function BestLeaseDealsPage() {
         {best && ` The lowest payment right now is the ${carName(best)} at ${dealTerms(best)}.`}
         {cheapestTotal &&
           cheapestTotal.id !== best?.id &&
-          ` Counting due at signing, the lowest total cost is the ${carName(cheapestTotal)} at about ${formatCurrency(effectiveMonthly(cheapestTotal))}/mo.`}{" "}
+          ` Counting due at signing and any broker fee, the lowest total cost is the ${carName(cheapestTotal)} at about ${formatCurrency(realMonthlyCost(cheapestTotal))}/mo.`}{" "}
         Payments are before sales tax unless a listing says otherwise.
       </p>
 
@@ -163,7 +163,7 @@ export default async function BestLeaseDealsPage() {
                     <span className="shrink-0 text-right">
                       <span className="block font-semibold text-fg">{formatCurrency(d.payment)}/mo</span>
                       <span className="block text-xs text-fg-muted">
-                        ~{formatCurrency(effectiveMonthly(d))}/mo total
+                        ~{formatCurrency(realMonthlyCost(d))}/mo total
                       </span>
                     </span>
                   </Link>
