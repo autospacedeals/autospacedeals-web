@@ -9,7 +9,8 @@ export default function robots(): MetadataRoute.Robots {
       // Google can only drop a page from results if it's allowed to read
       // that tag (blocked pages were showing up as bare "Sign In" results).
       // /login and /signup just redirect to them.
-      allow: ["/", "/customer/login", "/customer/signup", "/customer/forgot-password"],
+      // /api/photo serves the listing photos, which Google Images may show.
+      allow: ["/", "/api/photo", "/customer/login", "/customer/signup", "/customer/forgot-password"],
       // Account, back-office and one-off pages have nothing for search. The
       // whole broker portal stays out too — it's only reached by direct link.
       disallow: ["/admin", "/api", "/auth", "/alerts", "/customer/", "/broker/"],

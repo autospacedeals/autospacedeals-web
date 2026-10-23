@@ -87,6 +87,41 @@ export async function saveImageToLibrary(k: LibraryKey, image: Buffer, opts: { f
   }
 }
 
+// The car cut out of its backdrop, with its soft floor shadow, for a
+// library photo: what /api/photo serves in its place
+// (cutouts/<sha1 of the photo's URL>.webp). Framed like the library
+// photos: trimmed to the car and its shadow, then the car at about 92% of a
+// 4:3 canvas's width. Mirrored first when `flop`. Returns whether it saved.
+export async function saveCutout(photoUrl: string, transparent: Buffer, opts: { flop?: boolean } = {}): Promise<boolean> {
+  try {
+    let source = sharp(transparent).ensureAlpha();
+    if (opts.flop) source = source.flop();
+    const trimmed = await source.trim({ threshold: 2 }).toBuffer({ resolveWithObject: true });
+    const { width: cw, height: ch } = trimmed.info;
+    const W = Math.min(1600, Math.round(cw / 0.92));
+    const carW = Math.round(W * 0.92);
+    const carH = Math.round((ch * carW) / cw);
+    const H = Math.max(Math.round(W * 0.75), carH + 20);
+    const car = await sharp(trimmed.data).resize(carW, carH).toBuffer();
+    const webp = await sharp({ create: { width: W, height: H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+      .composite([{ input: car, left: Math.round((W - carW) / 2), top: Math.round((H - carH) / 2) }])
+      .webp({ quality: 88, alphaQuality: 95 })
+      .toBuffer();
+    const key = createHash("sha1").update(photoUrl).digest("hex");
+    const { error } = await createAdminClient()
+      .storage.from(PHOTO_BUCKET)
+      .upload(`cutouts/${key}.webp`, webp, { contentType: "image/webp", upsert: true, cacheControl: "31536000" });
+    if (error) {
+      console.error("saveCutout upload failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("saveCutout failed:", err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 // A fallback photo (not a studio shot) copied into our storage under its
 // own path, never as the library photo for the car, so it can't break if
 // the original site removes it. Returns its URL here, or null on failure.

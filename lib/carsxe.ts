@@ -10,7 +10,8 @@
 // is searched first, then any color. The first studio photo for a
 // year/make/model/color is saved to Drive's photo library
 // (lib/photo-library.ts) and reused from then on.
-import { downloadImage, getLibraryPhoto, saveFallbackImage, saveImageToLibrary } from "@/lib/photo-library";
+import sharp from "sharp";
+import { downloadImage, getLibraryPhoto, saveCutout, saveFallbackImage, saveImageToLibrary } from "@/lib/photo-library";
 import { inspectCarPhoto } from "@/lib/photo-view";
 
 interface PhotoQuery {
@@ -39,7 +40,14 @@ function renderUrl(year: number, make: string, model: string, body: string): str
   return `https://images.dealer.com/ddc/vehicles/${year}/${seg(make)}/${seg(model)}/${body}/still/front-left/front-left-640-en_US.jpg`;
 }
 
-async function findRender(params: PhotoQuery): Promise<string | null> {
+// The same render, cut out of its backdrop with its soft floor shadow, where
+// Dealer.com has one (free; about one model in five).
+function perspectiveUrl(year: number, make: string, model: string, body: string): string {
+  const seg = (s: string) => encodeURIComponent(s);
+  return `https://images.dealer.com/ddc/vehicles/${year}/${seg(make)}/${seg(model)}/${body}/perspective/front-left/${year}_76.png`;
+}
+
+async function findRender(params: PhotoQuery, url = renderUrl): Promise<string | null> {
   const models = [params.model];
   for (let m = params.model; VARIANT_SUFFIX.test(m); ) {
     m = m.replace(VARIANT_SUFFIX, "");
@@ -51,10 +59,10 @@ async function findRender(params: PhotoQuery): Promise<string | null> {
   for (const year of [params.year, params.year - 1]) {
     for (const model of models) {
       for (const body of bodies) {
-        const url = renderUrl(year, params.make, model, body);
+        const candidate = url(year, params.make, model, body);
         try {
-          const res = await fetch(url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(5000) });
-          if (res.ok && (res.headers.get("content-type") ?? "").startsWith("image/")) return url;
+          const res = await fetch(candidate, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(5000) });
+          if (res.ok && (res.headers.get("content-type") ?? "").startsWith("image/")) return candidate;
         } catch {
           // try the next one
         }
@@ -111,6 +119,8 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
     // No studio shot in the car's color: remember the any-color one for
     // that color too, so it isn't searched for (and paid for) again.
     if (color && p.color === null) await saveImageToLibrary({ ...params, color }, p.image, { flop: p.flop });
+    // And the pre-cut version with its floor shadow, which the site shows.
+    if (url) await attachShadowedCutout(params, p.color, url);
     return url;
   };
 
@@ -174,6 +184,50 @@ export async function fetchCarsxePhoto(params: PhotoQuery): Promise<string | nul
   return backup ? saveFallbackImage({ ...params, color }, backup.url, backup.image, { flop: backup.flop }) : null;
 }
 
+// A new library photo's pre-cut twin: the car on a transparent background
+// with its soft floor shadow, as the photo sources make them (much cleaner
+// than cutting it out ourselves). Dealer.com's version first (free); if
+// there isn't one, one CarsXE lookup for a transparent studio shot (about
+// one credit per new car), checked for the right car and angle like the
+// main photo. Best-effort: without one the site cuts the photo itself.
+async function attachShadowedCutout(params: PhotoQuery, color: string | null, photoUrl: string): Promise<void> {
+  try {
+    const free = await findRender(params, perspectiveUrl);
+    const freeImage = free ? await downloadImage(free) : null;
+    if (freeImage && (await saveCutout(photoUrl, freeImage))) return;
+
+    let mirrored: Buffer | null = null;
+    const urls = await queryCarsxe(params, color, { transparent: true });
+    for (const url of urls.slice(0, MAX_CUTOUT_CHECKS)) {
+      const image = await downloadImage(url);
+      if (!image || !(await hasClearBackground(image))) continue;
+      const { view, matches } = await inspectCarPhoto(await sharp(image).flatten({ background: "#ffffff" }).png().toBuffer(), params);
+      if (matches === false) continue;
+      if (view === "front-left" || view === "unknown") {
+        await saveCutout(photoUrl, image);
+        return;
+      }
+      if (view === "front-right") mirrored ??= image;
+    }
+    if (mirrored) await saveCutout(photoUrl, mirrored, { flop: true });
+  } catch (err) {
+    console.error("attachShadowedCutout failed:", err instanceof Error ? err.message : err);
+  }
+}
+
+const MAX_CUTOUT_CHECKS = 6;
+
+// Whether an image really has a see-through background (a fair share of
+// clear pixels), not just an alpha channel.
+async function hasClearBackground(image: Buffer): Promise<boolean> {
+  const meta = await sharp(image).metadata();
+  if (!meta.hasAlpha) return false;
+  const { data, info } = await sharp(image).ensureAlpha().extractChannel(3).raw().toBuffer({ resolveWithObject: true });
+  let clear = 0;
+  for (let i = 0; i < data.length; i++) if (data[i] < 8) clear++;
+  return clear / (info.width * info.height) > 0.15;
+}
+
 // Non-studio photos checked per car before giving up (each is a small AI call).
 const MAX_FALLBACK_CHECKS = 12;
 
@@ -199,7 +253,7 @@ export function searchColor(raw: string | null | undefined): string | null {
   return value.split(/\s+x\s+|\/|,/i)[0].trim().slice(0, 40) || null;
 }
 
-async function queryCarsxe(params: PhotoQuery, color: string | null): Promise<string[]> {
+async function queryCarsxe(params: PhotoQuery, color: string | null, opts: { transparent?: boolean } = {}): Promise<string[]> {
   const apiKey = process.env.CARSXE_API_KEY;
   if (!apiKey) return [];
 
@@ -224,6 +278,11 @@ async function queryCarsxe(params: PhotoQuery, color: string | null): Promise<st
     query.set("photoType", "exterior");
   }
   if (params.trim) query.set("trim", params.trim);
+  // Pre-cut studio shots on a transparent background, with their shadow.
+  if (opts.transparent) {
+    query.set("transparent", "true");
+    query.delete("photoType");
+  }
 
   // A big upload fires many lookups at once and CarsXE starts refusing
   // some (rate limits); those are retried with a growing pause instead of
