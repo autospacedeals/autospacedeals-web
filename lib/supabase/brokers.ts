@@ -3,10 +3,15 @@
 // anyone can already view their listings.
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { withTimeout } from "./with-timeout";
+import { tradeName } from "@/lib/seller-name";
 
 export interface BrokerProfile {
   id: string;
+  // The name they trade under ("Coastal Motor Group"), shown everywhere on
+  // the page; legalName is the registered one ("OC AUTO LEASE DBA COASTAL
+  // MOTOR GROUP"), kept only for search engines' structured data.
   businessName: string;
+  legalName: string;
   sellerType: string;
   dealershipName: string | null;
   city: string;
@@ -57,7 +62,8 @@ export async function getBrokerProfile(id: string): Promise<BrokerProfile | null
 
     return {
       id: data.id,
-      businessName: data.business_name ?? "",
+      businessName: tradeName(data.business_name ?? ""),
+      legalName: data.business_name ?? "",
       sellerType: data.seller_type ?? "Broker",
       dealershipName: data.dealership_name,
       city: data.city ?? "",

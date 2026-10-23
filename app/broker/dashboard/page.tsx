@@ -24,6 +24,7 @@ import AboutEditor from "./AboutEditor";
 import SheetSyncManager, { type SheetSync } from "./SheetSyncManager";
 import ListingAssistant from "./ListingAssistant";
 import { loadAssistantState } from "@/lib/listing-assistant-store";
+import { tradeName } from "@/lib/seller-name";
 
 // Always fetch fresh so the broker's own edits (price changes, drafts
 // confirmed, listings removed) show up immediately, not from a stale cache.
@@ -184,7 +185,7 @@ export default async function BrokerDashboardPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="eyebrow">{broker?.seller_type ?? "Broker"} dashboard</p>
-          <h1 className="type-page mt-3 text-3xl break-words sm:text-3xl">{broker?.business_name ?? user.email}</h1>
+          <h1 className="type-page mt-3 text-3xl break-words sm:text-3xl">{broker?.business_name ? tradeName(broker.business_name) : user.email}</h1>
           {broker?.dealership_name && (
             <p className="mt-1 text-sm break-words text-fg-muted">at {broker.dealership_name}</p>
           )}

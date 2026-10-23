@@ -15,6 +15,7 @@ import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { withTimeout } from "@/lib/supabase/with-timeout";
+import { tradeName } from "@/lib/seller-name";
 
 // Archivo is both the UI face and (a little wider, wdth 108) the display
 // face — one variable file. The width axis must be requested explicitly.
@@ -92,7 +93,7 @@ async function getHeaderAccount(): Promise<HeaderAccount | null> {
       5000,
       "getHeaderAccount broker lookup"
     );
-    if (broker) return { label: broker.business_name, href: "/broker/dashboard" };
+    if (broker) return { label: tradeName(broker.business_name), href: "/broker/dashboard" };
     if (error) {
       console.error("getHeaderAccount broker lookup failed:", error.message);
     }

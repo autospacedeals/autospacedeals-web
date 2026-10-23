@@ -9,7 +9,6 @@ import { formatAverageRating, reviewCountLabel, reviewDateLabel, reviewFullDate 
 import BrokerListings from "@/components/BrokerListings";
 import { SITE_URL, pageMetadata } from "@/lib/site";
 import { itemListJsonLd, jsonLdScript } from "@/lib/lease-pages";
-import { tradeName } from "@/lib/seller-name";
 import StarRating, { RatingBadge } from "@/components/StarRating";
 import SellerAvatar from "@/components/SellerAvatar";
 import ReviewForm from "./ReviewForm";
@@ -79,7 +78,7 @@ export default async function BrokerProfilePage({
       "@type": dealership ? "AutoDealer" : "Organization",
       name: broker.dealershipName && broker.sellerType === "Salesperson" ? broker.dealershipName : broker.businessName,
       url: `${SITE_URL}/brokers/${id}`,
-      ...(tradeName(broker.businessName) !== broker.businessName ? { alternateName: tradeName(broker.businessName) } : {}),
+      ...(broker.legalName && broker.legalName !== broker.businessName ? { legalName: broker.legalName } : {}),
       ...(broker.logoUrl ? { logo: broker.logoUrl } : {}),
       ...(broker.about ? { description: broker.about.slice(0, 500) } : {}),
       address: { "@type": "PostalAddress", addressLocality: broker.city, addressRegion: broker.state, addressCountry: "US" },
