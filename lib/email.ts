@@ -16,6 +16,7 @@
 // support CSS variables or stylesheets, so the site's design tokens can't
 // be used. It's a light, dark-on-white palette because many clients
 // (Outlook, Gmail's own dark mode) rewrite or ignore dark backgrounds.
+import { isPhoneAccountEmail } from "@/lib/phone-accounts";
 import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency, formatMileage, formatTerm } from "@/lib/deal-utils";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -66,6 +67,9 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   const to = input.to.trim();
   if (!isSendableAddress(to)) return { ok: false, error: "invalid recipient" };
+  // Accounts made from a phone number have a placeholder address that gets
+  // no mail (lib/phone-accounts.ts); they hear from Drive by text instead.
+  if (isPhoneAccountEmail(to)) return { ok: false, error: "phone-only account" };
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,

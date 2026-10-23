@@ -5,9 +5,7 @@
 // emails on or off. Writes go through the user's own session, so the
 // database's row-level security decides what's allowed (0024_messaging.sql).
 import { randomUUID } from "crypto";
-import { after } from "next/server";
 import { revalidatePath } from "next/cache";
-import { alertAdminsFirstMessage } from "@/lib/admin-alerts";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   ATTACHMENT_BUCKET,
@@ -16,20 +14,16 @@ import {
   MAX_ATTACHMENT_BYTES,
   SHAREABLE_DOCS,
   cleanAttachments,
-  describeAttachments,
   safeFileName,
   type MessageAttachment,
   type ShareableDoc,
 } from "@/lib/message-attachments";
-import { dealTitle } from "@/lib/deal-utils";
-import { getPublishedDealsByIds } from "@/lib/supabase/deals";
-import { OUTCOMES_ENABLED, currentVisitSource, isLeadOutcome, saveConversationOutcome } from "@/lib/leads";
+import { OUTCOMES_ENABLED, isLeadOutcome, saveConversationOutcome } from "@/lib/leads";
+import { insertMessage, startConversation } from "@/lib/conversation-writes";
 import {
   CONVERSATION_COLUMNS,
-  MESSAGE_COLUMNS,
   MESSAGE_MAX,
   messagingRole,
-  notifyOtherSide,
   type ConversationRow,
   type MessageRow,
 } from "@/lib/messages";
@@ -60,55 +54,9 @@ export async function startConversationAction(input: {
     return { ok: false, code: "not-customer", error: "Messaging sellers needs a shopper account." };
   }
 
-  const found = await getPublishedDealsByIds([String(input.dealId)]);
-  const deal = found?.[0];
-  if (!deal) return { ok: false, error: "This listing isn't available anymore." };
-  if (!deal.brokerId) return { ok: false, error: "This seller can't be messaged on Drive yet." };
-
-  // Reopen the conversation about this listing if there already is one.
-  const { data: existing } = await supabase
-    .from("conversations")
-    .select("id")
-    .eq("customer_id", user.id)
-    .eq("broker_id", deal.brokerId)
-    .eq("deal_id", deal.id)
-    .maybeSingle<{ id: string }>();
-  let conversationId = existing?.id ?? null;
-  if (!conversationId) {
-    // Credited to how the shopper found us: this visit's source, else the
-    // one they signed up with.
-    let source = await currentVisitSource();
-    if (!source) {
-      const { data: me } = await supabase
-        .from("customers")
-        .select("signup_source, signup_campaign")
-        .eq("id", user.id)
-        .maybeSingle<{ signup_source: string | null; signup_campaign: string | null }>();
-      if (me?.signup_source) source = { source: me.signup_source, campaign: me.signup_campaign };
-    }
-    const { data: created, error } = await supabase
-      .from("conversations")
-      .insert({
-        customer_id: user.id,
-        broker_id: deal.brokerId,
-        deal_id: deal.id,
-        deal_label: dealTitle(deal).slice(0, 200),
-        source: source?.source ?? null,
-        campaign: source?.campaign ?? null,
-      })
-      .select("id")
-      .single<{ id: string }>();
-    if (error || !created) {
-      console.error("startConversation: insert failed:", error?.message);
-      return { ok: false, error: "We couldn't start that conversation. Please try again." };
-    }
-    conversationId = created.id;
-  }
-
-  const sent = await insertMessage(supabase, conversationId, user.id, "customer", body);
-  if (!sent.ok) return sent;
-  revalidatePath("/customer/messages");
-  return { ok: true, conversationId };
+  const started = await startConversation(supabase, user.id, String(input.dealId), body);
+  if (started.ok) revalidatePath("/customer/messages");
+  return started;
 }
 
 // The signed-in user and their side of a conversation, or why not.
@@ -152,38 +100,6 @@ export async function sendMessageAction(input: {
   return sent;
 }
 
-async function insertMessage(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  conversationId: string,
-  senderId: string,
-  role: "customer" | "broker",
-  body: string,
-  attachments: MessageAttachment[] = []
-): Promise<{ ok: true; message: MessageRow } | Failure> {
-  const { data: message, error } = await supabase
-    .from("messages")
-    .insert({ conversation_id: conversationId, sender_id: senderId, sender_role: role, body, attachments })
-    .select(MESSAGE_COLUMNS)
-    .single<MessageRow>();
-  if (error || !message) {
-    console.error("sendMessage: insert failed:", error?.message);
-    return { ok: false, error: "We couldn't send that message. Please try again." };
-  }
-
-  // Tell the other side by email/text (best-effort; never fails the send).
-  const sentFiles = describeAttachments(attachments);
-  const it = attachments.length === 1 ? "it" : "them";
-  const notice = [
-    body,
-    sentFiles && `[Sent ${sentFiles}. Open the conversation on Drive to see ${it}; for privacy, ${it} disappear${attachments.length === 1 ? "s" : ""} 15 minutes after you open ${it}.]`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-  await notifyOtherSide(conversationId, role, notice);
-  // A seller's first message ever: the admins check in (once per seller).
-  if (role === "customer") after(() => alertAdminsFirstMessage(conversationId));
-  return { ok: true, message };
-}
 
 // Every attachment was really uploaded to its folder.
 async function uploadsExist(attachments: MessageAttachment[]): Promise<boolean> {

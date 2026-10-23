@@ -45,6 +45,14 @@ export default function PrivacyPolicyPage() {
               email address.
             </p>
             <p>
+              <strong>Messaging a seller without signing up.</strong> If you
+              message a seller from a listing without an account, we collect your first name (and
+              last name, if you give it) and mobile number, and text you a code to confirm the number.
+              Confirming it creates a {SITE_NAME} account for you, with no email or password, so the
+              conversation is kept and the seller&apos;s replies can reach you by text. You sign back
+              in with a code texted to the same number.
+            </p>
+            <p>
               <strong>Signing in with Google.</strong> If you choose
               &quot;Continue with Google,&quot; Google shares your name, email address, and profile
               picture with us (the basic &quot;openid,&quot; &quot;email,&quot; and &quot;profile&quot;
@@ -90,8 +98,9 @@ export default function PrivacyPolicyPage() {
             </p>
             <p>
               <strong>Text messages.</strong> If you turn on &quot;Text me new
-              messages,&quot; we use the mobile number you confirm only to text you when you get a
-              new message on {SITE_NAME} and to receive your replies, which we add to the
+              messages,&quot; or confirm your number to message a seller without signing up, we use
+              the mobile number you confirm only to send you sign-in codes, to text you when you get
+              a new message on {SITE_NAME}, and to receive your replies, which we add to the
               conversation. We send texts through our provider, Twilio. We do not sell or share
               your SMS opt-in data or personal information with third parties for marketing
               purposes. No mobile information will be shared with third parties or affiliates for

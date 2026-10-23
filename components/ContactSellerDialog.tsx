@@ -4,8 +4,10 @@
 // shortcuts) on a listing: a small dialog with a ready-written message the
 // shopper can edit, sent through Drive's own messaging (app/messages/
 // actions.ts) so the conversation stays on record — sellers' phone numbers
-// and emails aren't shown on the site. Needs a shopper account; anyone
-// else gets a log-in / sign-up prompt instead. Same dialog behaviour as
+// and emails aren't shown on the site. Someone signed out doesn't have to
+// sign up first: they confirm their mobile number with a texted code and
+// get an account as they send (QuickMessageForm). If texting isn't set up,
+// they get a log-in / sign-up prompt instead. Same dialog behaviour as
 // GetMatched.tsx (portal, focus trap, Escape/scrim to close).
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
@@ -16,6 +18,8 @@ import type { Deal } from "@/lib/deals-data";
 import { dealTitle, formatCurrency } from "@/lib/deal-utils";
 import { useCustomerSession } from "@/components/CustomerSession";
 import { startConversationAction } from "@/app/messages/actions";
+import { quickMessageAvailableAction } from "@/app/messages/quick-actions";
+import QuickMessageForm from "@/components/QuickMessageForm";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -100,6 +104,20 @@ function ContactSellerDialog({
   const status = session?.status ?? "anonymous";
   const next = encodeURIComponent(pathname || "/");
 
+  // Whether a signed-out shopper can message with a texted code (Twilio is
+  // set up); null while checking.
+  const [quickAvailable, setQuickAvailable] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (status !== "anonymous") return;
+    let live = true;
+    quickMessageAvailableAction()
+      .then((ok) => live && setQuickAvailable(ok))
+      .catch(() => live && setQuickAvailable(false));
+    return () => {
+      live = false;
+    };
+  }, [status]);
+
   // Focus into the dialog on open, back to the row button on close; the
   // page behind doesn't scroll meanwhile.
   useEffect(() => {
@@ -163,7 +181,7 @@ function ContactSellerDialog({
   }
 
   let content: React.ReactNode;
-  if (status === "loading") {
+  if (status === "loading" || (status === "anonymous" && quickAvailable === null)) {
     content = <p className="text-sm text-fg-muted">One moment…</p>;
   } else if (status === "customer") {
     content = (
@@ -197,6 +215,8 @@ function ContactSellerDialog({
         Messaging sellers needs a shopper account — this account is a dealer/broker or admin one.
       </p>
     );
+  } else if (quickAvailable) {
+    content = <QuickMessageForm deal={deal} message={message} setMessage={setMessage} next={next} descId={descId} />;
   } else {
     content = (
       <div>

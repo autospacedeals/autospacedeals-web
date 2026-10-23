@@ -69,6 +69,22 @@ export default function TextAlertsPage() {
       </div>
 
       <div className="prose-drive mt-8">
+        <p>
+          Shoppers can also opt in while messaging a seller without an account: on a listing, choose{" "}
+          <strong>Message seller</strong>, enter a first name, mobile number and message, tap{" "}
+          <strong>Text me a code</strong>, and confirm the one-time code we text. Confirming sends the
+          message and turns on text alerts for new messages. The form shows this notice next to the
+          button:
+        </p>
+        <blockquote>
+          We&apos;ll text you a code to confirm your number, then a text when the seller replies. Msg
+          frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. See our
+          Terms and Privacy Policy.
+        </blockquote>
+        <p>
+          Anyone who&apos;d rather not get texts can create an account with an email address instead
+          and message sellers from there.
+        </p>
         <h2>What we send</h2>
         <p>
           One text for each new message you receive on {SITE_NAME}, for example:

@@ -14,6 +14,7 @@ import MessageEmailsToggle from "@/components/messages/MessageEmailsToggle";
 import SmsSettings from "@/components/messages/SmsSettings";
 import AccountSettings from "@/components/account/AccountSettings";
 import { hasPasswordLogin } from "@/lib/account";
+import { isPhoneAccountEmail } from "@/lib/phone-accounts";
 import { formatE164, isSmsConfigured } from "@/lib/twilio";
 import { CONVERSATION_COLUMNS, isUnreadFor, type ConversationRow } from "@/lib/messages";
 
@@ -72,6 +73,9 @@ export default async function CustomerDashboardPage() {
   const firstName = customer?.first_name ?? "";
   const middleName = customer?.middle_name ?? "";
   const lastName = customer?.last_name ?? "";
+  // Started by messaging a seller with just a phone number: no email or
+  // password to manage (lib/phone-accounts.ts).
+  const phoneAccount = isPhoneAccountEmail(user.email);
 
   // Short-lived signed URLs so the customer can view their own uploaded
   // documents from the private bucket — generated fresh on every page load
@@ -136,7 +140,9 @@ export default async function CustomerDashboardPage() {
             </div>
             <div>
               <dt className="label">Email</dt>
-              <dd className="mt-1 font-medium wrap-anywhere text-fg">{user.email}</dd>
+              <dd className="mt-1 font-medium wrap-anywhere text-fg">
+                {phoneAccount ? <span className="text-fg-muted">None, you sign in with a text code</span> : user.email}
+              </dd>
             </div>
             <div>
               <dt className="label">Phone</dt>
@@ -197,12 +203,19 @@ export default async function CustomerDashboardPage() {
               <UserCog /> Account
             </h2>
             <div className="mt-5">
-              <AccountSettings
-                email={user.email ?? ""}
-                pendingEmail={user.new_email ?? null}
-                hasPassword={hasPasswordLogin(user)}
-                role="customer"
-              />
+              {phoneAccount ? (
+                <p className="text-sm text-fg-secondary">
+                  You sign in with a code texted to {customer?.phone ? formatE164(customer.phone) : "your phone"}, so
+                  there&apos;s no password to manage. Use &quot;Sign in with a text code&quot; on the sign-in page.
+                </p>
+              ) : (
+                <AccountSettings
+                  email={user.email ?? ""}
+                  pendingEmail={user.new_email ?? null}
+                  hasPassword={hasPasswordLogin(user)}
+                  role="customer"
+                />
+              )}
             </div>
           </section>
         </div>

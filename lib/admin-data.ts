@@ -2,6 +2,7 @@
 // of account it is, contact details and activity. SERVER-ONLY — reads auth
 // users and private profile fields with the service role; only call it
 // after requireAdmin().
+import { isPhoneAccountEmail } from "@/lib/phone-accounts";
 import { createAdminClient } from "@/lib/supabase/server";
 import { adminEmails } from "@/lib/admin";
 import { normalizeUsPhone } from "@/lib/phone";
@@ -20,7 +21,7 @@ export interface AdminAccount {
   // in (account_activity, 0040) and their last sign-in.
   lastSeenAt: string | null;
   emailConfirmed: boolean;
-  via: "Google" | "Email";
+  via: "Google" | "Email" | "Text code";
   liveListings: number; // brokers
   draftListings: number; // brokers
   conversations: number;
@@ -115,12 +116,17 @@ export async function listAccounts(): Promise<AdminAccount[]> {
       const c = customerById.get(u.id);
       const base = {
         id: u.id,
-        email: u.email ?? "",
+        // An account started from a phone number has only a placeholder email.
+        email: isPhoneAccountEmail(u.email) ? "" : (u.email ?? ""),
         signedUpAt: u.created_at,
         lastSignInAt: u.last_sign_in_at ?? null,
         lastSeenAt: [seenAt.get(u.id), u.last_sign_in_at].filter((d): d is string => Boolean(d)).sort().pop() ?? null,
         emailConfirmed: Boolean(u.email_confirmed_at),
-        via: (u.app_metadata?.providers ?? []).includes("google") ? ("Google" as const) : ("Email" as const),
+        via: isPhoneAccountEmail(u.email)
+          ? ("Text code" as const)
+          : (u.app_metadata?.providers ?? []).includes("google")
+            ? ("Google" as const)
+            : ("Email" as const),
         liveListings: live.get(u.id) ?? 0,
         draftListings: drafts.get(u.id) ?? 0,
         savedDeals: savedBy.get(u.id) ?? 0,

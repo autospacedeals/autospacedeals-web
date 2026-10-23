@@ -6,6 +6,7 @@ import { isAdminEmail } from "@/lib/admin";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { LogoMark } from "@/components/Logo";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
+import PhoneCodeSignIn from "@/components/PhoneCodeSignIn";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -68,6 +69,9 @@ export default async function CustomerLoginPage({
           <div className="mt-8">
             <GoogleSignInButton next={next} />
             <LoginForm next={next} />
+            <div className="mt-4">
+              <PhoneCodeSignIn next={next} />
+            </div>
           </div>
         </div>
       </div>
