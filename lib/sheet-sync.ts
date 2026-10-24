@@ -58,6 +58,23 @@ export interface ActiveDealRow {
   make: string;
   model: string;
   trim: string | null;
+  // The numbers outside the signature, so a matched listing whose MSRP,
+  // term or miles changed is still updated. (Not the fee: a seller's
+  // standing rule can set it on the listing, so it differs from the sheet.)
+  msrp?: number | null;
+  term?: number | null;
+  miles_per_year?: number | null;
+}
+
+// A matched listing whose other numbers differ from its row.
+function detailsChanged(row: ActiveDealRow, d: ParsedDeal): boolean {
+  const differs = (a: number | null | undefined, b: number | null | undefined) =>
+    a !== undefined && (a ?? null) !== (b ?? null);
+  return (
+    differs(row.msrp, d.msrp) ||
+    differs(row.term, d.term) ||
+    differs(row.miles_per_year, d.milesPerYear)
+  );
 }
 
 // The car itself, without its price — the signature includes payment and
@@ -148,7 +165,10 @@ export function planSheetSync(
     list.push(row);
     dbByVehicle.set(key, list);
   }
-  const toUpdate: { id: string; deal: ParsedDeal }[] = [];
+  const rowById = new Map(existingRows.map((r) => [r.id, r]));
+  const toUpdate: { id: string; deal: ParsedDeal }[] = matched.filter(({ id, deal }) =>
+    detailsChanged(rowById.get(id)!, deal)
+  );
   const toInsert: ParsedDeal[] = [];
   for (const d of unmatchedSheet) {
     const candidate = dbByVehicle.get(vehicleKey(d))?.shift();
@@ -240,7 +260,7 @@ export async function runSheetSync(
 
   const { data: existingRows, error: fetchExistingError } = await supabase
     .from("deals")
-    .select("id, sheet_tab, match_signature, created_at, year, make, model, trim")
+    .select("id, sheet_tab, match_signature, created_at, year, make, model, trim, msrp, term, miles_per_year")
     .eq("sheet_sync_id", sync.id)
     .in("status", ["draft", "published"])
     .returns<ActiveDealRow[]>();
