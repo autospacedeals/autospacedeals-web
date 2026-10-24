@@ -81,7 +81,8 @@ export default function SiteFooter() {
             All deals are subject to availability and credit approval. Advertised payments,
             due-at-signing amounts, and terms are provided by the listing dealer or broker and
             may not include taxes, title, registration, or other fees unless the listing says so.
-            Vehicle photos may be stock images and may not show the exact vehicle, color or
+            Listings can contain errors, including in prices and terms, whether from the seller or
+            from how a listing was imported, and a listed price isn&apos;t an offer. Vehicle photos may be stock images and may not show the exact vehicle, color or
             options. Drive doesn&apos;t sell, lease, or finance vehicles. Always confirm final
             pricing and terms directly with the dealer or broker before signing.
           </p>

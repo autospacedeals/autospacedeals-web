@@ -238,6 +238,10 @@ export default function DealDetailView({
                 <strong>{deal.paymentTaxRate ? `Includes about ${deal.paymentTaxRate}% sales tax.` : "Plus sales tax"}</strong>
                 {deal.paymentTaxRate ? "" : " on the monthly payment."} Credit approval required.
               </li>
+              <li>
+                <strong>Numbers can contain mistakes.</strong> {deal.sellerName} posts this price, and listings
+                can have errors. Confirm the final numbers with {deal.sellerName} before you sign.
+              </li>
             </ul>
 
             {/* MSDs as an option: two clearly separate ways to pay, so the
