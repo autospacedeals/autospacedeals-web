@@ -324,13 +324,24 @@ export async function readWebsiteInventory(rawUrl: string): Promise<WebsiteInven
   return { ok: true, kind: "text", text };
 }
 
+// A line that opens a car on a deals page: its model year, then its name
+// ("2026 Audi Q8 55 Premium Plus").
+const CAR_TITLE = /^\s*(?:19|20)\d\d\s+[A-Za-z]/;
+
 // A page with no feed: its text, read in chunks so a long deals page fits
 // (one AI call per ~6,000 characters, about 15 cars, split at line breaks).
+// On a page whose cars each open with a title line, a chunk only ever
+// starts at one, so each car's numbers stay with its name: a chunk opening
+// on the tail of the car before had the AI give every car in it the
+// previous car's price.
 export function textChunks(text: string, size = 6000): string[] {
+  const lines = text.split("\n");
+  const titled = lines.filter((l) => CAR_TITLE.test(l)).length >= 3;
   const chunks: string[] = [];
   let current = "";
-  for (const line of text.split("\n")) {
-    if (current.length + line.length + 1 > size && current) {
+  for (const line of lines) {
+    const full = current.length + line.length + 1 > size;
+    if (current && full && (!titled || CAR_TITLE.test(line) || current.length > size * 2)) {
       chunks.push(current);
       current = "";
     }
@@ -338,6 +349,46 @@ export function textChunks(text: string, size = 6000): string[] {
   }
   if (current.trim()) chunks.push(current);
   return chunks;
+}
+
+const digits = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+// Words in model names too general to tell two cars apart.
+const GENERIC_WORDS = new Set(["series", "class", "sedan", "coupe", "hatchback", "hybrid", "plug", "in", "sport", "ev", "tron", "new"]);
+
+// A car read from a chunk whose price sits, on the page, under a different
+// car's title (another model or model year): the AI paired the wrong lines.
+// Only cars whose payment and MSRP are found together under one title are
+// judged; anything else is left as read.
+export function misreadCars(chunk: string, deals: ParsedDeal[]): Set<ParsedDeal> {
+  const blocks: { title: string; text: string }[] = [];
+  for (const line of chunk.split("\n")) {
+    if (CAR_TITLE.test(line) || blocks.length === 0) blocks.push({ title: CAR_TITLE.test(line) ? line : "", text: "" });
+    blocks[blocks.length - 1].text += line + "\n";
+  }
+  const money = (n: number) => new RegExp(`\\$\\s?(?:${Math.round(n).toLocaleString("en-US")}|${Math.round(n)})(?![\\d,])`);
+  const bad = new Set<ParsedDeal>();
+  for (const d of deals) {
+    if (!d.payment || !d.msrp) continue;
+    const homes = blocks.filter((b) => b.title && money(d.payment).test(b.text) && money(d.msrp!).test(b.text));
+    if (homes.length === 0) continue;
+    // Whole model or trim names, long enough not to turn up in any title
+    // (a trim like "SE" would).
+    const names = [d.model, d.trim ?? ""].map(digits).filter((x) => x.length >= 4);
+    // Model words only: trim words ("Premium Plus", "SE") are shared by
+    // neighbouring cars.
+    const words = d.model
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 2 && !GENERIC_WORDS.has(w) && w !== digits(d.make));
+    const isThisCar = (title: string) => {
+      if (!title.trim().startsWith(String(d.year))) return false;
+      const t = digits(title);
+      const titleWords = new Set(title.toLowerCase().split(/[^a-z0-9]+/));
+      return names.some((n) => t.includes(n)) || words.some((w) => titleWords.has(w) && !/^\d+$/.test(w));
+    };
+    if (!homes.some((b) => isThisCar(b.title))) bad.add(d);
+  }
+  return bad;
 }
 
 // The cache "tab" a website's cars are kept under: a feed is read row by
@@ -386,7 +437,24 @@ export async function readWebsiteDeals(url: string, brokerState: string, cache: 
   const skipped: SkippedRow[] = [];
   const results = await mapLimit(chunks, TEXT_CHUNK_CONCURRENCY, async (chunk) => {
     const key = createHash("sha1").update(`${brokerState}\n${chunk}`).digest("base64url");
-    return { key, result: before[key] ?? (await parseFreeTextWithAI(chunk, brokerState).then((r) => ({ p: r.parsed, s: r.skipped }))) };
+    const cached = before[key];
+    if (cached) return { key, result: cached };
+    const read = await parseFreeTextWithAI(chunk, brokerState);
+    // A car given another car's price is held back for the admins to see,
+    // never posted.
+    const misread = misreadCars(chunk, read.parsed);
+    const result = {
+      p: read.parsed.filter((d) => !misread.has(d)),
+      s: [
+        ...read.skipped,
+        ...[...misread].map((d) => ({
+          row: 0,
+          reason: `Its price ($${d.payment}/mo, MSRP $${d.msrp?.toLocaleString("en-US")}) is listed under a different car on the page, so it wasn't posted.`,
+          partial: d,
+        })),
+      ],
+    };
+    return { key, result };
   });
   results.forEach(({ key, result }, i) => {
     after[key] = result;
