@@ -13,7 +13,14 @@ import { isAdminEmail } from "@/lib/admin";
 import { alertAdminsFirstListing } from "@/lib/admin-alerts";
 import { slugify, parseMsrpInput } from "@/lib/deal-utils";
 import { fetchCarsxePhoto, fetchCarsxePhotos } from "@/lib/carsxe";
-import { parseInventoryBuffer, parseTabs, type ParsedDeal, type SkippedRow, type TabRowCache } from "@/lib/parse-inventory";
+import {
+  computeMatchSignature,
+  parseInventoryBuffer,
+  parseTabs,
+  type ParsedDeal,
+  type SkippedRow,
+  type TabRowCache,
+} from "@/lib/parse-inventory";
 import {
   parseFreeTextWithAI,
   parseImageWithAI,
@@ -484,7 +491,25 @@ export async function createSubmissionAction(
   // app/api/cron/sync-sheets. A synced source's cars go live right away,
   // this first batch included; other sources land as drafts for review.
   let sheetSyncId: string | null = null;
+  // Re-importing a sheet that's already synced reuses that sync instead of
+  // starting a second one (which would list every car twice).
   if ((sourceType === "google_sheet" || sourceType === "website") && formData.get("keepSynced") === "on") {
+    const sheetKey = (url: string) => /\/d\/([\w-]{20,})/.exec(url)?.[1] ?? url.trim();
+    const { data: existingSyncs } = await supabase
+      .from("sheet_syncs")
+      .select("id, sheet_url")
+      .eq("broker_id", user.id)
+      .returns<{ id: string; sheet_url: string }[]>();
+    const existing = (existingSyncs ?? []).find((x) => sheetKey(x.sheet_url) === sheetKey(sourceUrl));
+    if (existing) {
+      await supabase
+        .from("sheet_syncs")
+        .update({ active: true, tabs: sheetTabs, disabled_tabs: skippedTabs })
+        .eq("id", existing.id);
+      sheetSyncId = existing.id;
+    }
+  }
+  if (!sheetSyncId && (sourceType === "google_sheet" || sourceType === "website") && formData.get("keepSynced") === "on") {
     const { data: sync, error: syncError } = await supabase
       .from("sheet_syncs")
       .insert({
@@ -510,6 +535,40 @@ export async function createSubmissionAction(
   let stageFailed = 0;
   let stageLastError: string | null = null;
   let heldCount = 0;
+  // A synced import doesn't add a second copy of a car the seller already
+  // lists (same car, payment and due at signing — e.g. one they typed in by
+  // hand after an earlier import couldn't read it): that listing joins the
+  // sync instead, so later checks keep it up to date.
+  if (sheetSyncId && parsedDeals.length > 0) {
+    const { data: live } = await supabase
+      .from("deals")
+      .select("id, year, make, model, trim, payment, due_at_signing")
+      .eq("broker_id", user.id)
+      .in("status", ["draft", "published"])
+      .returns<{ id: string; year: number; make: string; model: string; trim: string | null; payment: number; due_at_signing: number }[]>();
+    const bySignature = new Map<string, string>();
+    for (const l of live ?? []) {
+      const sig = computeMatchSignature({ ...l, dueAtSigning: l.due_at_signing });
+      if (!bySignature.has(sig)) bySignature.set(sig, l.id);
+    }
+    const fresh: ParsedDeal[] = [];
+    for (const d of parsedDeals) {
+      const sig = computeMatchSignature(d);
+      const id = bySignature.get(sig);
+      if (!id) {
+        fresh.push(d);
+        continue;
+      }
+      bySignature.delete(sig);
+      const { error: adoptError } = await supabase
+        .from("deals")
+        .update({ sheet_sync_id: sheetSyncId, sheet_tab: d.sheetTab ?? null, match_signature: sig })
+        .eq("id", id)
+        .eq("broker_id", user.id);
+      if (adoptError) console.error("Sheet import: couldn't attach an existing listing to the sync:", adoptError.message);
+    }
+    parsedDeals = fresh;
+  }
   if (broker && parsedDeals.length > 0 && inserted) {
     const staging = await stageParsedDeals(supabase, user.id, broker, inserted.id, parsedDeals, {
       sheetSyncId,
