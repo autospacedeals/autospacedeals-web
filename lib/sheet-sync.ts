@@ -294,6 +294,9 @@ export async function runSheetSync(
         due_at_signing: d.dueAtSigning,
         ...(d.dueAtSigningTaxRate ? { due_at_signing_tax_rate: d.dueAtSigningTaxRate } : {}),
         msrp: d.msrp,
+        // A hidden-digit MSRP in the sheet stays hidden; a mask the seller set
+        // on the site isn't undone by a sheet that shows the number.
+        ...(d.maskMsrp ? { mask_msrp: true, msrp_masked_label: d.msrpMaskedLabel ?? null } : {}),
         term: d.term,
         miles_per_year: d.milesPerYear,
         mileage_options: d.mileageOptions ?? [],

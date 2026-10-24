@@ -18,6 +18,12 @@ import { sanitizeIncentives, sanitizeLeaseOptions, sanitizeMileageOptions } from
 import { cleanCity, parseDelivery, parseStateCode } from "./deal-location";
 import type { Incentive } from "./deals-data";
 import { moveProgramsToIncentives, normalizeModelTrim } from "@/lib/vehicle-names";
+import { parseMsrpInput } from "@/lib/deal-utils";
+
+// "MSRP listed as $49,XXX" / "MSRP: $65,xxx" in a note: the hidden-digit MSRP
+// (group 1), and the same phrase to take back out of the notes.
+const MASKED_MSRP_NOTE = /MSRP[^$\d]{0,20}(\$?\s?\d{1,3}\s?,?\s?[xX]{3})/;
+const MASKED_MSRP_NOTE_STRIP = /MSRP[^$\d;]{0,20}\$?\s?\d{1,3}\s?,?\s?[xX]{3}\s*[;.,]?\s*/i;
 
 function toParsedIncentives(list: Incentive[]): NonNullable<ParsedDeal["incentives"]> {
   return list.map((i) => ({ ...i, includedInPrice: i.includedInPrice === true }));
@@ -59,6 +65,12 @@ const EXTRACT_TOOL = {
                 "\"X5 Conquest\") are not trims: they're programs the price requires, so list them in incentives.",
             },
             msrp: { type: ["number", "null"], description: "MSRP in dollars, e.g. 217000 for \"217k\"" },
+            msrpMasked: {
+              type: ["string", "null"],
+              description:
+                "Only when the MSRP is shown with hidden digits (\"$49,XXX\", \"MSRP: $65,xxx\", \"54xxx\"): the " +
+                "MSRP exactly as written, and msrp stays null. null otherwise.",
+            },
             sellingPrice: {
               type: ["number", "null"],
               description:
@@ -336,7 +348,16 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const year = typeof c.year === "number" ? c.year : null;
     const make = typeof c.make === "string" && c.make.trim() ? c.make.trim() : null;
     const model = typeof c.model === "string" && c.model.trim() ? c.model.trim() : null;
-    const msrp = typeof c.msrp === "number" ? c.msrp : null;
+    // A hidden-digit MSRP ("$49,XXX") is kept hidden: an estimate for sorting
+    // and discount math, and the label as written for display. Also caught
+    // in the notes, where it landed before msrpMasked existed.
+    const maskedText =
+      typeof c.msrp === "number"
+        ? null
+        : (typeof c.msrpMasked === "string" && /\d\s*,?\s*x/i.test(c.msrpMasked) ? c.msrpMasked : null) ??
+          (typeof c.notes === "string" ? (MASKED_MSRP_NOTE.exec(c.notes)?.[1] ?? null) : null);
+    const masked = maskedText ? parseMsrpInput(maskedText) : null;
+    const msrp = typeof c.msrp === "number" ? c.msrp : masked && masked.msrp >= 5000 ? masked.msrp : null;
     // The vehicle's total price (California's CARS Act wants it on dealer ads).
     const sellingPrice =
       typeof c.sellingPrice === "number" && c.sellingPrice > 1000 && c.sellingPrice < 2000000 ? c.sellingPrice : null;
@@ -392,7 +413,10 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
     const state = parseStateCode(c.state) ?? brokerState;
     const city = cleanCity(c.city);
     const delivery = parseDelivery(c.delivery);
-    const notes = typeof c.notes === "string" ? c.notes.trim() : "";
+    const notes =
+      typeof c.notes === "string"
+        ? (masked ? c.notes.replace(MASKED_MSRP_NOTE_STRIP, "") : c.notes).replace(/^[\s;,.]+|[\s;,]+$/g, "").trim()
+        : "";
     const milesPerYear = typeof c.milesPerYear === "number" ? c.milesPerYear : null;
     // Incentives with a stated value, kept as read — never looked up.
     const statedIncentives = sanitizeIncentives(c.incentives);
@@ -417,6 +441,10 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       if (model) partial.model = model;
       if (trim) partial.trim = trim;
       if (msrp) partial.msrp = msrp;
+      if (msrp && masked) {
+        partial.maskMsrp = true;
+        partial.msrpMaskedLabel = masked.msrpMaskedLabel;
+      }
       if (sellingPrice) partial.sellingPrice = sellingPrice;
       if (!onePay && payment) partial.payment = payment;
       if (term) partial.term = term;
@@ -444,6 +472,7 @@ function toolResponseToResult(response: Anthropic.Message, brokerState: string):
       model: model!,
       trim,
       msrp: msrp!,
+      ...(masked ? { maskMsrp: true, msrpMaskedLabel: masked.msrpMaskedLabel } : {}),
       sellingPrice,
       payment: onePay ? 0 : payment!,
       term: term!,

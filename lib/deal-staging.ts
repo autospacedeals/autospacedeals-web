@@ -151,6 +151,8 @@ export async function stageParsedDeals(
       interior: d.interior,
       deal_type: "Lease",
       msrp: d.msrp,
+      mask_msrp: d.maskMsrp ?? false,
+      msrp_masked_label: d.maskMsrp ? (d.msrpMaskedLabel ?? null) : null,
       selling_price: d.sellingPrice ?? null,
       payment: d.payment,
       due_at_signing: d.dueAtSigning,

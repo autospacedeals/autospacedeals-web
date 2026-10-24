@@ -26,6 +26,11 @@ export interface ParsedDeal {
   model: string;
   trim: string | null;
   msrp: number;
+  // An MSRP the source shows with hidden digits ("$49,XXX"): msrp is then
+  // the estimate (49000) and the label is shown instead, like the add-a-car
+  // form's masked MSRP (lib/deal-utils.ts parseMsrpInput).
+  maskMsrp?: boolean;
+  msrpMaskedLabel?: string | null;
   // The vehicle's total price (all dealer fees and add-ons, before rebates;
   // without taxes, government fees or the doc fee), when the
   // source states it (shown on the listing; required for dealership
