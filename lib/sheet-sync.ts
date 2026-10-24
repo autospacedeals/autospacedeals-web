@@ -162,7 +162,10 @@ export function planSheetSync(
 export async function runSheetSync(
   supabase: SupabaseClient,
   sync: SheetSyncRow,
-  broker: BrokerProfile
+  broker: BrokerProfile,
+  // Past this (a Date.now() time) no more new cars are added; the check
+  // still saves, and the next one adds the rest.
+  deadline?: number
 ): Promise<SheetSyncResult> {
   const nowIso = new Date().toISOString();
   const fail = async (message: string): Promise<SheetSyncResult> => {
@@ -363,6 +366,7 @@ export async function runSheetSync(
     const staging = await stageParsedDeals(supabase, sync.broker_id, broker, null, toInsert, {
       status: "published",
       sheetSyncId: sync.id,
+      deadline,
     });
     addedCount = staging.staged;
     if (addedCount > 0) await alertAdminsFirstListing(sync.broker_id);

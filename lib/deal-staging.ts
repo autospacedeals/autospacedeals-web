@@ -36,6 +36,10 @@ export interface StageOptions {
   // runs can find them again by signature and tell "still there" apart from
   // "removed."
   sheetSyncId?: string | null;
+  // When to stop starting new cars (a Date.now() time), so a big batch
+  // ends inside the function's time limit; the sync adds the rest next
+  // check.
+  deadline?: number;
 }
 
 // Turns each successfully-parsed row into a deal owned by the broker. By
@@ -52,6 +56,7 @@ export async function stageParsedDeals(
 ): Promise<{ staged: number; failed: number; lastError: string | null; held: { deal: ParsedDeal; reason: string }[] }> {
   const status = options.status ?? "draft";
   const sheetSyncId = options.sheetSyncId ?? null;
+  const deadline = options.deadline ?? Infinity;
 
   let staged = 0;
   let failed = 0;
@@ -111,6 +116,7 @@ export async function stageParsedDeals(
   };
 
   await mapLimit(deals, 4, async (d, i) => {
+    if (Date.now() > deadline) return;
     let images: string[] = [];
     if (d.photoUrls?.length) {
       const saved = await mapLimit(d.photoUrls.slice(0, MAX_SELLER_PHOTOS), 4, sellerPhoto);

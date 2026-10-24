@@ -13,6 +13,11 @@ export const dynamic = "force-dynamic";
 // A big sheet's first read (or a lot of changed rows) means several AI
 // batches; later checks only re-read changed rows and finish quickly.
 export const maxDuration = 300;
+// Leaves room to save each check before the limit: a site whose new cars
+// don't all fit adds the rest on the next run, and a sync not reached
+// this run goes first next time.
+const ADD_CARS_UNTIL_MS = 220_000;
+const START_SYNCS_UNTIL_MS = 180_000;
 
 interface BrokerRow extends BrokerProfile {
   id: string;
@@ -29,12 +34,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = Date.now();
   const supabase = createAdminClient();
 
   const { data: syncs, error: syncsError } = await supabase
     .from("sheet_syncs")
     .select(SHEET_SYNC_COLUMNS)
     .eq("active", true)
+    .order("last_synced_at", { ascending: true, nullsFirst: true })
     .returns<SheetSyncRow[]>();
 
   if (syncsError) {
@@ -45,6 +52,10 @@ export async function GET(request: NextRequest) {
   const results: Array<{ syncId: string; added: number; removed: number; updated: number; error: string | null }> = [];
 
   for (const sync of syncs ?? []) {
+    if (Date.now() - startedAt > START_SYNCS_UNTIL_MS) {
+      results.push({ syncId: sync.id, added: 0, removed: 0, updated: 0, error: "Out of time this run; checked next run." });
+      continue;
+    }
     try {
       const { data: broker } = await supabase
         .from("brokers")
@@ -57,7 +68,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const result = await runSheetSync(supabase, sync, broker);
+      const result = await runSheetSync(supabase, sync, broker, startedAt + ADD_CARS_UNTIL_MS);
       results.push(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
