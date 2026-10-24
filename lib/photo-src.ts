@@ -10,7 +10,7 @@ export function isCutoutSource(src: string): boolean {
 // Bump when the cutouts change (lib/photo-cutout.ts, or a new batch of the
 // ready-made ones in storage): they're cached for a year, so
 // a new version needs a new address to reach browsers that saw the old one.
-const CUTOUT_VERSION = 11;
+const CUTOUT_VERSION = 12;
 
 // The cut-out version of a listing photo; any other URL is left as it is.
 export function cutoutSrc(src: string | null | undefined): string {

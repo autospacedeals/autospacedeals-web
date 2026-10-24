@@ -5,8 +5,10 @@
 // photo is linked with different version tags over time) is served when
 // there is one; a photo
 // without one yet is cut here by lib/photo-cutout.ts. Only photos in Drive's own
-// storage are fetched. The result never changes for a given photo URL (they
-// carry a version), so it's cached for a year by browsers and Vercel's CDN.
+// storage are fetched. A ready-made cutout never changes for a given photo
+// URL (they carry a version), so it's cached for a year by browsers and
+// Vercel's CDN; one cut here is only kept for an hour, so the clean version
+// takes its place once it's made.
 // On any failure the shopper gets the original photo instead.
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
@@ -43,7 +45,9 @@ export async function GET(request: NextRequest) {
     const input = Buffer.from(await res.arrayBuffer());
     if (input.length > MAX_BYTES) return NextResponse.redirect(src, 302);
     const out = await cutoutPhoto(input);
-    return new NextResponse(new Uint8Array(out), { headers: cached });
+    return new NextResponse(new Uint8Array(out), {
+      headers: { ...cached, "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+    });
   } catch (err) {
     console.error("photo cutout failed:", err instanceof Error ? err.message : err);
     return NextResponse.redirect(src, 302);
