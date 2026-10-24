@@ -1,7 +1,9 @@
 // A listing photo with its white studio backdrop made transparent, so the
 // car sits straight on the page in either theme. The clean version made
-// ahead of time with an AI background remover (cutouts/<sha1 of the photo
-// URL>.webp in the car-photos bucket) is served when there is one; a photo
+// ahead of time (cutouts/<sha1 of the photo URL>.webp in the car-photos
+// bucket — the URL with its ?v= version, or without it: the same library
+// photo is linked with different version tags over time) is served when
+// there is one; a photo
 // without one yet is cut here by lib/photo-cutout.ts. Only photos in Drive's own
 // storage are fetched. The result never changes for a given photo URL (they
 // carry a version), so it's cached for a year by browsers and Vercel's CDN.
@@ -20,16 +22,19 @@ export async function GET(request: NextRequest) {
     "Content-Type": "image/webp",
     "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
   };
-  try {
-    const key = createHash("sha1").update(src).digest("hex");
-    const ready = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-photos/cutouts/${key}.webp`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (ready.ok && (ready.headers.get("content-type") ?? "").startsWith("image/")) {
-      return new NextResponse(new Uint8Array(await ready.arrayBuffer()), { headers: cached });
+  for (const variant of [src, src.split("?")[0]]) {
+    try {
+      const key = createHash("sha1").update(variant).digest("hex");
+      const ready = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-photos/cutouts/${key}.webp`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (ready.ok && (ready.headers.get("content-type") ?? "").startsWith("image/")) {
+        return new NextResponse(new Uint8Array(await ready.arrayBuffer()), { headers: cached });
+      }
+    } catch {
+      // Try the next key, then make one below.
     }
-  } catch {
-    // No ready-made cutout: make one below.
+    if (!src.includes("?")) break;
   }
   try {
     const res = await fetch(src, { signal: AbortSignal.timeout(10000) });

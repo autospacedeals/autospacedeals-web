@@ -34,9 +34,24 @@ function publicUrl(path: string): string {
   return createAdminClient().storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-// The saved photo's URL, or null if there isn't one yet.
+// The same path under the model's older spelling ("rx350" for "rx-350"):
+// model names were later normalized ("RX350" -> "RX 350"), and the photos
+// saved under the old spelling are the ones with finished cutouts.
+function legacyLibraryPath(k: LibraryKey): string {
+  return `${slug(k.make)}/${k.year}/${slug(k.model).replace(/-/g, "")}/${k.color ? slug(k.color) : "any"}.webp`;
+}
+
+// The saved photo's URL, or null if there isn't one yet (under the model's
+// current or older spelling).
 export async function getLibraryPhoto(k: LibraryKey): Promise<string | null> {
-  const url = publicUrl(libraryPath(k));
+  const found = await libraryPhotoAt(libraryPath(k));
+  if (found) return found;
+  const legacy = legacyLibraryPath(k);
+  return legacy !== libraryPath(k) ? libraryPhotoAt(legacy) : null;
+}
+
+async function libraryPhotoAt(path: string): Promise<string | null> {
+  const url = publicUrl(path);
   try {
     const res = await fetch(url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
@@ -107,13 +122,17 @@ export async function saveCutout(photoUrl: string, transparent: Buffer, opts: { 
       .composite([{ input: car, left: Math.round((W - carW) / 2), top: Math.round((H - carH) / 2) }])
       .webp({ quality: 88, alphaQuality: 95 })
       .toBuffer();
-    const key = createHash("sha1").update(photoUrl).digest("hex");
-    const { error } = await createAdminClient()
-      .storage.from(PHOTO_BUCKET)
-      .upload(`cutouts/${key}.webp`, webp, { contentType: "image/webp", upsert: true, cacheControl: "31536000" });
-    if (error) {
-      console.error("saveCutout upload failed:", error.message);
-      return false;
+    // Under the URL as given and without its ?v= version, so the photo's
+    // cutout is found whatever version tag a listing links it with.
+    for (const variant of new Set([photoUrl, photoUrl.split("?")[0]])) {
+      const key = createHash("sha1").update(variant).digest("hex");
+      const { error } = await createAdminClient()
+        .storage.from(PHOTO_BUCKET)
+        .upload(`cutouts/${key}.webp`, webp, { contentType: "image/webp", upsert: true, cacheControl: "31536000" });
+      if (error) {
+        console.error("saveCutout upload failed:", error.message);
+        return false;
+      }
     }
     return true;
   } catch (err) {
